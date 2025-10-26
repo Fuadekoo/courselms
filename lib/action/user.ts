@@ -41,8 +41,8 @@ export async function authenticate(
     redirectPath = `/${lang}/dashboard`;
     revalidatePath(`/${lang}/dashboard`);
   } else if (session?.user?.role === "manager") {
-    redirectPath = `/${lang}/dashboard`;
-    revalidatePath(`/${lang}/dashboard`);
+    redirectPath = `/${lang}/manager`;
+    revalidatePath(`/${lang}/manager`);
   } else if (session?.user?.role === "student") {
     redirectPath = `/${lang}/course`;
     revalidatePath(`/${lang}/course`);
