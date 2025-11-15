@@ -11,17 +11,19 @@ export default async function Layout({
   instructor,
   student,
   children,
-}: {
-  pending: React.ReactNode;
-  inactive: React.ReactNode;
-  manager: React.ReactNode;
-  seller: React.ReactNode;
-  affiliate: React.ReactNode;
-  instructor: React.ReactNode;
-  student: React.ReactNode;
+  params,
+}: Readonly<{
+  pending?: React.ReactNode;
+  inactive?: React.ReactNode;
+  manager?: React.ReactNode;
+  seller?: React.ReactNode;
+  affiliate?: React.ReactNode;
+  instructor?: React.ReactNode;
+  student?: React.ReactNode;
   children: React.ReactNode;
   params: Promise<{ lang: string }>;
-}) {
+}>) {
+  await params; // Await params to satisfy Next.js requirements
   const session = await auth();
   if (!session) return children;
 
@@ -33,18 +35,18 @@ export default async function Layout({
   if (!user) return children;
 
   return user.status == "pending"
-    ? pending
+    ? pending ?? children
     : user.status == "inactive"
-    ? inactive
+    ? inactive ?? children
     : session.user?.role === "manager"
-    ? manager
+    ? manager ?? children
     : session.user?.role === "seller"
-    ? seller
+    ? seller ?? children
     : session.user?.role === "affiliate"
-    ? affiliate
+    ? affiliate ?? children
     : session.user?.role === "instructor"
-    ? instructor
+    ? instructor ?? children
     : session.user?.role === "student"
-    ? student
+    ? student ?? children
     : children;
 }
