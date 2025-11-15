@@ -11,6 +11,7 @@ export default async function Layout({
   instructor,
   student,
   children,
+  params,
 }: {
   pending: React.ReactNode;
   inactive: React.ReactNode;
@@ -22,6 +23,7 @@ export default async function Layout({
   children: React.ReactNode;
   params: Promise<{ lang: string }>;
 }) {
+  await params; // Await params to satisfy Next.js requirements
   const session = await auth();
   if (!session) return children;
 
