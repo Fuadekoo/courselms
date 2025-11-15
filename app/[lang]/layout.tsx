@@ -13,13 +13,13 @@ export default async function Layout({
   children,
   params,
 }: Readonly<{
-  pending?: React.ReactNode;
-  inactive?: React.ReactNode;
-  manager?: React.ReactNode;
-  seller?: React.ReactNode;
-  affiliate?: React.ReactNode;
-  instructor?: React.ReactNode;
-  student?: React.ReactNode;
+  pending: React.ReactNode;
+  inactive: React.ReactNode;
+  manager: React.ReactNode;
+  seller: React.ReactNode;
+  affiliate: React.ReactNode;
+  instructor: React.ReactNode;
+  student: React.ReactNode;
   children: React.ReactNode;
   params: Promise<{ lang: string }>;
 }>) {
