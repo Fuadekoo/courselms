@@ -45,7 +45,8 @@ CREATE TABLE `Course` (
     `thumbnail` VARCHAR(191) NOT NULL,
     `video` VARCHAR(191) NOT NULL,
     `pdfData` TEXT NULL,
-    `courseMaterials` VARCHAR(191) NOT NULL DEFAULT '',
+    `aiProvider` VARCHAR(191) NULL DEFAULT 'gemini',
+    `courseMaterials` TEXT NULL,
     `price` DECIMAL(65, 30) NOT NULL,
     `dolarPrice` INTEGER NOT NULL,
     `birrPrice` INTEGER NOT NULL,
@@ -69,8 +70,8 @@ CREATE TABLE `Course` (
 -- CreateTable
 CREATE TABLE `Requirement` (
     `id` VARCHAR(191) NOT NULL,
-    `requirementEn` VARCHAR(191) NOT NULL,
-    `requirementAm` VARCHAR(191) NOT NULL,
+    `requirementEn` TEXT NOT NULL,
+    `requirementAm` TEXT NOT NULL,
     `courseId` VARCHAR(191) NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -79,8 +80,8 @@ CREATE TABLE `Requirement` (
 -- CreateTable
 CREATE TABLE `CourseFor` (
     `id` VARCHAR(191) NOT NULL,
-    `courseForEn` VARCHAR(191) NOT NULL,
-    `courseForAm` VARCHAR(191) NOT NULL,
+    `courseForEn` TEXT NOT NULL,
+    `courseForAm` TEXT NOT NULL,
     `courseId` VARCHAR(191) NOT NULL,
 
     PRIMARY KEY (`id`)
@@ -114,8 +115,8 @@ CREATE TABLE `question` (
     `id` VARCHAR(191) NOT NULL,
     `activityId` VARCHAR(191) NULL,
     `courseId` VARCHAR(191) NULL,
-    `question` VARCHAR(191) NOT NULL,
-    `answerExplanation` VARCHAR(191) NULL,
+    `question` TEXT NOT NULL,
+    `answerExplanation` TEXT NULL,
 
     INDEX `question_activityId_idx`(`activityId`),
     PRIMARY KEY (`id`)
@@ -125,7 +126,7 @@ CREATE TABLE `question` (
 CREATE TABLE `questionOption` (
     `id` VARCHAR(191) NOT NULL,
     `questionId` VARCHAR(191) NOT NULL,
-    `option` VARCHAR(191) NOT NULL,
+    `option` TEXT NOT NULL,
 
     INDEX `questionOption_questionId_idx`(`questionId`),
     PRIMARY KEY (`id`)
