@@ -12,6 +12,7 @@ import { useParams } from "next/navigation";
 import { Button, cn, Accordion, AccordionItem } from "@heroui/react";
 import { CInput, CTextarea } from "./heroui";
 import SubActivityVideoUpload from "./SubActivityVideoUpload";
+import SubActivityThumbnailUpload from "./SubActivityThumbnailUpload";
 
 type TInput = {
   am: string;
@@ -22,6 +23,7 @@ type TSubActivity = {
   titleEn: string;
   titleAm: string;
   video?: string;
+  thumbnail?: string;
 };
 
 type TQuestion = {
@@ -52,6 +54,7 @@ export default function ActivityManager({
   updateActivity,
   updateSubActivity,
   updateSubActivityVideo,
+  updateSubActivityThumbnail,
   addQuestion,
   removeQuestion,
   updateQuestion,
@@ -77,6 +80,11 @@ export default function ActivityManager({
     activityIndex: number,
     subActivityIndex: number,
     videoUrl: string
+  ) => void;
+  updateSubActivityThumbnail: (
+    activityIndex: number,
+    subActivityIndex: number,
+    thumbnailUrl: string
   ) => void;
   addQuestion: (activityIndex: number, question: TQuestion) => void;
   removeQuestion: (activityIndex: number, questionIndex: number) => void;
@@ -346,28 +354,54 @@ export default function ActivityManager({
                         />
                       )}
 
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <Video className="size-4" />
-                        <span className="text-sm">
-                          {lang === "en" ? "Video" : "ቪዲዮ"}
-                        </span>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Video className="size-4" />
+                          <span className="text-sm">
+                            {lang === "en" ? "Video" : "ቪዲዮ"}
+                          </span>
+                        </div>
+
+                        <SubActivityVideoUpload
+                          lang={lang}
+                          hasVideo={!!sub.video}
+                          onVideoSelect={(filename) => {
+                            updateSubActivityVideo(
+                              activityIndex,
+                              subIndex,
+                              filename
+                            );
+                          }}
+                          onVideoRemove={() => {
+                            updateSubActivityVideo(activityIndex, subIndex, "");
+                          }}
+                        />
                       </div>
 
-                      <SubActivityVideoUpload
-                        lang={lang}
-                        hasVideo={!!sub.video}
-                        onVideoSelect={(filename) => {
-                          updateSubActivityVideo(
-                            activityIndex,
-                            subIndex,
-                            filename
-                          );
-                        }}
-                        onVideoRemove={() => {
-                          updateSubActivityVideo(activityIndex, subIndex, "");
-                        }}
-                      />
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm">
+                            {lang === "en" ? "Thumbnail" : "ምስል"}
+                          </span>
+                        </div>
+
+                        <SubActivityThumbnailUpload
+                          lang={lang}
+                          hasThumbnail={!!sub.thumbnail}
+                          currentThumbnail={sub.thumbnail || ""}
+                          onThumbnailSelect={(thumbnailUrl) => {
+                            updateSubActivityThumbnail(
+                              activityIndex,
+                              subIndex,
+                              thumbnailUrl
+                            );
+                          }}
+                          onThumbnailRemove={() => {
+                            updateSubActivityThumbnail(activityIndex, subIndex, "");
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 ))}

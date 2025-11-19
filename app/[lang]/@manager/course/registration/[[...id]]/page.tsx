@@ -841,7 +841,7 @@ export default function Page() {
                     subActivity:
                       i === index
                         ? [
-                            { titleEn: value.en, titleAm: value.am, video: "" },
+                            { titleEn: value.en, titleAm: value.am, video: "", thumbnail: "" },
                             ...activity.subActivity,
                           ]
                         : activity.subActivity,
@@ -900,6 +900,23 @@ export default function Page() {
                     subActivity: activity.subActivity.map((sub, sIndex) =>
                       aIndex === activityIndex && sIndex === subActivityIndex
                         ? { ...sub, video: videoUrl }
+                        : sub
+                    ),
+                  }))
+                );
+              }}
+              updateSubActivityThumbnail={(
+                activityIndex,
+                subActivityIndex,
+                thumbnailUrl
+              ) => {
+                setValue(
+                  "activity",
+                  watch("activity").map((activity, aIndex) => ({
+                    ...activity,
+                    subActivity: activity.subActivity.map((sub, sIndex) =>
+                      aIndex === activityIndex && sIndex === subActivityIndex
+                        ? { ...sub, thumbnail: thumbnailUrl }
                         : sub
                     ),
                   }))
