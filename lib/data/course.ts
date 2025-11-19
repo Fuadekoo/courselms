@@ -193,6 +193,7 @@ export async function getCourseForManager(id: string) {
                 titleEn: true,
                 titleAm: true,
                 video: true,
+                thumbnail: true,
               },
             },
             question: {

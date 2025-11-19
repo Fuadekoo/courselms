@@ -36,6 +36,7 @@ import {
   updateVideoResponse,
   deleteVideoResponse,
 } from "@/actions/instructor/videoqa";
+import { useVideoQAStore, useVideoQAFilteredQuestions } from "@/stores";
 
 interface VideoQuestion {
   id: string;
@@ -73,15 +74,48 @@ export default function InstructorVideoQA({ lang, courseId }: InstructorVideoQAP
   console.log("[DEBUG] InstructorVideoQA component executing with props:", { lang, courseId });
   
   const { isOpen, onOpen, onClose } = useDisclosure();
-  const [questions, setQuestions] = useState<VideoQuestion[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [filterType, setFilterType] = useState<"all" | "answered" | "unanswered">("all");
-  const [selectedQuestion, setSelectedQuestion] = useState<VideoQuestion | null>(null);
-  const [responseText, setResponseText] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [editingResponse, setEditingResponse] = useState<string | null>(null);
+  
+  // Use Zustand store for video QA state
+  const {
+    questions,
+    loading,
+    error,
+    searchTerm,
+    filterType,
+    selectedQuestion,
+    responseText,
+    submitting,
+    editingResponse,
+    setQuestions,
+    setLoading,
+    setError,
+    setSearchTerm,
+    setFilterType,
+    setSelectedQuestion,
+    setResponseText,
+    setSubmitting,
+    setEditingResponse,
+    addQuestion,
+    updateQuestion,
+    addResponse,
+    reset: resetVideoQAStore,
+  } = useVideoQAStore();
+  
+  // Sync modal state with store
+  const setIsOpen = useVideoQAStore((state) => state.setIsOpen);
+  useEffect(() => {
+    setIsOpen(isOpen);
+  }, [isOpen, setIsOpen]);
+  
+  // Use filtered questions from store
+  const filteredQuestions = useVideoQAFilteredQuestions() as VideoQuestion[];
+  
+  // Reset store on unmount
+  useEffect(() => {
+    return () => {
+      resetVideoQAStore();
+    };
+  }, [resetVideoQAStore]);
 
   // Load questions on component mount
   useEffect(() => {
@@ -99,14 +133,14 @@ export default function InstructorVideoQA({ lang, courseId }: InstructorVideoQAP
       console.log("[DEBUG] getInstructorVideoQuestions result:", result);
       
       if (result.success && result.data) {
-        // Convert Date objects to strings for compatibility
+        // Convert Date objects to strings for compatibility and match store type
         const questionsWithStringDates = result.data.map(q => ({
           ...q,
           createdAt: q.createdAt.toString(),
-          responses: q.responses.map(r => ({
+          responses: q.responses?.map(r => ({
             ...r,
             createdAt: r.createdAt.toString()
-          }))
+          })) || []
         }));
         console.log("[DEBUG] Setting questions:", questionsWithStringDates.length);
         setQuestions(questionsWithStringDates);
@@ -122,24 +156,8 @@ export default function InstructorVideoQA({ lang, courseId }: InstructorVideoQAP
     }
   };
 
-  // Filter questions based on search and filter
-  const filteredQuestions = questions.filter((q) => {
-    // Filter by search term
-    const matchesSearch = !searchTerm || 
-      q.question.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.student.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.student.fatherName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.course.titleEn.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      q.course.titleAm.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Filter by type
-    const matchesFilter = 
-      filterType === "all" ||
-      (filterType === "answered" && q.responses.length > 0) ||
-      (filterType === "unanswered" && q.responses.length === 0);
-    
-    return matchesSearch && matchesFilter;
-  });
+  // Note: filteredQuestions is now provided by useVideoQAFilteredQuestions hook above
+  // Removed local filtering logic as it's handled in the store
 
   const handleSubmitResponse = async () => {
     if (!selectedQuestion || !responseText.trim()) return;
