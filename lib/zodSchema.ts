@@ -111,6 +111,7 @@ export const courseSchema = z.object({
             .string({ message: "" })
             .nonempty("sub activity title is required"),
           video: z.string({ message: "" }).optional(),
+          thumbnail: z.string({ message: "" }).optional(),
         })
       ),
       questions: z

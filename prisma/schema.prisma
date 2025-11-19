@@ -178,6 +178,7 @@ model SubActivity {
   activityId      String
   order           Int
   video           String
+  thumbnail       String?
   studentProgress studentProgress[]
 }
 
@@ -187,8 +188,8 @@ model question {
   activityId        String?
   course            Course?          @relation(fields: [courseId], references: [id], onDelete: Cascade)
   courseId          String?
-  question          String @db.Text
-  answerExplanation String? @db.Text
+  question          String           @db.Text
+  answerExplanation String?          @db.Text
   questionOptions   questionOption[]
   questionAnswer    questionAnswer[]
   studentQuiz       studentQuiz[]
@@ -200,14 +201,14 @@ model questionOption {
   id                 String              @id @default(cuid())
   question           question            @relation(fields: [questionId], references: [id], onDelete: Cascade)
   questionId         String
-  option             String @db.Text
+  option             String              @db.Text
   questionAnswer     questionAnswer[]
   studentQuizAnswers studentQuizAnswer[]
 
   @@index([questionId])
 }
 
-model questionAnswer {  
+model questionAnswer {
   id         String         @id @default(cuid())
   question   question       @relation(fields: [questionId], references: [id], onDelete: Cascade)
   questionId String
@@ -281,7 +282,7 @@ model Order {
   totalPrice       Decimal
   price            Decimal
   paymentType      PaymentType
-  currency         String     
+  currency         String
   instructorIncome Decimal
   tx_ref           String?     @unique
   img              String      @db.Text()

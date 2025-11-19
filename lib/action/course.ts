@@ -156,6 +156,7 @@ export async function courseRegistration(
                   create: subActivity.map((sub, subIndex) => ({
                     ...sub,
                     video: sub.video || "", // Ensure video is always a string
+                    thumbnail: sub.thumbnail || "", // Ensure thumbnail is always a string
                     order: subIndex + 1,
                   })),
                 },
@@ -311,6 +312,7 @@ export async function courseRegistration(
                 create: subActivity.map((sub, subIndex) => ({
                   ...sub,
                   video: sub.video || "", // Ensure video is always a string
+                  thumbnail: sub.thumbnail || "", // Ensure thumbnail is always a string
                   order: subIndex + 1,
                 })),
               },
