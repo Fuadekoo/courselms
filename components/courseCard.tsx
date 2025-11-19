@@ -45,7 +45,10 @@ export default function CourseCardAffiliate({
   return (
     <div className="h-full relative bg-background dark:bg-background/95 rounded-xl overflow-hidden flex flex-col border border-divider dark:border-white/10 shadow-lg dark:shadow-2xl dark:shadow-black/20 hover:shadow-xl dark:hover:shadow-black/30 transition-all duration-500 ease-out hover:scale-[1.02] hover:-translate-y-1">
       <Link
-        href={`/${lang}/course/${id}?code=${searchParams?.get("code") || ""}`}
+        href={
+          titleLink ||
+          `/${lang}/course/${id}?code=${searchParams?.get("code") || ""}`
+        }
         style={{
           backgroundImage: `url('${thumbnail}')`,
         }}
