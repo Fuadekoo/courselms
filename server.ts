@@ -9,8 +9,8 @@ import next from "next";
 process.loadEnvFile(".env");
 
 const dev = process.env.NODE_ENV !== "production",
-  hostname = "192.168.137.1",
-  // hostname = "localhost",
+  hostname = "https://e-learning.darelkubra.com",
+   //hostname = "localhost",
   port = 3000,
   nextApp = next({ dev, hostname, port }),
   handle = nextApp.getRequestHandler();
