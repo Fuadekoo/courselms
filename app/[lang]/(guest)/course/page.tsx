@@ -65,7 +65,9 @@ export default function Page() {
                         <>
                           <img
                             src={course.thumbnail}
-                            alt={lang === "en" ? course.titleEn : course.titleAm}
+                            alt={
+                              lang === "en" ? course.titleEn : course.titleAm
+                            }
                             className="w-full h-full object-cover"
                           />
                           <div className="absolute inset-0 bg-black/20 dark:bg-black/40"></div>
