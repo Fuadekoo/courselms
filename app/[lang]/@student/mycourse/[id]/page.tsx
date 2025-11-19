@@ -137,7 +137,8 @@ function CourseContent({
           onSelectVideo(
             contentData.video,
             lang === "en" ? contentData.titleEn : contentData.titleAm,
-            "" // Introduction video
+            "", // Introduction video
+            contentData.thumbnail || undefined
           )
         }
       >
@@ -493,6 +494,7 @@ export default function Page() {
     subActivityId: "",
     thumbnail: "",
   });
+  const [showThumbnail, setShowThumbnail] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
@@ -503,6 +505,7 @@ export default function Page() {
         subActivityId: "", // Introduction video doesn't have subActivityId
         thumbnail: data.thumbnail || "",
       });
+      setShowThumbnail(true); // Reset thumbnail visibility when video changes
     }
   }, [data, lang]);
 
@@ -518,6 +521,7 @@ export default function Page() {
       subActivityId: subActivityId || "",
       thumbnail: thumbnail || "",
     });
+    setShowThumbnail(true); // Show thumbnail when selecting a new video
     setIsSidebarOpen(false);
   };
 
@@ -540,10 +544,10 @@ export default function Page() {
               {currentVideo.url && (
                 <div className="relative w-full">
                   <div className="relative w-full aspect-video bg-black">
-                    {currentVideo.thumbnail && (
+                    {currentVideo.thumbnail && showThumbnail && (
                       <div 
                         className="absolute inset-0 z-[5] pointer-events-none subactivity-thumbnail-overlay transition-opacity duration-300"
-                        id="subactivity-thumbnail-overlay"
+                        style={{ opacity: showThumbnail ? 1 : 0 }}
                       >
                         <img
                           src={currentVideo.thumbnail}
@@ -557,19 +561,13 @@ export default function Page() {
                         src={currentVideo.url} 
                         type="local"
                         onVideoPlay={() => {
-                          // Hide thumbnail when video starts playing
-                          const overlay = document.getElementById('subactivity-thumbnail-overlay');
-                          if (overlay) {
-                            overlay.style.opacity = "0";
-                          }
+                          // Hide thumbnail when video actually starts playing
+                          setShowThumbnail(false);
                         }}
                         onVideoPause={() => {
                           // Show thumbnail when video is paused (if it exists)
                           if (currentVideo.thumbnail) {
-                            const overlay = document.getElementById('subactivity-thumbnail-overlay');
-                            if (overlay) {
-                              overlay.style.opacity = "1";
-                            }
+                            setShowThumbnail(true);
                           }
                         }}
                       />

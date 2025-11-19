@@ -390,7 +390,26 @@ export async function getCourseForCustomer(id: string) {
     const course = await prisma.course
       .findFirst({
         where: { id },
-        include: {
+        select: {
+          id: true,
+          titleEn: true,
+          titleAm: true,
+          video: true,
+          thumbnail: true,
+          aboutEn: true,
+          aboutAm: true,
+          level: true,
+          language: true,
+          duration: true,
+          accessEn: true,
+          accessAm: true,
+          certificate: true,
+          price: true,
+          birrPrice: true,
+          dolarPrice: true,
+          instructorRate: true,
+          sellerRate: true,
+          affiliateRate: true,
           requirement: {
             select: { id: true, requirementEn: true, requirementAm: true },
           },

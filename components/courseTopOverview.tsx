@@ -1,4 +1,6 @@
+"use client";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import Player from "./stream/Player";
 
 // interface VideoListProps {
@@ -17,6 +19,7 @@ export default function CourseTopOverview({
 }) {
   const params = useParams<{ lang: string }>();
   const lang = params?.lang || "en";
+  const [showThumbnail, setShowThumbnail] = useState(true);
 
   return (
     <div className="flex gap-y-4 max-md:flex-col-reverse flex-col">
@@ -40,8 +43,39 @@ export default function CourseTopOverview({
           </div>
         </div>
       </div>
-      <div className="asrounded-md md:rounded-xl overflow-hidden">
-        {video && <Player src={video} type="local" />}
+      <div className="relative asrounded-md md:rounded-xl overflow-hidden">
+        {video && (
+          <div className="relative w-full aspect-video bg-black">
+            {thumbnail && showThumbnail && (
+              <div 
+                className="absolute inset-0 z-[5] pointer-events-none transition-opacity duration-300"
+                style={{ opacity: showThumbnail ? 1 : 0 }}
+              >
+                <img
+                  src={thumbnail}
+                  alt={title}
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            )}
+            <div className="relative z-10">
+              <Player 
+                src={video} 
+                type="local"
+                onVideoPlay={() => {
+                  // Hide thumbnail when video actually starts playing
+                  setShowThumbnail(false);
+                }}
+                onVideoPause={() => {
+                  // Show thumbnail when video is paused (if it exists)
+                  if (thumbnail) {
+                    setShowThumbnail(true);
+                  }
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

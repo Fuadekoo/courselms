@@ -58,9 +58,9 @@ export default async function RootLayout({
         >
           <UIProviders>
             <ThemeProvider
-              defaultTheme="system"
+              defaultTheme="light"
               attribute="class"
-              enableSystem
+              enableSystem={false}
               disableTransitionOnChange={false}
             >
               {/* <DevToolsProtection /> */}

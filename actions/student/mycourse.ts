@@ -178,6 +178,7 @@ export async function getMySingleCourseContent(
         titleEn: true,
         titleAm: true,
         video: true,
+        thumbnail: true,
         pdfData: true, // Add PDF field
         requirement: true,
         courseFor: true,

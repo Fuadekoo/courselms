@@ -148,7 +148,10 @@ PlayerProps) {
     const handleLoadStart = () => setIsLoading(true);
     const handleCanPlay = () => setIsLoading(false);
     const handleWaiting = () => setIsLoading(true);
-    const handlePlaying = () => setIsLoading(false);
+    const handlePlaying = () => {
+      setIsLoading(false);
+      onVideoPlay?.(); // Call onVideoPlay when video actually starts playing
+    };
     const handleError = () => setIsLoading(false);
 
     video.addEventListener("timeupdate", updateTime);
