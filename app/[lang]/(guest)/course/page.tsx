@@ -61,12 +61,30 @@ export default function Page() {
                   >
                     {/* Thumbnail with Play Icon - Dark Mode Compatible */}
                     <div className="relative aspect-video bg-gradient-to-br from-blue-100 to-green-100 dark:from-blue-900/30 dark:to-green-900/30 rounded-t-lg overflow-hidden">
-                      <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-green-500/20 dark:from-blue-400/30 dark:to-green-400/30"></div>
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <div className="w-16 h-16 bg-white/90 dark:bg-white/20 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm">
-                          <div className="w-0 h-0 border-l-[12px] border-l-blue-500 dark:border-l-blue-400 border-y-[8px] border-y-transparent ml-1"></div>
-                        </div>
-                      </div>
+                      {course.thumbnail ? (
+                        <>
+                          <img
+                            src={course.thumbnail}
+                            alt={lang === "en" ? course.titleEn : course.titleAm}
+                            className="w-full h-full object-cover"
+                          />
+                          <div className="absolute inset-0 bg-black/20 dark:bg-black/40"></div>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-16 h-16 bg-white/90 dark:bg-white/20 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm hover:scale-110 transition-transform">
+                              <div className="w-0 h-0 border-l-[12px] border-l-blue-500 dark:border-l-blue-400 border-y-[8px] border-y-transparent ml-1"></div>
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-green-500/20 dark:from-blue-400/30 dark:to-green-400/30"></div>
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <div className="w-16 h-16 bg-white/90 dark:bg-white/20 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm">
+                              <div className="w-0 h-0 border-l-[12px] border-l-blue-500 dark:border-l-blue-400 border-y-[8px] border-y-transparent ml-1"></div>
+                            </div>
+                          </div>
+                        </>
+                      )}
                     </div>
 
                     {/* Course Details Section - Matching Image Layout */}
