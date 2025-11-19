@@ -60,7 +60,12 @@ export default function Page() {
                     className="flex flex-col hover:shadow-lg transition-shadow bg-background border border-divider"
                   >
                     {/* Thumbnail with Play Icon - Dark Mode Compatible */}
-                    <div className="relative aspect-video bg-gradient-to-br from-blue-100 to-green-100 dark:from-blue-900/30 dark:to-green-900/30 rounded-t-lg overflow-hidden">
+                    <Link
+                      href={`/${lang}/course/${course.id}?code=${
+                        searchParams?.get("code") || ""
+                      }`}
+                      className="relative aspect-video bg-gradient-to-br from-blue-100 to-green-100 dark:from-blue-900/30 dark:to-green-900/30 rounded-t-lg overflow-hidden block"
+                    >
                       {course.thumbnail ? (
                         <>
                           <img
@@ -87,7 +92,7 @@ export default function Page() {
                           </div>
                         </>
                       )}
-                    </div>
+                    </Link>
 
                     {/* Course Details Section - Matching Image Layout */}
                     <CardHeader className="flex-col items-start">
