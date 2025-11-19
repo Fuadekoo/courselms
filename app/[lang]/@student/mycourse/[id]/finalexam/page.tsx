@@ -29,6 +29,7 @@ import {
   submitFinalExamAnswers,
   readyToCertification,
 } from "@/actions/student/mycourse";
+import { useExamStore } from "@/stores";
 
 // Strong types for questions/options
 type ExamOption = { id: string; label: string };
@@ -47,20 +48,41 @@ export default function Page() {
   const lang = params?.lang || "en";
   const courseId = params?.id || "";
 
-  // Enhanced state management
-  const [current, setCurrent] = useState(0);
-  const [selected, setSelected] = useState<number | null>(null);
-  const [answers, setAnswers] = useState<number[]>([]);
-  const [submitted, setSubmitted] = useState(false);
-  const [reviewMode, setReviewMode] = useState<"paged" | "all">("paged");
-  const [showCongrats, setShowCongrats] = useState(false);
-  const [examStartTime, setExamStartTime] = useState<Date | null>(null);
-  const [timeSpent, setTimeSpent] = useState(0);
-  const [showHints, setShowHints] = useState(false);
-  const [flaggedQuestions, setFlaggedQuestions] = useState<Set<number>>(new Set());
-  const [autoSaving, setAutoSaving] = useState(false);
-  const [confidenceLevels, setConfidenceLevels] = useState<number[]>([]);
-  const [examProgress, setExamProgress] = useState(0);
+  // Use Zustand store for exam state
+  const {
+    current,
+    selected,
+    answers,
+    submitted,
+    reviewMode,
+    showCongrats,
+    examStartTime,
+    timeSpent,
+    showHints,
+    flaggedQuestions,
+    autoSaving,
+    confidenceLevels,
+    examProgress,
+    questions: examQuestionsStore = [],
+    setCurrent,
+    setSelected,
+    setAnswers,
+    addAnswer,
+    setSubmitted,
+    setReviewMode,
+    setShowCongrats,
+    setExamStartTime,
+    setTimeSpent,
+    incrementTimeSpent,
+    setShowHints,
+    toggleFlaggedQuestion,
+    setAutoSaving,
+    setConfidenceLevel,
+    setConfidenceLevels,
+    setExamProgress,
+    setQuestions: setExamQuestionsStore,
+    reset: resetExamStore,
+  } = useExamStore();
 
   const { data, loading } = useData({ func: getFinalExams, args: [courseId] });
   const { data: status } = useData({
@@ -82,7 +104,7 @@ export default function Page() {
 
   const questions = useMemo<ExamQuestion[]>(() => {
     const list = Array.isArray(data) ? data : [];
-    return list.map((q: any) => {
+    const mapped = list.map((q: any) => {
       const opts: ExamOption[] = Array.isArray(q.questionOptions)
         ? q.questionOptions.map((o: any) => ({ id: o.id, label: o.option }))
         : [];
@@ -102,53 +124,70 @@ export default function Page() {
         previouslySelectedIndex: preIdx,
       } as ExamQuestion;
     });
+    return mapped;
   }, [data]);
+  
+  // Update store with questions when they change
+  useEffect(() => {
+    if (questions.length > 0) {
+      setExamQuestionsStore(questions);
+    }
+  }, [questions, setExamQuestionsStore]);
+
+  // Use questions from store if available, otherwise use local
+  const displayQuestions = examQuestionsStore.length > 0 ? examQuestionsStore : questions;
 
   // Initialize exam timer
   useEffect(() => {
-    if (questions.length > 0 && !examStartTime && !submitted) {
+    if (displayQuestions.length > 0 && !examStartTime && !submitted) {
       setExamStartTime(new Date());
     }
-  }, [questions.length, examStartTime, submitted]);
+  }, [displayQuestions.length, examStartTime, submitted, setExamStartTime]);
 
   // Timer effect
   useEffect(() => {
     if (!examStartTime || submitted) return;
     
     const timer = setInterval(() => {
-      setTimeSpent(Math.floor((new Date().getTime() - examStartTime.getTime()) / 1000));
+      incrementTimeSpent();
     }, 1000);
     
     return () => clearInterval(timer);
-  }, [examStartTime, submitted]);
+  }, [examStartTime, submitted, incrementTimeSpent]);
+  
+  // Reset store on unmount
+  useEffect(() => {
+    return () => {
+      resetExamStore();
+    };
+  }, [resetExamStore]);
 
   // Progress calculation
   useEffect(() => {
     const answered = answers.filter(a => a >= 0).length;
-    const progress = questions.length > 0 ? (answered / questions.length) * 100 : 0;
+    const progress = displayQuestions.length > 0 ? (answered / displayQuestions.length) * 100 : 0;
     setExamProgress(progress);
-  }, [answers, questions.length]);
+  }, [answers, displayQuestions.length, setExamProgress]);
 
   // Initialize confidence levels
   useEffect(() => {
-    setConfidenceLevels(questions.map(() => 3)); // Default medium confidence
+    setConfidenceLevels(displayQuestions.map(() => 3)); // Default medium confidence
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [questions.length]);
+  }, [displayQuestions.length, setConfidenceLevels]);
 
   useEffect(() => {
-    setAnswers(questions.map((q) => q.previouslySelectedIndex ?? -1));
+    setAnswers(displayQuestions.map((q) => q.previouslySelectedIndex ?? -1));
     setCurrent(0);
     setSelected(null);
     setSubmitted(false);
     setReviewMode("paged");
-    setFlaggedQuestions(new Set());
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [questions.length]);
+  }, [displayQuestions.length, setAnswers, setCurrent, setSelected, setSubmitted, setReviewMode]);
 
   const quizDone = status === "done";
   const answeredCount = answers.filter((a) => a >= 0).length;
   const allAnswered =
-    questions.length > 0 && answeredCount === questions.length;
+    displayQuestions.length > 0 && answeredCount === displayQuestions.length;
 
   // Helper functions
   const formatTime = useCallback((seconds: number) => {
@@ -169,16 +208,9 @@ export default function Page() {
   }, []);
 
   const toggleQuestionFlag = useCallback((index: number) => {
-    setFlaggedQuestions(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(index)) {
-        newSet.delete(index);
-      } else {
-        newSet.add(index);
-      }
-      return newSet;
-    });
-  }, []);
+    // Use store's toggleFlaggedQuestion instead
+    toggleFlaggedQuestion(index);
+  }, [toggleFlaggedQuestion]);
 
   // Compute score for modal
   // const score = useMemo(
@@ -190,7 +222,7 @@ export default function Page() {
   //   [answers, questions]
   // );
 
-  const q = questions[current];
+  const q = displayQuestions[current];
   const effectiveSelected = answers[current] >= 0 ? answers[current] : selected;
 
   // Enhanced Review card for a single question
@@ -336,7 +368,7 @@ export default function Page() {
       </div>
     );
   }
-  if (!questions.length) {
+  if (!displayQuestions.length) {
     return (
       <div className="min-h-dvh bg-background text-foreground flex items-center justify-center p-6">
         No final exam.
@@ -367,7 +399,7 @@ export default function Page() {
                     {lang === "en" ? "Final Examination" : "የመጨረሻ ፈተና"}
                   </h1>
                   <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {questions.length} {lang === "en" ? "Questions" : "ጥያቄዎች"}
+                    {displayQuestions.length} {lang === "en" ? "Questions" : "ጥያቄዎች"}
                   </p>
                 </div>
               </div>
@@ -387,7 +419,7 @@ export default function Page() {
               {/* Progress Indicator */}
               <div className="hidden sm:flex items-center gap-2">
                 <div className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                  {answeredCount} / {questions.length}
+                  {answeredCount} / {displayQuestions.length}
                 </div>
                 <div className="w-20 h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
                   <div 
@@ -422,7 +454,7 @@ export default function Page() {
                       {lang === "en" ? "Question" : "ጥያቄ"} {current + 1}
                     </div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">
-                      {lang === "en" ? "of" : "ከ"} {questions.length}
+                      {lang === "en" ? "of" : "ከ"} {displayQuestions.length}
                     </div>
                   </div>
                   
@@ -527,9 +559,7 @@ export default function Page() {
                       <button
                         key={level}
                         onClick={() => {
-                          const newLevels = [...confidenceLevels];
-                          newLevels[current] = level;
-                          setConfidenceLevels(newLevels);
+                          setConfidenceLevel(current, level);
                         }}
                         className={`w-8 h-8 sm:w-10 sm:h-10 rounded-full border-2 transition-all text-sm sm:text-base ${
                           confidenceLevels[current] === level
@@ -561,9 +591,9 @@ export default function Page() {
                   <div className="flex items-center gap-3">
                     {/* Question Quick Nav */}
                     <div className="hidden md:flex items-center gap-1">
-                      {questions.slice(Math.max(0, current - 2), current + 3).map((_, localIdx) => {
+                      {displayQuestions.slice(Math.max(0, current - 2), current + 3).map((_, localIdx) => {
                         const questionIdx = Math.max(0, current - 2) + localIdx;
-                        if (questionIdx >= questions.length) return null;
+                        if (questionIdx >= displayQuestions.length) return null;
                         const isActive = questionIdx === current;
                         const isAnswered = answers[questionIdx] >= 0;
                         const isFlagged = flaggedQuestions.has(questionIdx);
@@ -588,9 +618,9 @@ export default function Page() {
                       })}
                     </div>
                     
-                    {current < questions.length - 1 ? (
+                    {current < displayQuestions.length - 1 ? (
                       <button
-                        onClick={() => goto(Math.min(questions.length - 1, current + 1))}
+                        onClick={() => goto(Math.min(displayQuestions.length - 1, current + 1))}
                         className="flex items-center gap-2 px-6 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium shadow-md hover:shadow-lg transition-all transform hover:scale-105"
                       >
                         <span>{lang === "en" ? "Next" : "ከዚህ በሐዋላ"}</span>
@@ -653,8 +683,8 @@ export default function Page() {
                         <span>{lang === "en" ? "Previous" : "ቀደም"}</span>
                       </button>
                       <button
-                        onClick={() => goto(Math.min(questions.length - 1, current + 1))}
-                        disabled={current >= questions.length - 1}
+                        onClick={() => goto(Math.min(displayQuestions.length - 1, current + 1))}
+                        disabled={current >= displayQuestions.length - 1}
                         className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors disabled:opacity-40"
                       >
                         <span>{lang === "en" ? "Next" : "ከዚህ በሐዋላ"}</span>
@@ -667,7 +697,7 @@ export default function Page() {
                     <div className="text-sm text-gray-600 dark:text-gray-400 mb-4">
                       {lang === "en" ? "Reviewing all questions and answers" : "ሁሉን ጥያቄዎች እና ምላሾች መመልክት"}
                     </div>
-                    {questions.map((qi, i) => (
+                    {displayQuestions.map((qi, i) => (
                       <ReviewCard key={qi.id} qi={qi} idx={i} />
                     ))}
                   </div>
@@ -696,7 +726,7 @@ export default function Page() {
                       {lang === "en" ? "Answered" : "የተማለሩ"}
                     </span>
                     <span className="font-medium text-gray-900 dark:text-white">
-                      {answeredCount} / {questions.length}
+                      {answeredCount} / {displayQuestions.length}
                     </span>
                   </div>
                   <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
@@ -744,7 +774,7 @@ export default function Page() {
               </div>
               
               <div className="grid grid-cols-4 sm:grid-cols-5 gap-1.5 sm:gap-2 mb-4">
-                {questions.map((qi: any, i: number) => {
+                {displayQuestions.map((qi: any, i: number) => {
                   const answered = answers[i] >= 0;
                   const currentPage = i === current;
                   const isCorrect = submitted && answered && answers[i] === qi.correctIndex;

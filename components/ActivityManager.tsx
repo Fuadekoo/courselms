@@ -390,6 +390,8 @@ export default function ActivityManager({
                           lang={lang}
                           hasThumbnail={!!sub.thumbnail}
                           currentThumbnail={sub.thumbnail || ""}
+                          activityIndex={activityIndex}
+                          subActivityIndex={subIndex}
                           onThumbnailSelect={(thumbnailUrl) => {
                             updateSubActivityThumbnail(
                               activityIndex,

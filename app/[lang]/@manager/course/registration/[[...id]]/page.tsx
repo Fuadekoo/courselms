@@ -37,21 +37,37 @@ import {
   FileText,
   File,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import FinalExamManager from "@/components/FinalExamManager";
 import { toast } from "sonner";
+import { useCourseRegistrationStore } from "@/stores";
 
 export default function Page() {
   const params = useParams<{ lang: string; id: string }>();
   const lang = params?.lang || "en";
-  const [selectedVideoFile, setSelectedVideoFile] = useState<File | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const [isThumbnailUploading, setIsThumbnailUploading] = useState(false);
   
-  const [videoPreviewUrl, setVideoPreviewUrl] = useState<string>("");
- 
-  const [isDataLoaded, setIsDataLoaded] = useState(false);
-  const [finalExamQuestions, setFinalExamQuestions] = useState<TQuestion[]>([]);
+  // Use Zustand store for course registration state
+  const {
+    selectedVideoFile,
+    isVideoUploading,
+    isThumbnailUploading,
+    videoPreviewUrl,
+    isDataLoaded,
+    finalExamQuestions,
+    setSelectedVideoFile,
+    setIsVideoUploading,
+    setIsThumbnailUploading,
+    setVideoPreviewUrl,
+    setIsDataLoaded,
+    setFinalExamQuestions,
+    addFinalExamQuestion,
+    removeFinalExamQuestion,
+    updateFinalExamQuestion,
+    reset: resetStore,
+  } = useCourseRegistrationStore();
+  
+  // Local state for form (react-hook-form still needed)
+  // Note: isUploading is managed by Zustand store now
 
   const id = Array.isArray(params?.id) ? params.id[0] : params?.id ?? "";
   const router = useRouter();
@@ -106,6 +122,15 @@ export default function Page() {
       }
     }
   });
+  
+  // Reset store when component unmounts or course ID changes
+  useEffect(() => {
+    return () => {
+      if (!isEditing) {
+        resetStore();
+      }
+    };
+  }, [id, isEditing, resetStore]);
 
   const { loading: courseLoading } = useData({
     func: getCourseForManager,
@@ -198,16 +223,20 @@ export default function Page() {
      
 
         if (data && "finalExamQuestions" in data && data.finalExamQuestions) {
-          setFinalExamQuestions(data.finalExamQuestions as TQuestion[]);
+          const examQuestions = data.finalExamQuestions as TQuestion[];
+          setFinalExamQuestions(examQuestions);
           setValue(
             "finalExamQuestions",
-            data.finalExamQuestions as TQuestion[],
+            examQuestions,
             { shouldValidate: false }
           );
         }
 
         setValue("id", data.id, { shouldValidate: false });
         setIsDataLoaded(true);
+        
+        // Reset store when loading new course
+        resetStore();
       }
     },
   });
@@ -220,6 +249,21 @@ export default function Page() {
       setValue("thumbnail", "/darulkubra.png", { shouldValidate: false });
     }
   };
+  
+  // Sync store with form data on load
+  useEffect(() => {
+    if (isDataLoaded) {
+      const formData = watch();
+      // Update store with form data if needed
+    }
+  }, [isDataLoaded, watch]);
+  
+  // Reset store on unmount
+  useEffect(() => {
+    return () => {
+      resetStore();
+    };
+  }, [resetStore]);
 
  
 
@@ -246,7 +290,8 @@ export default function Page() {
         : "ኮርስ በመፍጠር ላይ..."
     );
     
-    setIsUploading(true);
+    setIsVideoUploading(true);
+    setIsVideoUploading(true);
     try {
       if (selectedVideoFile) {
         console.log("📹 Processing new video file:", selectedVideoFile.name);
@@ -280,7 +325,7 @@ export default function Page() {
         console.log("📹 No new video file selected, keeping existing video");
       }
 
-      data.finalExamQuestions = finalExamQuestions;
+      data.finalExamQuestions = finalExamQuestions.length > 0 ? finalExamQuestions : (watch("finalExamQuestions") || []);
       
       // Convert courseMaterials array back to comma-separated string for database
       if (data.courseMaterials && Array.isArray(data.courseMaterials)) {
@@ -366,7 +411,7 @@ export default function Page() {
       );
       throw error;
     } finally {
-      setIsUploading(false);
+      setIsVideoUploading(false);
     }
   };
 
@@ -665,7 +710,7 @@ export default function Page() {
                   thumbnail={watch("thumbnail")}
                   video={videoPreviewUrl || watch("video")}
                   selectedVideoFile={selectedVideoFile}
-                  isUploading={isUploading}
+                  isUploading={isVideoUploading}
                   isThumbnailUploading={isThumbnailUploading}
                   onThumbnailSelect={handleThumbnailSelect}
                   onThumbnailRemove={handleThumbnailRemove}
@@ -1013,6 +1058,8 @@ export default function Page() {
                   setValue("finalExamQuestions", updated, {
                     shouldValidate: false,
                   });
+                  // Also update store
+                  addFinalExamQuestion(questionReference);
                 }
               }}
               removeFromFinalExam={(activityIndex, questionIndex) => {
@@ -1027,6 +1074,15 @@ export default function Page() {
                 setValue("finalExamQuestions", updated, {
                   shouldValidate: false,
                 });
+                // Find and remove from store
+                const indexToRemove = finalExamQuestions.findIndex(
+                  (q) =>
+                    q.sourceActivityIndex === activityIndex &&
+                    q.sourceQuestionIndex === questionIndex
+                );
+                if (indexToRemove >= 0) {
+                  removeFinalExamQuestion(indexToRemove);
+                }
               }}
               finalExamQuestions={finalExamQuestions}
             />
@@ -1103,6 +1159,7 @@ export default function Page() {
                   onAdd={(question) => {
                     const updated = [...finalExamQuestions, question];
                     setFinalExamQuestions(updated);
+                    addFinalExamQuestion(question);
                     setValue("finalExamQuestions", updated, {
                       shouldValidate: false,
                     });
@@ -1111,6 +1168,7 @@ export default function Page() {
                     const updated = [...finalExamQuestions];
                     updated[index] = question;
                     setFinalExamQuestions(updated);
+                    updateFinalExamQuestion(index, question);
                     setValue("finalExamQuestions", updated, {
                       shouldValidate: false,
                     });
@@ -1120,6 +1178,7 @@ export default function Page() {
                       (_, i) => i !== index
                     );
                     setFinalExamQuestions(updated);
+                    removeFinalExamQuestion(index);
                     setValue("finalExamQuestions", updated, {
                       shouldValidate: false,
                     });
@@ -1197,7 +1256,7 @@ export default function Page() {
                       size="lg"
                       isDisabled={
                         formState.isSubmitting ||
-                        isUploading ||
+                        isVideoUploading ||
                         isThumbnailUploading
                       }
                     >
@@ -1209,7 +1268,7 @@ export default function Page() {
                       size="lg"
                       isLoading={false}
                       isDisabled={
-                        isUploading ||
+                        isVideoUploading ||
                         isThumbnailUploading ||
                         !watch("titleEn") ||
                         !watch("titleAm") ||
@@ -1253,7 +1312,7 @@ export default function Page() {
                         console.log("🔘 BUTTON CLICKED!", { isEditing, id });
                         console.log("🔘 Form State:", {
                           isSubmitting: formState.isSubmitting,
-                          isUploading,
+                          isVideoUploading,
                           isThumbnailUploading,
                           formValid: formState.isValid,
                           formDirty: formState.isDirty,
@@ -1271,19 +1330,19 @@ export default function Page() {
                           video: watch("video"),
                           thumbnail: watch("thumbnail"),
                         });
-                        if (!formState.isSubmitting && !isUploading) {
+                        if (!formState.isSubmitting && !isVideoUploading) {
                           console.log("✅ Calling handleSubmit...");
                           handleSubmit(handleFormSubmit)();
                         } else {
                           console.log("⚠️ Form submission blocked:", {
                             isSubmitting: formState.isSubmitting,
-                            isUploading,
+                            isUploading: isVideoUploading,
                           });
                         }
                       }}
                     >
                       {/* Loading Overlay */}
-                      {(formState.isSubmitting || isUploading) && (
+                      {(formState.isSubmitting || isVideoUploading) && (
                         <div className="absolute inset-0 bg-gradient-to-br from-primary-600 via-primary-500 to-indigo-600 flex items-center justify-center backdrop-blur-sm">
                           {/* Animated Background Pattern */}
                           <div className="absolute inset-0 opacity-10">
@@ -1342,13 +1401,13 @@ export default function Page() {
                               <div className="flex items-center gap-2">
                                 <div
                                   className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                                    isUploading 
+                                    isVideoUploading 
                                       ? "bg-white shadow-lg shadow-white/50 scale-125" 
                                       : "bg-white/40"
                                   }`}
                                 ></div>
                                 <span className={`text-xs font-medium transition-all ${
-                                  isUploading ? "text-white" : "text-white/60"
+                                  isVideoUploading ? "text-white" : "text-white/60"
                                 }`}>
                                   {lang === "en" ? "Uploading" : "በመስቀል"}
                                 </span>
@@ -1359,13 +1418,13 @@ export default function Page() {
                               <div className="flex items-center gap-2">
                                 <div
                                   className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                                    formState.isSubmitting && !isUploading
+                                    formState.isSubmitting && !isVideoUploading
                                       ? "bg-white shadow-lg shadow-white/50 scale-125"
                                       : "bg-white/40"
                                   }`}
                                 ></div>
                                 <span className={`text-xs font-medium transition-all ${
-                                  formState.isSubmitting && !isUploading ? "text-white" : "text-white/60"
+                                  formState.isSubmitting && !isVideoUploading ? "text-white" : "text-white/60"
                                 }`}>
                                   {lang === "en" ? "Saving" : "በማስቀመጥ"}
                                 </span>
@@ -1378,7 +1437,7 @@ export default function Page() {
                       {/* Button Content */}
                       <div
                         className={`flex items-center justify-center gap-2 transition-opacity duration-200 ${
-                          formState.isSubmitting || isUploading
+                          formState.isSubmitting || isVideoUploading
                             ? "opacity-0"
                             : "opacity-100"
                         }`}

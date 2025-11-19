@@ -1,7 +1,11 @@
 "use client";
-import { useState, memo, useRef } from "react";
+import { memo, useRef, useEffect } from "react";
 import { Button } from "@heroui/react";
 import { Upload, Image, Trash } from "lucide-react";
+import {
+  useSubActivityThumbnailStore,
+  useSubActivityThumbnailUploadState,
+} from "@/stores/subActivityThumbnailStore";
 
 interface SubActivityThumbnailUploadProps {
   lang: string;
@@ -9,6 +13,8 @@ interface SubActivityThumbnailUploadProps {
   onThumbnailRemove: () => void;
   hasThumbnail: boolean;
   currentThumbnail?: string;
+  activityIndex: number;
+  subActivityIndex: number;
 }
 
 function SubActivityThumbnailUpload({
@@ -17,10 +23,22 @@ function SubActivityThumbnailUpload({
   onThumbnailRemove,
   hasThumbnail,
   currentThumbnail,
+  activityIndex,
+  subActivityIndex,
 }: SubActivityThumbnailUploadProps) {
-  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputId = `thumbnail-upload-${Math.random().toString(36).substr(2, 9)}`;
+  
+  const { setUploading, clearUploadState } = useSubActivityThumbnailStore();
+  const uploadState = useSubActivityThumbnailUploadState(activityIndex, subActivityIndex);
+  const isUploading = uploadState?.isUploading ?? false;
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      clearUploadState(activityIndex, subActivityIndex);
+    };
+  }, [activityIndex, subActivityIndex, clearUploadState]);
 
   const handleFileSelect = async (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -28,7 +46,7 @@ function SubActivityThumbnailUpload({
       return;
     }
 
-    setIsUploading(true);
+    setUploading(activityIndex, subActivityIndex, true, 0);
 
     try {
       const formData = new FormData();
@@ -51,7 +69,7 @@ function SubActivityThumbnailUpload({
       console.error("Thumbnail upload error:", error);
       alert(lang === "en" ? "Upload failed" : "መስቀል አልተሳካም");
     } finally {
-      setIsUploading(false);
+      setUploading(activityIndex, subActivityIndex, false);
     }
   };
 
