@@ -9,6 +9,7 @@ interface SubActivity {
   titleEn: string;
   titleAm: string;
   video: string;
+  thumbnail?: string | null;
 }
 
 interface Activity {
@@ -19,7 +20,7 @@ interface Activity {
 
 interface ContentProps {
   activities: Activity[];
-  onSelectVideo: (video: string, title: string) => void;
+  onSelectVideo: (video: string, title: string, subActivityId?: string, thumbnail?: string) => void;
   lang: string;
   currentVideoUrl: string;
   loading: boolean;
@@ -81,19 +82,33 @@ export default function Content({
                     onClick={() =>
                       onSelectVideo(
                         sub.video,
-                        lang === "en" ? sub.titleEn : sub.titleAm
+                        lang === "en" ? sub.titleEn : sub.titleAm,
+                        sub.id,
+                        sub.thumbnail || undefined
                       )
                     }
-                    className={`flex items-center gap-2 cursor-pointer p-3 rounded ${
+                    className={`flex items-center gap-3 cursor-pointer p-3 rounded ${
                       isActive
                         ? "bg-primary-100 font-bold"
                         : "hover:bg-gray-100"
                     }`}
                   >
-                    {isActive ? (
-                      <PlayCircle className="text-primary" />
+                    {sub.thumbnail ? (
+                      <div className="flex-shrink-0 w-16 h-10 rounded overflow-hidden bg-gray-200">
+                        <img
+                          src={sub.thumbnail}
+                          alt={lang === "en" ? sub.titleEn : sub.titleAm}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                     ) : (
-                      <CheckCircle2 className="text-gray-400" />
+                      <div className="flex-shrink-0 w-16 h-10 rounded bg-gray-200 flex items-center justify-center">
+                        {isActive ? (
+                          <PlayCircle className="text-primary w-5 h-5" />
+                        ) : (
+                          <CheckCircle2 className="text-gray-400 w-5 h-5" />
+                        )}
+                      </div>
                     )}
                     <span className="break-words overflow-wrap-anywhere flex-1">{lang === "en" ? sub.titleEn : sub.titleAm}</span>
                   </li>

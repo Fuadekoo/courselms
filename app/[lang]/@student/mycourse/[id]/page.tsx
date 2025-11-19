@@ -49,7 +49,7 @@ function CourseContent({
 }: {
   contentData: any;
   contentLoading: boolean;
-  onSelectVideo: (url: string, title: string, subActivityId?: string) => void;
+  onSelectVideo: (url: string, title: string, subActivityId?: string, thumbnail?: string) => void;
   lang: string;
   currentVideoUrl: string;
   courseId: string;
@@ -210,7 +210,8 @@ function CourseContent({
                       onSelectVideo(
                         sub.video,
                         lang === "en" ? sub.titleEn : sub.titleAm,
-                        sub.id
+                        sub.id,
+                        sub.thumbnail || undefined
                       )
                     }
                     className={`flex items-center gap-2 cursor-pointer p-3 rounded ${
@@ -219,10 +220,22 @@ function CourseContent({
                         : "hover:bg-primary-100"
                     }`}
                   >
-                    {isActive ? (
-                      <PlayCircle className="text-primary" />
+                    {sub.thumbnail ? (
+                      <div className="flex-shrink-0 w-16 h-10 rounded overflow-hidden bg-gray-200">
+                        <img
+                          src={sub.thumbnail}
+                          alt={lang === "en" ? sub.titleEn : sub.titleAm}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
                     ) : (
-                      <CheckCircle2 className="text-gray-400" />
+                      <div className="flex-shrink-0 w-16 h-10 rounded bg-gray-200 flex items-center justify-center">
+                        {isActive ? (
+                          <PlayCircle className="text-primary w-5 h-5" />
+                        ) : (
+                          <CheckCircle2 className="text-gray-400 w-5 h-5" />
+                        )}
+                      </div>
                     )}
                     <span className="break-words overflow-wrap-anywhere flex-1">
                       {lang === "en" ? sub.titleEn : sub.titleAm}
@@ -478,6 +491,7 @@ export default function Page() {
     url: "",
     title: "",
     subActivityId: "",
+    thumbnail: "",
   });
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -487,6 +501,7 @@ export default function Page() {
         url: data.video,
         title: lang === "en" ? data.titleEn : data.titleAm,
         subActivityId: "", // Introduction video doesn't have subActivityId
+        thumbnail: data.thumbnail || "",
       });
     }
   }, [data, lang]);
@@ -494,12 +509,14 @@ export default function Page() {
   const handleSelectVideo = (
     videoUrl: string,
     videoTitle: string,
-    subActivityId?: string
+    subActivityId?: string,
+    thumbnail?: string
   ) => {
     setCurrentVideo({
       url: videoUrl,
       title: videoTitle,
       subActivityId: subActivityId || "",
+      thumbnail: thumbnail || "",
     });
     setIsSidebarOpen(false);
   };
@@ -519,9 +536,46 @@ export default function Page() {
             } grid grid-rows-[auto_1fr] `}
           >
             {/* VIDEO PLAYER SECTION */}
-            <div className=" flex-shrink-0 bg-black dark:bg-black w-full mx-auto lg:max-w-none">
+            <div className="flex-shrink-0 bg-black dark:bg-black w-full mx-auto lg:max-w-none">
               {currentVideo.url && (
-                <Player src={currentVideo.url} type="local" />
+                <div className="relative w-full">
+                  <div className="relative w-full aspect-video bg-black">
+                    {currentVideo.thumbnail && (
+                      <div 
+                        className="absolute inset-0 z-[5] pointer-events-none subactivity-thumbnail-overlay transition-opacity duration-300"
+                        id="subactivity-thumbnail-overlay"
+                      >
+                        <img
+                          src={currentVideo.thumbnail}
+                          alt={currentVideo.title}
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                    <div className="relative z-10">
+                      <Player 
+                        src={currentVideo.url} 
+                        type="local"
+                        onVideoPlay={() => {
+                          // Hide thumbnail when video starts playing
+                          const overlay = document.getElementById('subactivity-thumbnail-overlay');
+                          if (overlay) {
+                            overlay.style.opacity = "0";
+                          }
+                        }}
+                        onVideoPause={() => {
+                          // Show thumbnail when video is paused (if it exists)
+                          if (currentVideo.thumbnail) {
+                            const overlay = document.getElementById('subactivity-thumbnail-overlay');
+                            if (overlay) {
+                              overlay.style.opacity = "1";
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
 
