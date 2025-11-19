@@ -104,9 +104,16 @@ export default function Page() {
 
                       {/* Title and Price Row */}
                       <div className="flex items-start justify-between mb-3 w-full">
-                        <h3 className="text-xl font-bold flex-1">
-                          {lang === "en" ? course.titleEn : course.titleAm}
-                        </h3>
+                        <Link
+                          href={`/${lang}/course/${course.id}?code=${
+                            searchParams?.get("code") || ""
+                          }`}
+                          className="flex-1 group"
+                        >
+                          <h3 className="text-xl font-bold group-hover:text-primary transition-colors cursor-pointer">
+                            {lang === "en" ? course.titleEn : course.titleAm}
+                          </h3>
+                        </Link>
                         <div className="text-2xl font-bold text-primary ml-4">
                           {course.price > 0 ? `${course.price} ETB` : "Free"}
                         </div>

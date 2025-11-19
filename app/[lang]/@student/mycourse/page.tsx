@@ -36,6 +36,7 @@ export default function Page() {
             <CourseCard
               key={i + ""}
               {...{ ...value, id }}
+              titleLink={`/${lang}/mycourse/${id}`}
               btn={
                 <Button
                   color="primary"
