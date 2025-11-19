@@ -21,7 +21,7 @@ export default async function Layout({
   instructor: React.ReactNode;
   student: React.ReactNode;
   children: React.ReactNode;
-  params: Promise<{ lang: string }>;
+  params: Promise<{ lang: string}>;
 }>) {
   await params; // Await params to satisfy Next.js requirements
   const session = await auth();
