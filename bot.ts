@@ -8,6 +8,7 @@ import {
   Keyboard,
 } from "grammy";
 import dotenv from "dotenv";
+import { normalizeUrl } from "./lib/utils/url";
 
 dotenv.config();
 
@@ -65,7 +66,7 @@ async function sendCourses(chatId: number, ctx: Context) {
       await ctx.reply(`${orders.length} የተመዘገቡት ትምህርት አለዎት`, {
         reply_markup: inlineKeyboard.webApp(
           `${orders.length > 0 ? "ተጨማሪ " : ""}ትምህርቶችን ይመልከቱ`,
-          `${process.env.MAIN_API}/course`
+          normalizeUrl(process.env.MAIN_API || "", `/course`)
         ),
       });
       return;

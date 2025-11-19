@@ -1,6 +1,7 @@
 import prisma from "@/lib/db";
 import { randomUUID } from "crypto";
 import { auth } from "@/lib/auth";
+import { normalizeUrl } from "@/lib/utils/url";
 
 type TPayState =
   | { status: true; cause?: undefined; message?: undefined; url: string }
@@ -65,14 +66,14 @@ export async function payWithStripe(
       if (order.status === "paid") {
         return {
           status: true,
-          url: `${process.env.MAIN_API}/${lang}/student/mycourse`,
+          url: normalizeUrl(process.env.MAIN_API || "", `/${lang}/student/mycourse`),
         };
       } else if (order.tx_ref) {
         // Check if Stripe payment is already completed
         // You would implement Stripe payment verification here
         return {
           status: true,
-          url: `${process.env.MAIN_API}/${lang}/verify-payment/${order.tx_ref}`,
+          url: normalizeUrl(process.env.MAIN_API || "", `/${lang}/verify-payment/${order.tx_ref}`),
         };
       }
 
@@ -132,7 +133,7 @@ export async function payWithStripe(
 
     // Create Stripe checkout session
     const response = await fetch(
-      `${process.env.MAIN_API}/api/create-stripe-session`,
+      normalizeUrl(process.env.MAIN_API || "", `/api/create-stripe-session`),
       {
         method: "POST",
         headers: {
@@ -143,8 +144,8 @@ export async function payWithStripe(
           userId: user.id,
           tx_ref: order.tx_ref,
           amount: course.price,
-          successUrl: `${process.env.MAIN_API}/${lang}/verify-payment/${order.tx_ref}`,
-          cancelUrl: `${process.env.MAIN_API}/${lang}/course/${course.id}`,
+          successUrl: normalizeUrl(process.env.MAIN_API || "", `/${lang}/verify-payment/${order.tx_ref}`),
+          cancelUrl: normalizeUrl(process.env.MAIN_API || "", `/${lang}/course/${course.id}`),
         }),
       }
     );
@@ -199,7 +200,7 @@ export async function verifyStripePayment(
 
     // Verify with Stripe
     const response = await fetch(
-      `${process.env.MAIN_API}/api/verify-stripe-payment`,
+      normalizeUrl(process.env.MAIN_API || "", `/api/verify-stripe-payment`),
       {
         method: "POST",
         headers: {

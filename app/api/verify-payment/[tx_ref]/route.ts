@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { normalizeUrl } from "@/lib/utils/url";
 
 export async function GET(request: NextRequest) {
   try {
@@ -39,7 +40,7 @@ export async function GET(request: NextRequest) {
     // Use the new Chapa API to update the order status
     try {
       const response = await fetch(
-        `${process.env.MAIN_API}/api/update-order-status-by-chapa`,
+        normalizeUrl(process.env.MAIN_API || "", `/api/update-order-status-by-chapa`),
         {
           method: "POST",
           headers: {

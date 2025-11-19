@@ -3,6 +3,7 @@
 
 import prisma from "../db";
 import { auth } from "../auth";
+import { normalizeUrl } from "../utils/url";
 
 export async function getCoursesForAffiliate() {
   try {
@@ -30,7 +31,7 @@ export async function getCoursesForAffiliate() {
                   0
                 ),
               },
-              link: `${process.env.MAIN_API}/courses/${id}?code=${
+              link: `${normalizeUrl(process.env.MAIN_API || "", `/courses/${id}`)}?code=${
                 session?.user?.code || ""
               }`,
             })
@@ -372,7 +373,7 @@ export async function getCourseForAffiliate(id: string) {
             ? {
                 ...res,
                 price: Number(res.price),
-                link: `${process.env.MAIN_API}/courses/${id}?code=${
+                link: `${normalizeUrl(process.env.MAIN_API || "", `/courses/${id}`)}?code=${
                   session?.user?.code || ""
                 }`,
               }
