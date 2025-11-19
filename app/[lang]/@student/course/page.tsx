@@ -80,13 +80,16 @@ export default function Page() {
         }
       />
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr">
-        {data.map(({ id, ...value }, i) => (
+        {data.map((course, i) => (
           <CourseCard
             key={i + ""}
-            {...{ ...value, id }}
+            {...course}
+            titleLink={`/${lang}/course/${course.id}?code=${
+              searchParams?.get("code") || ""
+            }`}
             btn={
               <Link
-                href={`/${lang}/course/${id}?code=${
+                href={`/${lang}/course/${course.id}?code=${
                   searchParams?.get("code") || ""
                 }`}
                 className="w-full"
