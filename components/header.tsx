@@ -1,21 +1,54 @@
 "use client";
 
-import React from "react";
-import { usePathname } from "next/navigation";
-import { AlignLeft, ChevronRight } from "lucide-react";
+import React, { useEffect, useState } from "react";
+import { usePathname, useParams, useRouter } from "next/navigation";
+import {
+  AlignLeft,
+  ChevronRight,
+  Menu,
+  X,
+  Bell,
+  ShoppingCart,
+  Search,
+  UserRound,
+} from "lucide-react";
 import User from "./user";
-import { Button } from "@heroui/react";
+import { Button, Input } from "@heroui/react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
+import Image from "next/image";
+import { getUserName } from "@/actions/user/header";
+import Logo from "./Logo";
 
 export default function Header({
   setIsSide,
   isCollapsed = false,
+  setIsCollapsed,
 }: {
   setIsSide: React.Dispatch<React.SetStateAction<boolean>>;
   isCollapsed?: boolean;
+  setIsCollapsed?: React.Dispatch<React.SetStateAction<boolean>>;
 }) {
   const pathname = usePathname();
+  const params = useParams<{ lang: string }>();
+  const lang = params?.lang || "en";
+  const router = useRouter();
+  const [userName, setUserName] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  useEffect(() => {
+    getUserName().then(setUserName);
+  }, []);
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(
+        `/${lang}/course?search=${encodeURIComponent(searchQuery.trim())}`
+      );
+    }
+  };
+
   const pathSegments = pathname?.split("/").filter(Boolean) || [];
 
   // Generate breadcrumb items from path
@@ -61,54 +94,134 @@ export default function Header({
   return (
     <header
       className={cn(
-        "fixed top-0 z-50 w-full border-b border-gray-200/60 dark:border-gray-700/60 bg-gradient-to-r from-white/95 via-white/98 to-white/95 dark:from-gray-900/95 dark:via-gray-800/98 dark:to-gray-900/95 backdrop-blur-xl shadow-lg dark:shadow-2xl transition-all duration-300 overflow-hidden",
-        "before:absolute before:inset-0 before:bg-gradient-to-r before:from-blue-50/20 before:via-transparent before:to-purple-50/20 dark:before:from-blue-950/10 dark:before:via-transparent dark:before:to-purple-950/10 before:pointer-events-none",
-        "after:absolute after:inset-0 after:bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,0.02)_0%,transparent_70%)] dark:after:bg-[radial-gradient(ellipse_at_top,rgba(59,130,246,0.01)_0%,transparent_70%)] after:pointer-events-none",
+        "fixed top-0 z-50 w-full border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-all duration-300",
         isCollapsed
-          ? "md:left-20 md:w-[calc(100%-5rem)]"
-          : "md:left-72 md:w-[calc(100%-18rem)]"
+          ? "md:left-16 md:w-[calc(100%-4rem)]"
+          : "md:left-64 md:w-[calc(100%-16rem)]"
       )}
     >
-      <div className="relative flex h-16 items-center justify-between px-4 md:px-6">
-        {/* Mobile Menu Button */}
-        <Button
-          isIconOnly
-          variant="light"
-          size="sm"
-          onPress={() => setIsSide((prev) => !prev)}
-          className="md:hidden text-gray-600 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 transition-all duration-200 rounded-lg"
-        >
-          <AlignLeft className="size-5" />
-        </Button>
+      <div className="relative flex h-16 items-center justify-between px-4 md:px-6 gap-4">
+        {/* Left Side: Logo + Sidebar Toggle */}
+        <div className="flex items-center gap-4">
+          {/* Mobile Menu Button */}
+          <Button
+            isIconOnly
+            variant="light"
+            size="sm"
+            onPress={() => setIsSide((prev) => !prev)}
+            className="md:hidden text-gray-600 dark:text-gray-400"
+          >
+            <AlignLeft className="size-5" />
+          </Button>
 
-        {/* Breadcrumbs */}
-        <div className="flex-1 flex items-center min-w-0">
-          <nav className="flex items-center space-x-2 text-sm">
-            {breadcrumbItems.map((item, index) => (
-              <React.Fragment key={item.href}>
-                {index > 0 && (
-                  <ChevronRight className="size-4 text-gray-400 dark:text-gray-600 flex-shrink-0" />
-                )}
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "flex items-center gap-2 px-3 py-2 rounded-lg transition-all duration-200 hover:bg-gray-100/80 dark:hover:bg-gray-800/80 hover:shadow-md dark:hover:shadow-lg truncate font-medium",
-                    index === breadcrumbItems.length - 1
-                      ? "text-blue-700 dark:text-blue-300 bg-blue-50/50 dark:bg-blue-950/50 shadow-sm dark:shadow-md"
-                      : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-                  )}
-                >
-                  {index === 0 && item.icon}
-                  <span className="truncate">{item.label}</span>
-                </Link>
-              </React.Fragment>
-            ))}
-          </nav>
+          {/* Desktop Sidebar Toggle Button */}
+          {setIsCollapsed && (
+            <Button
+              isIconOnly
+              variant="light"
+              size="sm"
+              onPress={() => setIsCollapsed((prev) => !prev)}
+              className="hidden md:flex text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+              aria-label={isCollapsed ? "Open sidebar" : "Close sidebar"}
+            >
+              {isCollapsed ? (
+                <Menu className="size-5" />
+              ) : (
+                <X className="size-5" />
+              )}
+            </Button>
+          )}
+
+          {/* Logo */}
+          <Link href={`/${lang}/`} className="flex items-center gap-2">
+            <div className="bg-blue-600 rounded-lg p-1.5">
+              <Image
+                src="/darulkubra.svg"
+                alt="Darulkubra Logo"
+                width={20}
+                height={20}
+                className="size-5 filter brightness-0 invert"
+              />
+            </div>
+            <span className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+              {lang === "en" ? "Darulkubra" : "ዳሩልኩብራ"}
+            </span>
+          </Link>
         </div>
 
-        {/* User Section */}
-        <div className="flex items-center gap-2">
-          <User />
+        {/* Center: Search Bar */}
+        <form
+          onSubmit={handleSearch}
+          className="flex-1 max-w-2xl hidden md:block"
+        >
+          <Input
+            type="text"
+            placeholder={
+              lang === "en" ? "What do you want to learn?" : "ምን መማር ይፈልጋሉ?"
+            }
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            startContent={<Search className="size-4 text-gray-400" />}
+            classNames={{
+              base: "w-full",
+              input: "text-sm",
+              inputWrapper:
+                "border-gray-300 dark:border-gray-700 hover:border-blue-500 focus-within:!border-blue-500 bg-gray-50 dark:bg-gray-800",
+            }}
+          />
+        </form>
+
+        {/* Right Side: Notifications, Cart, User */}
+        <div className="flex items-center gap-3">
+          {/* Notifications */}
+          <Button
+            isIconOnly
+            variant="light"
+            size="sm"
+            className="relative text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+            aria-label="Notifications"
+          >
+            <Bell className="size-5" />
+            <span className="absolute top-1 right-1 size-2 bg-red-500 rounded-full"></span>
+          </Button>
+
+          {/* Shopping Cart */}
+          <Button
+            isIconOnly
+            variant="light"
+            size="sm"
+            className="relative text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+            aria-label="Shopping Cart"
+          >
+            <ShoppingCart className="size-5" />
+            <span className="absolute top-1 right-1 size-2 bg-red-500 rounded-full"></span>
+          </Button>
+
+          {/* User Profile */}
+          <div className="flex items-center gap-2">
+            <User />
+            {userName && (
+              <span className="hidden lg:block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {userName}
+              </span>
+            )}
+          </div>
+
+          {/* Language Selector */}
+          <Button
+            variant="flat"
+            size="sm"
+            onPress={() =>
+              router.push(
+                `/${lang === "en" ? "am" : "en"}/${
+                  pathname?.split("/").slice(2).join("/") || ""
+                }`
+              )
+            }
+            className="text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
+          >
+            {lang === "en" ? "አማ" : "EN"}
+          </Button>
         </div>
       </div>
     </header>

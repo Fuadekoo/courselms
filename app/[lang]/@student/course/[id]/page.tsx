@@ -39,7 +39,7 @@ export default function Page() {
       ) : !data ? (
         <NoData />
       ) : (
-        <div className="px-2 md:pl-4 lg:pl-6 xl:pl-8 pt-4 md:pt-6 pb-6 md:pr-[28rem] lg:pr-[32rem] h-full flex flex-col gap-6 md:gap-8 overflow-auto">
+        <div className="px-2 md:pl-4 lg:pl-6 xl:pl-8 pt-4 md:pt-6 pb-6 md:pr-[28rem] lg:pr-[32rem] h-full flex flex-col gap-6 md:gap-8 overflow-y-auto overflow-x-hidden smooth-scroll">
           <CourseTopOverview
             {...{
               title: lang == "en" ? data.titleEn : data.titleAm,

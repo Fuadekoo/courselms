@@ -277,6 +277,21 @@
     scroll-behavior: smooth;
   }
 
+  /* Enhanced smooth scrolling with momentum */
+  .smooth-scroll {
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Better scroll momentum on webkit browsers */
+  @supports (-webkit-overflow-scrolling: touch) {
+    .smooth-scroll {
+      scroll-behavior: smooth;
+      -webkit-overflow-scrolling: touch;
+    }
+  }
+
   .animate-rotate {
     animation: rotate;
     animation-timeline: view();

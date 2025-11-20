@@ -42,7 +42,7 @@ interface UIState {
 
 const initialState = {
   sidebarOpen: false,
-  sidebarCollapsed: false,
+  sidebarCollapsed: true, // Default to collapsed (icon-only view)
   sidebarVisible: false,
   modals: {} as Record<string, boolean>,
   notifications: [] as UIState["notifications"],

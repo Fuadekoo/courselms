@@ -61,8 +61,8 @@ export default function User() {
   return (
     <div className="">
       <Popover placement="bottom">
-        <PopoverTrigger className="p-2 rounded-full bg-primary/40 border border-primary/40">
-          <UserRound className="size-10 " />
+        <PopoverTrigger className="p-1.5 rounded-full border border-gray-300 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
+          <UserRound className="size-6 text-gray-600 dark:text-gray-400" />
         </PopoverTrigger>
         <PopoverContent className="grid gap-1 py-2">
           <Button variant="light" onPress={onOpen} className="">

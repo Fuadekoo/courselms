@@ -25,10 +25,10 @@ function UserLayoutContent({
       </div>
       
       <SideBar isSide={isSide} setIsSide={setIsSide} lists={list} isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
-      <Header setIsSide={setIsSide} isCollapsed={isCollapsed} />
+      <Header setIsSide={setIsSide} isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
       <main className={cn(
         "pt-16 transition-all duration-300 bg-gradient-to-br from-transparent via-white/50 to-white/80 dark:from-transparent dark:via-gray-900/50 dark:to-gray-900/80 relative z-10",
-        isCollapsed ? "md:ml-20" : "md:ml-72"
+        isCollapsed ? "md:ml-16" : "md:ml-64"
       )}>
         <div className="px-4 md:px-6 py-6">
           {children}
