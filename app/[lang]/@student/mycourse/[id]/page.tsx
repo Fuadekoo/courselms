@@ -34,7 +34,6 @@ import ChatComponent from "@/components/ui/chatComponent";
 import CourseAnnouncements from "@/components/CourseAnnouncements";
 import CourseFeedback from "@/components/CourseFeedback";
 import CourseMaterials from "@/components/CourseMaterials";
-import { useSidebar } from "@/components/context/sidebar";
 
 // ---------------- COURSE CONTENT COMPONENT ----------------
 function CourseContent({
@@ -464,7 +463,6 @@ export default function Page() {
   const courseId = params?.id || "";
   const { data: session } = useSession();
   const studentId = (session?.user as any)?.id;
-  const { isCollapsed } = useSidebar();
 
   const { data, loading } = useData({
     func: getMySingleCourse,
@@ -535,9 +533,7 @@ export default function Page() {
         <div className="h-full overflow-hidden grid bg-gradient-to-br from-gray-50 via-gray-50/50 to-white dark:from-gray-950 dark:via-gray-900/50 dark:to-gray-900">
           {/* MAIN CONTENT AREA - Scrollable and responsive to both sidebars */}
           <div
-            className={`overflow-hidden sm:overflow-auto lg:pr-[340px] transition-all duration-300 ${
-              isCollapsed ? "md:ml-20" : "md:ml-72"
-            } grid grid-rows-[auto_1fr] `}
+            className="overflow-hidden sm:overflow-auto lg:pr-[340px] transition-all duration-300 grid grid-rows-[auto_1fr]"
           >
             {/* VIDEO PLAYER SECTION */}
             <div className="flex-shrink-0 bg-black dark:bg-black w-full mx-auto lg:max-w-none">

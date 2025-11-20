@@ -7,10 +7,7 @@ import CourseCard from "@/components/courseCard";
 import { useParams, useSearchParams } from "next/navigation";
 import { Button } from "@heroui/react";
 import Link from "next/link";
-import ScrollablePageWrapper from "@/components/layout/ScrollablePageWrapper";
-import PageHeader from "@/components/layout/PageHeader";
-import EmptyState from "@/components/ui/EmptyState";
-import { BookOpen } from "lucide-react";
+import Loading from "@/components/loading";
 
 export default function Page() {
   const params = useParams<{ lang: string }>();
@@ -21,87 +18,45 @@ export default function Page() {
     args: [],
   });
 
-  if (loading) {
-    return (
-      <ScrollablePageWrapper>
-        <PageHeader
-          title={lang === "en" ? "Available Courses" : "ያሉ ኮርሶች"}
-          subtitle={
-            lang === "en"
-              ? "Loading available courses..."
-              : "ያሉ ኮርሶች በመጫን ላይ..."
-          }
-        />
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {Array.from({ length: 8 }).map((_, i) => (
-            <div key={i} className="card p-4">
-              <div className="h-48 skeleton mb-4" />
-              <div className="h-6 w-3/4 skeleton mb-2" />
-              <div className="h-4 w-1/2 skeleton" />
-            </div>
-          ))}
-        </div>
-      </ScrollablePageWrapper>
-    );
-  }
-
-  if (!data || data.length <= 0) {
-    return (
-      <ScrollablePageWrapper>
-        <PageHeader
-          title={lang === "en" ? "Available Courses" : "ያሉ ኮርሶች"}
-          subtitle={
-            lang === "en"
-              ? "Browse and enroll in available courses."
-              : "ያሉ ኮርሶችን ይመልከቱ እና ይመዝገቡ።"
-          }
-        />
-        <EmptyState
-          icon={<BookOpen className="size-16" />}
-          title={lang === "en" ? "No Courses Available" : "ኮርስ የለም"}
-          description={
-            lang === "en"
-              ? "There are currently no courses available for enrollment."
-              : "በአሁኑ ጊዜ ለምዝገባ የሚገኝ ኮርስ የለም።"
-          }
-        />
-      </ScrollablePageWrapper>
-    );
-  }
-
   return (
-    <ScrollablePageWrapper>
-      <PageHeader
-        title={lang === "en" ? "Available Courses" : "ያሉ ኮርሶች"}
-        subtitle={
-          lang === "en"
-            ? "Browse and enroll in available courses."
-            : "ያሉ ኮርሶችን ይመልከቱ እና ይመዝገቡ።" 
-        }
-      />
-      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr">
-        {data.map(({ id, ...value }, i) => (
-          <CourseCard
-            key={i + ""}
-            {...{ ...value, id }}
-            titleLink={`/${lang}/course/${id}?code=${
-              searchParams?.get("code") || ""
-            }`}
-            btn={
-              <Link
-                href={`/${lang}/course/${id}?code=${
+    <div className="px-4 md:px-6 py-6">
+      {/* All Courses Section */}
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          {lang === "en" ? "All Courses" : "ሁሉም ኮርሶች"}
+        </h2>
+        {loading ? (
+          <Loading />
+        ) : !data || data.length <= 0 ? (
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            {lang === "en" ? "No courses available" : "ኮርስ የለም"}
+          </div>
+        ) : (
+          <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr">
+            {data.map(({ id, ...value }, i) => (
+              <CourseCard
+                key={i + ""}
+                {...{ ...value, id }}
+                titleLink={`/${lang}/course/${id}?code=${
                   searchParams?.get("code") || ""
                 }`}
-                className="w-full"
-              >
-                <Button color="primary" className="w-full">
-                  {lang == "en" ? "Enroll" : "መዝግብ"}
-                </Button>
-              </Link>
-            }
-          />
-        ))}
-      </div>
-    </ScrollablePageWrapper>
+                btn={
+                  <Link
+                    href={`/${lang}/course/${id}?code=${
+                      searchParams?.get("code") || ""
+                    }`}
+                    className="w-full"
+                  >
+                    <Button color="primary" className="w-full">
+                      {lang == "en" ? "Get started" : "ጀምር"}
+                    </Button>
+                  </Link>
+                }
+              />
+            ))}
+          </div>
+        )}
+      </section>
+    </div>
   );
 }

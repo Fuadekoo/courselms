@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { usePathname, useParams, useRouter } from "next/navigation";
-import { ChevronRight, Bell, ShoppingCart, Search } from "lucide-react";
+import { ChevronRight, ShoppingCart, Search, Sun, Moon } from "lucide-react";
 import User from "./user";
 import { Button, Input } from "@heroui/react";
 import Link from "next/link";
@@ -10,6 +10,7 @@ import { cn } from "@/lib/utils";
 import Image from "next/image";
 import { getUserName } from "@/actions/user/header";
 import Logo from "./Logo";
+import { useTheme } from "next-themes";
 
 export default function Header({
   navItems = [],
@@ -20,10 +21,13 @@ export default function Header({
   const params = useParams<{ lang: string }>();
   const lang = params?.lang || "en";
   const router = useRouter();
+  const { theme, setTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
+    setMounted(true);
     getUserName().then(setUserName);
   }, []);
 
@@ -85,20 +89,8 @@ export default function Header({
           />
         </form>
 
-        {/* Right Side: Notifications, Cart, User */}
+        {/* Right Side: Cart, User */}
         <div className="flex items-center gap-3">
-          {/* Notifications */}
-          <Button
-            isIconOnly
-            variant="light"
-            size="sm"
-            className="relative text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-            aria-label="Notifications"
-          >
-            <Bell className="size-5" />
-            <span className="absolute top-1 right-1 size-2 bg-red-500 rounded-full"></span>
-          </Button>
-
           {/* Shopping Cart */}
           <Button
             isIconOnly
@@ -113,6 +105,28 @@ export default function Header({
 
           {/* User Profile */}
           <User userName={userName} navItems={navItems} />
+
+          {/* Theme Toggle */}
+          {mounted && (
+            <Button
+              isIconOnly
+              variant="light"
+              size="sm"
+              onPress={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className="text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+              aria-label={
+                theme === "dark"
+                  ? "Switch to light mode"
+                  : "Switch to dark mode"
+              }
+            >
+              {theme === "dark" ? (
+                <Sun className="size-5 text-amber-500" />
+              ) : (
+                <Moon className="size-5 text-indigo-600 dark:text-indigo-400" />
+              )}
+            </Button>
+          )}
 
           {/* Language Selector */}
           <Button
