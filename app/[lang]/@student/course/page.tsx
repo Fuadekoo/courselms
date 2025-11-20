@@ -76,7 +76,7 @@ export default function Page() {
         subtitle={
           lang === "en"
             ? "Browse and enroll in available courses."
-            : "ያሉ ኮርሶችን ይመልከቱ እና ይመዝገቡ።"
+            : "ያሉ ኮርሶችን ይመልከቱ እና ይመዝገቡ።" 
         }
       />
       <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr">
