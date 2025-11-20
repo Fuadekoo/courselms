@@ -22,10 +22,10 @@ function Player({
   src,
   type = "local",
   playlist = [],
+  title,
   onVideoPlay,
   onVideoPause,
-}: // title,
-PlayerProps) {
+}: PlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [playing, setPlaying] = useState(false);
@@ -41,7 +41,22 @@ PlayerProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [isOnline, setIsOnline] = useState(true);
   const [isLandscape, setIsLandscape] = useState(false);
+  const [hasError, setHasError] = useState(false);
+  const [videoAvailable, setVideoAvailable] = useState(!!src);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  
+  // Reset video availability when src changes
+  useEffect(() => {
+    if (src) {
+      setVideoAvailable(false);
+      setHasError(false);
+      setIsLoading(true);
+    } else {
+      setVideoAvailable(false);
+      setHasError(true);
+      setIsLoading(false);
+    }
+  }, [src]);
 
   // Compute the video source based on type
   let videoSrc = src;
@@ -352,8 +367,76 @@ PlayerProps) {
           width: isFullscreen && isMobile && isLandscape ? "100vw" : "100%",
           position: "relative", // Critical for iOS
           overflow: "hidden",
+          backgroundColor: "#000",
+          minHeight: "400px",
+          aspectRatio: "16/9",
         }}
       >
+        {/* Placeholder UI when video is not available or not loaded yet */}
+        {(!videoAvailable || hasError || !src) && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              backgroundColor: "#000",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              zIndex: 10,
+              pointerEvents: "none",
+            }}
+          >
+            {/* Title in top-left */}
+            {title && (
+              <div
+                style={{
+                  position: "absolute",
+                  top: "20px",
+                  left: "20px",
+                  color: "#fff",
+                  fontSize: "18px",
+                  fontWeight: 500,
+                  zIndex: 11,
+                  maxWidth: "80%",
+                  textShadow: "0 2px 4px rgba(0,0,0,0.5)",
+                }}
+              >
+                {title}
+              </div>
+            )}
+            
+            {/* Center Loading Spinner - Large blue glowing circle */}
+            <div
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                zIndex: 11,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <div
+                style={{
+                  width: "100px",
+                  height: "100px",
+                  borderRadius: "50%",
+                  background: "rgba(59, 130, 246, 0.15)",
+                  boxShadow:
+                    "0 0 30px rgba(59, 130, 246, 0.8), 0 0 60px rgba(59, 130, 246, 0.5), inset 0 0 15px rgba(59, 130, 246, 0.4)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}
+              >
+                <CustomSpinner size={40} color="rgba(147, 197, 253, 1)" />
+              </div>
+            </div>
+          </div>
+        )}
+        
         <video
           ref={videoRef}
           src={currentSrc}
@@ -369,7 +452,7 @@ PlayerProps) {
             height: isFullscreen && isMobile && isLandscape ? "100vh" : "auto",
             objectFit:
               isFullscreen && isMobile && isLandscape ? "cover" : "contain",
-            display: "block",
+            display: videoAvailable && !hasError ? "block" : "none",
             position: "relative",
             zIndex: 1,
             WebkitTapHighlightColor: "transparent",
@@ -398,6 +481,22 @@ PlayerProps) {
           }}
           onError={(e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
             console.error("Video load error:", e);
+            setIsLoading(false);
+            setHasError(true);
+            setVideoAvailable(false);
+          }}
+          onLoadedData={() => {
+            setVideoAvailable(true);
+            setIsLoading(false);
+            setHasError(false);
+          }}
+          onCanPlay={() => {
+            setVideoAvailable(true);
+            setIsLoading(false);
+            setHasError(false);
+          }}
+          onLoadedMetadata={() => {
+            setVideoAvailable(true);
             setIsLoading(false);
           }}
         />
@@ -456,8 +555,8 @@ PlayerProps) {
           </div>
         )}
 
-        {/* Loading Spinner Overlay */}
-        {(isLoading || !isOnline) && (
+        {/* Loading Spinner Overlay - Only show when video is available but buffering */}
+        {(isLoading || !isOnline) && videoAvailable && !hasError && src && (
           <div
             style={{
               position: "absolute",
@@ -495,14 +594,14 @@ PlayerProps) {
         )}
 
         {/* --- MOBILE CONTROLS --- */}
-        {isMobile && showControls && (
+        {isMobile && (showControls || (!videoAvailable || hasError || !src)) && (
           <div
             style={{
               position: "absolute",
               left: 0,
               right: 0,
               bottom: 0,
-              background: "rgba(59, 130, 246, 0.2)", // Glassy blue background
+              background: "rgba(30, 58, 138, 0.95)", // Dark blue background like in image
               padding: "8px 16px",
               borderBottomLeftRadius: 8,
               borderBottomRightRadius: 8,
@@ -510,7 +609,7 @@ PlayerProps) {
               flexDirection: "row",
               alignItems: "center",
               gap: 12,
-              zIndex: 50,
+              zIndex: 100,
               WebkitTapHighlightColor: "transparent",
             }}
           >
@@ -584,14 +683,15 @@ PlayerProps) {
               left: 0,
               right: 0,
               bottom: 0,
-              opacity: showControls ? 1 : 0,
-              pointerEvents: showControls ? "auto" : "none",
+              opacity: (showControls || (!videoAvailable || hasError || !src)) ? 1 : 0,
+              pointerEvents: (showControls || (!videoAvailable || hasError || !src)) ? "auto" : "none",
               transition: "opacity 0.3s",
-              background: "rgba(59, 130, 246, 0.2)", // Glassy blue background
+              background: "rgba(30, 58, 138, 0.95)", // Dark blue background like in image
               padding: "8px 16px",
               borderBottomLeftRadius: 8,
               borderBottomRightRadius: 8,
               display: "flex",
+              zIndex: 100,
               flexDirection: "row",
               alignItems: "center",
               gap: 12,

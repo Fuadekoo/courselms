@@ -48,7 +48,12 @@ function CourseContent({
 }: {
   contentData: any;
   contentLoading: boolean;
-  onSelectVideo: (url: string, title: string, subActivityId?: string, thumbnail?: string) => void;
+  onSelectVideo: (
+    url: string,
+    title: string,
+    subActivityId?: string,
+    thumbnail?: string
+  ) => void;
   lang: string;
   currentVideoUrl: string;
   courseId: string;
@@ -532,16 +537,14 @@ export default function Page() {
       ) : (
         <div className="h-full overflow-hidden grid bg-gradient-to-br from-gray-50 via-gray-50/50 to-white dark:from-gray-950 dark:via-gray-900/50 dark:to-gray-900">
           {/* MAIN CONTENT AREA - Scrollable and responsive to both sidebars */}
-          <div
-            className="overflow-hidden sm:overflow-auto lg:pr-[340px] transition-all duration-300 grid grid-rows-[auto_1fr]"
-          >
+          <div className="overflow-hidden sm:overflow-auto lg:pr-[340px] transition-all duration-300 grid grid-rows-[auto_1fr]">
             {/* VIDEO PLAYER SECTION */}
             <div className="flex-shrink-0 bg-black dark:bg-black w-full mx-auto lg:max-w-none">
               {currentVideo.url && (
                 <div className="relative w-full">
                   <div className="relative w-full aspect-video bg-black">
                     {currentVideo.thumbnail && showThumbnail && (
-                      <div 
+                      <div
                         className="absolute inset-0 z-[5] pointer-events-none subactivity-thumbnail-overlay transition-opacity duration-300"
                         style={{ opacity: showThumbnail ? 1 : 0 }}
                       >
@@ -553,9 +556,10 @@ export default function Page() {
                       </div>
                     )}
                     <div className="relative z-10">
-                      <Player 
-                        src={currentVideo.url} 
+                      <Player
+                        src={currentVideo.url}
                         type="local"
+                        title={currentVideo.title}
                         onVideoPlay={() => {
                           // Hide thumbnail when video actually starts playing
                           setShowThumbnail(false);
