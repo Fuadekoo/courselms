@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useEffect } from "react";
-import { useParams, useSearchParams, useRouter } from "next/navigation";
+import React from "react";
+import { useParams, useRouter } from "next/navigation";
 import Logo from "@/components/Logo";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -19,7 +19,6 @@ const formSchema = z.object({
 export default function Page() {
   const params = useParams<{ lang: string }>(),
     lang = params?.lang ?? "en",
-    searchParams = useSearchParams(),
     { handleSubmit, register, formState } = useForm<z.infer<typeof formSchema>>(
       {
         resolver: zodResolver(formSchema),
@@ -69,16 +68,6 @@ export default function Page() {
     const processedUserName = processPhoneNumber(data.userName);
     action({ userName: processedUserName, password: data.password });
   };
-
-  useEffect(() => {
-    if (searchParams !== null) {
-      const userName = searchParams.get("u"),
-        password = searchParams.get("p");
-      if (userName && password) {
-        action({ userName, password });
-      }
-    }
-  }, [searchParams, action]);
 
   const handleForgotPassword = () => {
     router.push(`/${lang}/forgetPassword`);

@@ -69,10 +69,12 @@ export async function getMyCoursesWithProgress() {
   try {
     const session = await auth();
     if (!session?.user?.id) {
+      console.log("getMyCoursesWithProgress: No session or user ID");
       return [];
     }
 
     const userId = session.user.id;
+    console.log("getMyCoursesWithProgress: User ID:", userId);
 
     // Get all paid courses
     const paidOrders = await prisma.order.findMany({
@@ -80,11 +82,16 @@ export async function getMyCoursesWithProgress() {
       select: { courseId: true },
     });
 
+    console.log("getMyCoursesWithProgress: Paid orders found:", paidOrders.length);
+
     const courseIds = paidOrders.map((order) => order.courseId);
 
     if (courseIds.length === 0) {
+      console.log("getMyCoursesWithProgress: No course IDs found");
       return [];
     }
+
+    console.log("getMyCoursesWithProgress: Course IDs:", courseIds);
 
     // Get courses with full details
     const courses = await prisma.course.findMany({
@@ -154,6 +161,7 @@ export async function getMyCoursesWithProgress() {
     // Sort by progress (ascending) - show courses with less progress first
     coursesWithProgress.sort((a, b) => a.progress - b.progress);
 
+    console.log("getMyCoursesWithProgress: Returning courses:", coursesWithProgress.length);
     return coursesWithProgress;
   } catch (error) {
     console.error("Error fetching my courses with progress:", error);
