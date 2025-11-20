@@ -20,7 +20,7 @@ export default function CourseMainDescription({
   const searchParams = useSearchParams();
 
   return (
-    <div className="md:absolute md:top-20 md:right-5 2xl:right-20 md:w-72 2xl:w-96 p-4 rounded-xl border border-blue-600/20 md:divide-y divide-primary-600/20">
+    <div className="md:fixed md:top-16 md:right-4 lg:right-6 xl:right-8 md:w-72 2xl:w-80 p-4 rounded-xl border border-blue-600/20 md:divide-y divide-primary-600/20 bg-background md:max-h-[calc(100vh-4rem)] md:overflow-y-auto">
       {btn && (
         <div className={cn("z-20 md:pb-4 grid gap-2 ")}>
           <Button
