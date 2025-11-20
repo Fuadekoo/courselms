@@ -48,7 +48,12 @@ function CourseContent({
 }: {
   contentData: any;
   contentLoading: boolean;
-  onSelectVideo: (url: string, title: string, subActivityId?: string, thumbnail?: string) => void;
+  onSelectVideo: (
+    url: string,
+    title: string,
+    subActivityId?: string,
+    thumbnail?: string
+  ) => void;
   lang: string;
   currentVideoUrl: string;
   courseId: string;
@@ -541,7 +546,7 @@ export default function Page() {
                 <div className="relative w-full">
                   <div className="relative w-full aspect-video bg-black">
                     {currentVideo.thumbnail && showThumbnail && (
-                      <div 
+                      <div
                         className="absolute inset-0 z-[5] pointer-events-none subactivity-thumbnail-overlay transition-opacity duration-300"
                         style={{ opacity: showThumbnail ? 1 : 0 }}
                       >
@@ -553,9 +558,10 @@ export default function Page() {
                       </div>
                     )}
                     <div className="relative z-10">
-                      <Player 
-                        src={currentVideo.url} 
+                      <Player
+                        src={currentVideo.url}
                         type="local"
+                        title={currentVideo.title}
                         onVideoPlay={() => {
                           // Hide thumbnail when video actually starts playing
                           setShowThumbnail(false);

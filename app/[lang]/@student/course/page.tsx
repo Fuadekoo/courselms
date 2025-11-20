@@ -19,11 +19,11 @@ export default function Page() {
   });
 
   return (
-    <div className="px-4 md:px-6 py-6">
+    <div className="px-4 md:px-6 py-6 space-y-8">
       {/* All Courses Section */}
       <section className="space-y-4">
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-          {lang === "en" ? "All Courses" : "ሁሉም ኮርሶች"}
+          {lang === "en" ? "Available Courses" : "ያሉ ኮርሶች"}
         </h2>
         {loading ? (
           <Loading />
@@ -48,7 +48,7 @@ export default function Page() {
                     className="w-full"
                   >
                     <Button color="primary" className="w-full">
-                      {lang == "en" ? "Get started" : "ጀምር"}
+                      {lang == "en" ? "Enroll" : "መዝግብ"}
                     </Button>
                   </Link>
                 }

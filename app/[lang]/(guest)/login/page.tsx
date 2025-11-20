@@ -186,7 +186,7 @@ export default function Page() {
                   {lang == "en" ? (
                     <>
                       <button
-                        type="button"
+                        type="button" 
                         onClick={handleForgotPassword}
                         className="text-primary-600 dark:text-primary-400 hover:text-primary-700 dark:hover:text-primary-300 hover:underline font-medium transition-colors"
                       >
