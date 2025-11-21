@@ -53,7 +53,7 @@ function CourseContent({
     title: string,
     subActivityId?: string,
     thumbnail?: string
-  ) => void;
+  ) => void; 
   lang: string;
   currentVideoUrl: string;
   courseId: string;
