@@ -12,7 +12,7 @@ import {
   MessageCircle,
   Loader2,
 } from "lucide-react";
-import { Accordion, AccordionItem, Skeleton } from "@heroui/react";
+import { Accordion, AccordionItem } from "@heroui/react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 import useData from "@/hooks/useData";
@@ -356,7 +356,6 @@ export default function Page() {
   } = useStudentProgressStore();
 
   // Local UI state
-  const [showThumbnail, setShowThumbnail] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
   const [videoProgress, setVideoProgress] = useState<number>(0);
@@ -372,9 +371,8 @@ export default function Page() {
         subActivityId: "", // Introduction video doesn't have subActivityId
         thumbnail: data.thumbnail || "",
       });
-      setShowThumbnail(true); // Reset thumbnail visibility when video changes
     }
-  }, [data, lang]);
+  }, [data, lang, setCurrentVideo]);
 
   // Initialize completed sub-activities from content data
   useEffect(() => {
@@ -398,7 +396,6 @@ export default function Page() {
       subActivityId: subActivityId || "",
       thumbnail: thumbnail || "",
     });
-    setShowThumbnail(true); // Show thumbnail when selecting a new video
     setIsSidebarOpen(false);
     setVideoProgress(0); // Reset progress for new video
   };
@@ -484,16 +481,8 @@ export default function Page() {
                       type="local"
                       title={currentVideo.title}
                       poster={currentVideo.thumbnail} // Pass thumbnail as poster
-                      onVideoPlay={() => {
-                        // Hide thumbnail when video actually starts playing
-                        setShowThumbnail(false);
-                      }}
-                      onVideoPause={() => {
-                        // Show thumbnail when video is paused (if it exists)
-                        if (currentVideo.thumbnail) {
-                          setShowThumbnail(true);
-                        }
-                      }}
+                      onVideoProgress={handleVideoProgress}
+                      onVideoEnd={handleVideoEnd}
                     />
                   </div>
                 </div>
