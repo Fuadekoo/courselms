@@ -51,29 +51,94 @@ function Player({
   const [hasError, setHasError] = useState(false);
   const [videoAvailable, setVideoAvailable] = useState(!!src);
   const [hasStartedPlaying, setHasStartedPlaying] = useState(false); // Track if video has ever started
+  const [secureVideoUrl, setSecureVideoUrl] = useState<string>("");
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const tokenRefreshInterval = useRef<NodeJS.Timeout | null>(null);
   
-  // Reset video availability when src changes
+  // Generate secure token for video
+  const generateSecureUrl = async (filePath: string) => {
+    try {
+      const response = await fetch('/api/video-token', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ file: filePath }),
+      });
+      
+      if (!response.ok) {
+        console.error('Failed to generate video token');
+        return null;
+      }
+      
+      const data = await response.json();
+      return data.url;
+    } catch (error) {
+      console.error('Error generating secure URL:', error);
+      return null;
+    }
+  };
+  
+  // Reset video availability when src changes and get secure URL
   useEffect(() => {
     if (src) {
       setVideoAvailable(false);
       setHasError(false);
       setIsLoading(true);
-      setHasStartedPlaying(false); // Reset when video changes
+      setHasStartedPlaying(false);
+      
+      // Generate secure URL for local videos
+      if (type === "local") {
+        generateSecureUrl(src).then((url) => {
+          if (url) {
+            setSecureVideoUrl(url);
+          } else {
+            setHasError(true);
+            setIsLoading(false);
+          }
+        });
+        
+        // Refresh token every 4 minutes (before 5-minute expiry)
+        if (tokenRefreshInterval.current) {
+          clearInterval(tokenRefreshInterval.current);
+        }
+        tokenRefreshInterval.current = setInterval(() => {
+          generateSecureUrl(src).then((url) => {
+            if (url && videoRef.current) {
+              const wasPlaying = !videoRef.current.paused;
+              const currentTime = videoRef.current.currentTime;
+              
+              setSecureVideoUrl(url);
+              
+              // Restore playback state after URL change
+              if (wasPlaying) {
+                videoRef.current.currentTime = currentTime;
+                videoRef.current.play().catch(() => {});
+              }
+            }
+          });
+        }, 4 * 60 * 1000); // 4 minutes
+      } else {
+        // For URL or blob types, use directly
+        if (type === "url" && !src.startsWith("blob:")) {
+          setSecureVideoUrl(`/api/remote-stream?url=${encodeURIComponent(src)}`);
+        } else {
+          setSecureVideoUrl(src);
+        }
+      }
     } else {
       setVideoAvailable(false);
       setHasError(true);
       setIsLoading(false);
     }
-  }, [src]);
+    
+    return () => {
+      if (tokenRefreshInterval.current) {
+        clearInterval(tokenRefreshInterval.current);
+      }
+    };
+  }, [src, type]);
 
   // Compute the video source based on type
-  let videoSrc = src;
-  if (type === "local") {
-    videoSrc = `/api/stream?file=${encodeURIComponent(src)}`;
-  } else if (type === "url" && !src.startsWith("blob:")) {
-    videoSrc = `/api/remote-stream?url=${encodeURIComponent(src)}`;
-  }
+  let videoSrc = secureVideoUrl || src;
 
   // For blob URLs (uploaded files), use src directly
 
