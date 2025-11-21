@@ -494,7 +494,7 @@ export default function Page() {
         <NoData />
       ) : (
         <div className="h-full overflow-hidden grid bg-gradient-to-br from-gray-50 via-gray-50/50 to-white dark:from-gray-950 dark:via-gray-900/50 dark:to-gray-900">
-          {/* MAIN CONTENT AREA - Scrollable and responsive to both sidebars */}
+          {/* MAIN CONTENT AREA - Scrollable and responsive to right sidebar */}
           <div className="overflow-hidden sm:overflow-auto lg:pr-[340px] transition-all duration-300 grid grid-rows-[auto_1fr]">
             {/* VIDEO PLAYER SECTION */}
             <div className="flex-shrink-0 bg-black dark:bg-black w-full mx-auto lg:max-w-none">

@@ -695,7 +695,6 @@ function Player({
               flexDirection: "row",
               alignItems: "center",
               gap: 12,
-              zIndex: 50,
             }}
           >
             {/* Play/Pause Button */}

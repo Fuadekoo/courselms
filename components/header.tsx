@@ -96,6 +96,7 @@ export default function Header({
             isIconOnly
             variant="light"
             size="sm"
+            onPress={() => router.push(`/${lang}/mycourse`)}
             className="relative text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
             aria-label="Shopping Cart"
           >

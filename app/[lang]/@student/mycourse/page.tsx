@@ -35,22 +35,24 @@ export default function Page() {
   return (
     <div className="px-4 md:px-6 py-6 space-y-8">
       {/* My Courses Section */}
-      {myCourses && myCourses.length > 0 && (
-        <section className="space-y-4">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
-            {lang === "en" ? "My Courses" : "የእኔ ኮርሶች"}
-          </h2>
-          {loading ? (
-            <Loading />
-          ) : (
-            <div className="space-y-4">
-              {myCourses.map((course) => (
-                <MyCourseCard key={course.id} {...course} />
-              ))}
-            </div>
-          )}
-        </section>
-      )}
+      <section className="space-y-4">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+          {lang === "en" ? "My Courses" : "የእኔ ኮርሶች"}
+        </h2>
+        {myCoursesLoading ? (
+          <Loading />
+        ) : !myCourses || myCourses.length === 0 ? (
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            {lang === "en" ? "You haven't purchased any courses yet" : "እስካሁን ምንም ኮርስ አልገዛም"}
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {myCourses.map((course) => (
+              <MyCourseCard key={course.id} {...course} />
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* All Courses Section */}
       <section className="space-y-4">
