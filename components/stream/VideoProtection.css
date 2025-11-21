@@ -1,0 +1,81 @@
+/* Video Download Protection CSS */
+
+/* Disable right-click menu on video player */
+.video-player,
+.video-player video {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none;
+}
+
+/* Disable drag on video element */
+.video-player video {
+  pointer-events: auto !important;
+  -webkit-user-drag: none;
+  -khtml-user-drag: none;
+  -moz-user-drag: none;
+  -o-user-drag: none;
+  user-drag: none;
+}
+
+/* Disable text selection in player */
+.video-player * {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Hide native video controls download button */
+video::-webkit-media-controls-download-button {
+  display: none !important;
+}
+
+video::-webkit-media-controls-enclosure {
+  overflow: hidden;
+}
+
+/* Remove download option from context menu */
+video::-internal-media-controls-download-button {
+  display: none !important;
+}
+
+/* Watermark overlay - prevents screen recording tools from getting clean video */
+.video-watermark {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  color: rgba(255, 255, 255, 0.3);
+  font-size: 14px;
+  font-weight: 600;
+  pointer-events: none;
+  z-index: 100;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  user-select: none;
+  -webkit-user-select: none;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+}
+
+/* Mobile watermark - smaller */
+@media (max-width: 768px) {
+  .video-watermark {
+    font-size: 12px;
+    top: 8px;
+    right: 8px;
+  }
+}
+
+/* Additional protection layer */
+.video-player::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: -1;
+  pointer-events: none;
+}
+
