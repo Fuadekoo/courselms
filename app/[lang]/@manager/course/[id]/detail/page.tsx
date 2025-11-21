@@ -28,7 +28,9 @@ export default function Page() {
     { data, loading } = useData({ func: getCourse, args: [id] });
 
   return loading ? (
-    <Loading />
+    <div className="flex items-center justify-center min-h-screen">
+      <Loading />
+    </div>
   ) : (
     data && (
       <div className="h-full px-2 2xl:pl-20 md:pr-[20rem] 2xl:pr-[31.5rem] pb-20 flex flex-col gap-10 overflow-auto">

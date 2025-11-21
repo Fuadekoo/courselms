@@ -30,6 +30,7 @@ import {
   readyToCertification,
 } from "@/actions/student/mycourse";
 import { useExamStore } from "@/stores";
+import Loading from "@/components/loading";
 
 // Strong types for questions/options
 type ExamOption = { id: string; label: string };
@@ -363,8 +364,8 @@ export default function Page() {
 
   if (loading) {
     return (
-      <div className="min-h-dvh bg-background text-foreground flex items-center justify-center p-6">
-        Loading…
+      <div className="flex items-center justify-center min-h-screen">
+        <Loading />
       </div>
     );
   }

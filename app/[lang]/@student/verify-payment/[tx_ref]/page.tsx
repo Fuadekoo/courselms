@@ -2,10 +2,11 @@
 
 import useAction from "@/hooks/useAction";
 import { verifyPayment } from "@/lib/action/chapa";
-import { Button, Spinner } from "@heroui/react";
+import { Button } from "@heroui/react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect } from "react";
+import Loading from "@/components/loading";
 
 export default function Page() {
   const params = useParams<{ lang: string; tx_ref?: string }>();
@@ -50,12 +51,9 @@ export default function Page() {
   return (
     <div className="h-dvh grid gap-y-4 place-content-center ">
       {isPending ? (
-        <>
-          <p className="text-warning-600">
-            {lang == "en" ? "verifying Payment" : "ክፍያን ማረጋገጥ"}
-          </p>
-          <Spinner className="" />
-        </>
+        <div className="flex items-center justify-center min-h-screen">
+          <Loading />
+        </div>
       ) : state ? (
         state.status ? (
           <>

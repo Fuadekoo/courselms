@@ -46,34 +46,21 @@ export default function CourseTopOverview({
       <div className="relative asrounded-md md:rounded-xl overflow-hidden">
         {video && (
           <div className="relative w-full aspect-video bg-black">
-            {thumbnail && showThumbnail && (
-              <div 
-                className="absolute inset-0 z-[5] pointer-events-none transition-opacity duration-300"
-                style={{ opacity: showThumbnail ? 1 : 0 }}
-              >
-                <img
-                  src={thumbnail}
-                  alt={title}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-            )}
-            <div className="relative z-10">
-              <Player 
-                src={video} 
-                type="local"
-                onVideoPlay={() => {
-                  // Hide thumbnail when video actually starts playing
-                  setShowThumbnail(false);
-                }}
-                onVideoPause={() => {
-                  // Show thumbnail when video is paused (if it exists)
-                  if (thumbnail) {
-                    setShowThumbnail(true);
-                  }
-                }}
-              />
-            </div>
+            <Player 
+              src={video} 
+              type="local"
+              poster={thumbnail} // Pass thumbnail as poster
+              onVideoPlay={() => {
+                // Hide thumbnail when video actually starts playing
+                setShowThumbnail(false);
+              }}
+              onVideoPause={() => {
+                // Show thumbnail when video is paused (if it exists)
+                if (thumbnail) {
+                  setShowThumbnail(true);
+                }
+              }}
+            />
           </div>
         )}
       </div>

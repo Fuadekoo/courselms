@@ -14,6 +14,7 @@ interface PlayerProps {
   type?: "url" | "local";
   playlist?: VideoItem[];
   title?: string;
+  poster?: string; // Thumbnail image URL
   onVideoPlay?: () => void;
   onVideoPause?: () => void;
   onVideoEnd?: () => void;
@@ -25,6 +26,7 @@ function Player({
   type = "local",
   playlist = [],
   title,
+  poster,
   onVideoPlay,
   onVideoPause,
   onVideoEnd,
@@ -47,6 +49,7 @@ function Player({
   const [isLandscape, setIsLandscape] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [videoAvailable, setVideoAvailable] = useState(!!src);
+  const [hasStartedPlaying, setHasStartedPlaying] = useState(false); // Track if video has ever started
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Reset video availability when src changes
@@ -55,6 +58,7 @@ function Player({
       setVideoAvailable(false);
       setHasError(false);
       setIsLoading(true);
+      setHasStartedPlaying(false); // Reset when video changes
     } else {
       setVideoAvailable(false);
       setHasError(true);
@@ -169,6 +173,7 @@ function Player({
     const handleWaiting = () => setIsLoading(true);
     const handlePlaying = () => {
       setIsLoading(false);
+      setHasStartedPlaying(true); // Mark that video has started playing
       onVideoPlay?.(); // Call onVideoPlay when video actually starts playing
     };
     const handleError = () => setIsLoading(false);
@@ -385,7 +390,7 @@ function Player({
           position: "relative", // Critical for iOS
           overflow: "hidden",
           backgroundColor: "#000",
-          minHeight: "400px",
+          minHeight: isMobile ? "200px" : "400px", // Smaller min height on mobile
           aspectRatio: "16/9",
         }}
       >
@@ -454,9 +459,81 @@ function Player({
           </div>
         )}
         
+        {/* Thumbnail Overlay - Shows until video starts playing */}
+        {poster && !hasStartedPlaying && (
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 2,
+              cursor: "pointer",
+              borderRadius: isFullscreen && isMobile && isLandscape ? 0 : 8,
+              overflow: "hidden",
+              backgroundColor: "#000",
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePlay();
+            }}
+          >
+            <img
+              src={poster}
+              alt="Video thumbnail"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "contain", // Show full image without cropping
+                display: "block",
+                backgroundColor: "#000",
+              }}
+            />
+            {/* Play Button Overlay - Responsive size */}
+            <div
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                width: isMobile ? "60px" : "80px", // Smaller on mobile
+                height: isMobile ? "60px" : "80px",
+                borderRadius: "50%",
+                background: "rgba(59, 130, 246, 0.95)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.4)",
+                transition: "all 0.3s ease",
+              }}
+              onMouseEnter={(e) => {
+                if (!isMobile) {
+                  e.currentTarget.style.transform = "translate(-50%, -50%) scale(1.1)";
+                  e.currentTarget.style.background = "rgba(59, 130, 246, 1)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isMobile) {
+                  e.currentTarget.style.transform = "translate(-50%, -50%) scale(1)";
+                  e.currentTarget.style.background = "rgba(59, 130, 246, 0.95)";
+                }
+              }}
+            >
+              <Play
+                size={isMobile ? 28 : 40} // Smaller icon on mobile
+                color="white"
+                fill="white"
+                style={{ marginLeft: "3px" }}
+              />
+            </div>
+          </div>
+        )}
+        
         <video
           ref={videoRef}
           src={currentSrc}
+          poster={poster} // Add poster attribute for native fallback
           playsInline
           preload="metadata"
           webkit-playsinline="true"
@@ -478,6 +555,7 @@ function Player({
           onPlay={(e) => {
             e.stopPropagation();
             setPlaying(true);
+            setHasStartedPlaying(true); // Hide thumbnail when playing starts
             onVideoPlay?.();
           }}
           onPause={(e) => {

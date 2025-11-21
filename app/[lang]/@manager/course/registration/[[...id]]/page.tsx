@@ -16,6 +16,7 @@ import ActivityManager, { TQuestion } from "@/components/ActivityManager";
 import CourseMediaSection from "@/components/course-form/CourseMediaSection";
 import CourseBasicInfo from "@/components/course-form/CourseBasicInfo";
 import CourseSettings from "@/components/course-form/CourseSettings";
+import Loading from "@/components/loading";
 // import { Prisma } from "@prisma/client";
 import {
   Button,
@@ -545,15 +546,8 @@ export default function Page() {
   // Show loading state while essential data is loading
   if (channelsLoading || instructorsLoading || (isEditing && courseLoading)) {
     return (
-      <div className="h-full flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
-        <Card className="p-8 shadow-lg">
-          <div className="flex items-center gap-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-500"></div>
-            <p className="text-lg font-medium text-gray-700">
-              {lang === "en" ? "Loading course data..." : "የኮርስ መረጃ በመጫን ላይ..."}
-            </p>
-          </div>
-        </Card>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loading />
       </div>
     );
   }

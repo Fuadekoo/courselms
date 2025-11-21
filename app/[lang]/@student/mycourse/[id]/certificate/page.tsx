@@ -10,6 +10,7 @@ import { Trophy, Printer, ChevronLeft, ChevronRight } from "lucide-react";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { useEffect } from "react";
+import Loading from "@/components/loading";
 
 type CertificateData = {
   status: boolean;
@@ -414,8 +415,8 @@ export default function Page() {
 
   if (loading) {
     return (
-      <div className="h-full bg-background text-foreground flex items-center justify-center p-6 overflow-auto">
-        Loading…
+      <div className="flex items-center justify-center min-h-screen">
+        <Loading />
       </div>
     );
   }
