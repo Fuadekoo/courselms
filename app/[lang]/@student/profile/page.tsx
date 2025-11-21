@@ -11,7 +11,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useState } from "react";
-import { Button, Tabs, Tab } from "@heroui/react";
+import { Button } from "@heroui/react";
 
 const profileSchema = z.object({
   firstName: z.string({ message: "" }).min(1, "First Name is required"),
@@ -28,7 +28,6 @@ export default function StudentProfilePage() {
   const params = useParams<{ lang: string }>();
   const lang = params?.lang ?? "en";
   const [isEditing, setIsEditing] = useState(false);
-  const [selectedTab, setSelectedTab] = useState("profile");
 
   const { handleSubmit, register, formState, setValue, reset } =
     useForm<ProfileFormData>({
@@ -132,162 +131,165 @@ export default function StudentProfilePage() {
               </p>
             </div>
           </div>
-
-          {/* Tabs */}
-          <Tabs
-            aria-label="Profile tabs"
-            selectedKey={selectedTab}
-            onSelectionChange={(key) => setSelectedTab(key.toString())}
-            classNames={{
-              base: "w-full",
-              tabList:
-                "gap-6 w-full relative rounded-none p-0 border-b border-gray-200 dark:border-gray-800",
-              cursor: "w-full bg-sky-500",
-              tab: "max-w-fit px-0 h-12",
-              tabContent:
-                "group-data-[selected=true]:text-sky-500 text-gray-500 dark:text-gray-400",
-            }}
-          >
-            <Tab
-              key="profile"
-              title={
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium">
-                    {lang === "en" ? "Profile" : "መገለጫ"}
-                  </span>
-                </div>
-              }
-            />
-            <Tab
-              key="security"
-              title={
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium">
-                    {lang === "en" ? "Security" : "ደህንነት"}
-                  </span>
-                </div>
-              }
-              isDisabled
-            />
-            <Tab
-              key="preferences"
-              title={
-                <div className="flex items-center space-x-2">
-                  <span className="font-medium">
-                    {lang === "en" ? "Preferences" : "ምርጫዎች"}
-                  </span>
-                </div>
-              }
-              isDisabled
-            />
-          </Tabs>
         </div>
 
         {/* Profile Information Section */}
-        {selectedTab === "profile" && (
-          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800">
-            {/* Section Header */}
-            <div className="px-6 py-6 border-b border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
-                {lang === "en" ? "Profile Information" : "የመገለጫ መረጃ"}
-              </h2>
-              {!isEditing && (
-                <Button
-                  onPress={handleEdit}
-                  startContent={<Edit2 className="w-4 h-4" />}
-                  color="primary"
-                  variant="flat"
-                  size="sm"
-                  className="bg-sky-50 hover:bg-sky-100 text-sky-600 dark:bg-sky-950/30 dark:text-sky-400"
-                >
-                  {lang === "en" ? "Edit" : "አርም"}
-                </Button>
-              )}
-            </div>
+        <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800">
+          {/* Section Header */}
+          <div className="px-6 py-6 border-b border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+              {lang === "en" ? "Profile Information" : "የመገለጫ መረጃ"}
+            </h2>
+            {!isEditing && (
+              <Button
+                onPress={handleEdit}
+                startContent={<Edit2 className="w-4 h-4" />}
+                color="primary"
+                variant="flat"
+                size="sm"
+                className="bg-sky-50 hover:bg-sky-100 text-sky-600 dark:bg-sky-950/30 dark:text-sky-400"
+              >
+                {lang === "en" ? "Edit" : "አርም"}
+              </Button>
+            )}
+          </div>
 
-            {/* Form Content */}
-            <form onSubmit={handleSubmit(onSubmit)}>
-              <div className="p-6 sm:p-8">
-                {/* Avatar Section */}
-                <div className="flex justify-center mb-8">
-                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gray-900 dark:bg-gray-800 flex items-center justify-center">
-                    <span className="text-white font-bold text-3xl sm:text-4xl">
-                      {initial}
-                    </span>
-                  </div>
+          {/* Form Content */}
+          <form onSubmit={handleSubmit(onSubmit)}>
+            <div className="p-6 sm:p-8">
+              {/* Avatar Section */}
+              <div className="flex justify-center mb-8">
+                <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gray-900 dark:bg-gray-800 flex items-center justify-center">
+                  <span className="text-white font-bold text-3xl sm:text-4xl">
+                    {initial}
+                  </span>
                 </div>
+              </div>
 
-                {/* Two Column Layout */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
-                  {/* Left Column */}
-                  <div className="space-y-6">
-                    {/* Full Name - Show combined or individual fields */}
-                    {!isEditing ? (
+              {/* Two Column Layout */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                {/* Left Column */}
+                <div className="space-y-6">
+                  {/* Full Name - Show combined or individual fields */}
+                  {!isEditing ? (
+                    <div>
+                      <CInput
+                        label={lang === "en" ? "Full Name" : "ሙሉ ስም"}
+                        value={
+                          fullName || (lang === "en" ? "Not set" : "አልተቀመጠም")
+                        }
+                        isDisabled
+                        className="w-full"
+                        classNames={{
+                          inputWrapper:
+                            "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                        }}
+                      />
+                    </div>
+                  ) : (
+                    <>
                       <div>
                         <CInput
-                          label={lang === "en" ? "Full Name" : "ሙሉ ስም"}
-                          value={
-                            fullName || (lang === "en" ? "Not set" : "አልተቀመጠም")
-                          }
-                          isDisabled
+                          {...register("firstName")}
+                          label={lang === "en" ? "First Name" : "የመጀመሪያ ስም"}
+                          isDisabled={false}
+                          errorMessage={formState.errors.firstName?.message}
+                          isInvalid={!!formState.errors.firstName}
                           className="w-full"
                           classNames={{
                             inputWrapper:
-                              "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                              "bg-white dark:bg-gray-800 border-sky-300 dark:border-sky-700",
                           }}
                         />
                       </div>
-                    ) : (
-                      <>
-                        <div>
-                          <CInput
-                            {...register("firstName")}
-                            label={lang === "en" ? "First Name" : "የመጀመሪያ ስም"}
-                            isDisabled={false}
-                            errorMessage={formState.errors.firstName?.message}
-                            isInvalid={!!formState.errors.firstName}
-                            className="w-full"
-                            classNames={{
-                              inputWrapper:
-                                "bg-white dark:bg-gray-800 border-sky-300 dark:border-sky-700",
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <CInput
-                            {...register("fatherName")}
-                            label={lang === "en" ? "Father Name" : "የአባት ስም"}
-                            isDisabled={false}
-                            errorMessage={formState.errors.fatherName?.message}
-                            isInvalid={!!formState.errors.fatherName}
-                            className="w-full"
-                            classNames={{
-                              inputWrapper:
-                                "bg-white dark:bg-gray-800 border-sky-300 dark:border-sky-700",
-                            }}
-                          />
-                        </div>
-                        <div>
-                          <CInput
-                            {...register("lastName")}
-                            label={lang === "en" ? "Last Name" : "የአያት ስም"}
-                            isDisabled={false}
-                            errorMessage={formState.errors.lastName?.message}
-                            isInvalid={!!formState.errors.lastName}
-                            className="w-full"
-                            classNames={{
-                              inputWrapper:
-                                "bg-white dark:bg-gray-800 border-sky-300 dark:border-sky-700",
-                            }}
-                          />
-                        </div>
-                      </>
-                    )}
+                      <div>
+                        <CInput
+                          {...register("fatherName")}
+                          label={lang === "en" ? "Father Name" : "የአባት ስም"}
+                          isDisabled={false}
+                          errorMessage={formState.errors.fatherName?.message}
+                          isInvalid={!!formState.errors.fatherName}
+                          className="w-full"
+                          classNames={{
+                            inputWrapper:
+                              "bg-white dark:bg-gray-800 border-sky-300 dark:border-sky-700",
+                          }}
+                        />
+                      </div>
+                      <div>
+                        <CInput
+                          {...register("lastName")}
+                          label={lang === "en" ? "Last Name" : "የአያት ስም"}
+                          isDisabled={false}
+                          errorMessage={formState.errors.lastName?.message}
+                          isInvalid={!!formState.errors.lastName}
+                          className="w-full"
+                          classNames={{
+                            inputWrapper:
+                              "bg-white dark:bg-gray-800 border-sky-300 dark:border-sky-700",
+                          }}
+                        />
+                      </div>
+                    </>
+                  )}
 
-                    {/* Email Address */}
+                  {/* Email Address */}
+                  <div>
+                    <CInput
+                      label={lang === "en" ? "Email Address" : "ኢሜይል አድራሻ"}
+                      value={lang === "en" ? "Not available" : "አልተገኘም"}
+                      isDisabled
+                      className="w-full"
+                      classNames={{
+                        inputWrapper:
+                          "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                      }}
+                    />
+                  </div>
+
+                  {/* Phone Number */}
+                  <div>
+                    <CInput
+                      label={lang === "en" ? "Phone Number" : "የስልክ ቁጥር"}
+                      value={profile.phoneNumber || ""}
+                      isDisabled
+                      className="w-full"
+                      classNames={{
+                        inputWrapper:
+                          "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                      }}
+                    />
+                  </div>
+
+                  {/* Role */}
+                  <div>
+                    <CInput
+                      label={lang === "en" ? "Role" : "ሚና"}
+                      value={
+                        profile.role
+                          ? profile.role.charAt(0).toUpperCase() +
+                            profile.role.slice(1)
+                          : ""
+                      }
+                      isDisabled
+                      className="w-full"
+                      classNames={{
+                        inputWrapper:
+                          "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                      }}
+                    />
+                  </div>
+
+                  {/* Account Information Section */}
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
+                      {lang === "en" ? "Account Information" : "የመለያ መረጃ"}
+                    </h3>
+
+                    {/* Member Since */}
                     <div>
                       <CInput
-                        label={lang === "en" ? "Email Address" : "ኢሜይል አድራሻ"}
+                        label={lang === "en" ? "Member Since" : "አባል የሆነው"}
                         value={lang === "en" ? "Not available" : "አልተገኘም"}
                         isDisabled
                         className="w-full"
@@ -297,208 +299,138 @@ export default function StudentProfilePage() {
                         }}
                       />
                     </div>
-
-                    {/* Phone Number */}
-                    <div>
-                      <CInput
-                        label={lang === "en" ? "Phone Number" : "የስልክ ቁጥር"}
-                        value={profile.phoneNumber || ""}
-                        isDisabled
-                        className="w-full"
-                        classNames={{
-                          inputWrapper:
-                            "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
-                        }}
-                      />
-                    </div>
-
-                    {/* Role */}
-                    <div>
-                      <CInput
-                        label={lang === "en" ? "Role" : "ሚና"}
-                        value={
-                          profile.role
-                            ? profile.role.charAt(0).toUpperCase() +
-                              profile.role.slice(1)
-                            : ""
-                        }
-                        isDisabled
-                        className="w-full"
-                        classNames={{
-                          inputWrapper:
-                            "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
-                        }}
-                      />
-                    </div>
-
-                    {/* Account Information Section */}
-                    <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-                      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                        {lang === "en" ? "Account Information" : "የመለያ መረጃ"}
-                      </h3>
-
-                      {/* Member Since */}
-                      <div>
-                        <CInput
-                          label={lang === "en" ? "Member Since" : "አባል የሆነው"}
-                          value={lang === "en" ? "Not available" : "አልተገኘም"}
-                          isDisabled
-                          className="w-full"
-                          classNames={{
-                            inputWrapper:
-                              "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Right Column */}
-                  <div className="space-y-6">
-                    {/* Username */}
-                    <div>
-                      <CInput
-                        label={lang === "en" ? "Username" : "የተጠቃሚ ስም"}
-                        value={
-                          profile.username
-                            ? `@${profile.username}`
-                            : lang === "en"
-                            ? "Not set"
-                            : "አልተቀመጠም"
-                        }
-                        isDisabled
-                        className="w-full"
-                        classNames={{
-                          inputWrapper:
-                            "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
-                        }}
-                      />
-                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-1">
-                        {lang === "en"
-                          ? "Username cannot be changed"
-                          : "የተጠቃሚ ስም ሊቀየር አይችልም"}
-                      </p>
-                    </div>
-
-                    {/* Department (using Region) */}
-                    <div>
-                      <CInput
-                        {...register("region")}
-                        label={lang === "en" ? "Region" : "ክልል"}
-                        isDisabled={!isEditing}
-                        errorMessage={formState.errors.region?.message}
-                        isInvalid={!!formState.errors.region}
-                        className="w-full"
-                        classNames={{
-                          inputWrapper: isEditing
-                            ? "bg-white dark:bg-gray-800 border-sky-300 dark:border-sky-700"
-                            : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
-                        }}
-                      />
-                    </div>
-
-                    {/* Location */}
-                    <div>
-                      <CInput
-                        {...register("city")}
-                        label={lang === "en" ? "Location" : "አካባቢ"}
-                        isDisabled={!isEditing}
-                        errorMessage={formState.errors.city?.message}
-                        isInvalid={!!formState.errors.city}
-                        className="w-full"
-                        classNames={{
-                          inputWrapper: isEditing
-                            ? "bg-white dark:bg-gray-800 border-sky-300 dark:border-sky-700"
-                            : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
-                        }}
-                      />
-                    </div>
-
-                    {/* Country */}
-                    <div>
-                      <CInput
-                        {...register("country")}
-                        label={lang === "en" ? "Country" : "ሀገር"}
-                        isDisabled={!isEditing}
-                        errorMessage={formState.errors.country?.message}
-                        isInvalid={!!formState.errors.country}
-                        className="w-full"
-                        classNames={{
-                          inputWrapper: isEditing
-                            ? "bg-white dark:bg-gray-800 border-sky-300 dark:border-sky-700"
-                            : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
-                        }}
-                      />
-                    </div>
-
-                    {/* Additional Fields */}
-                    <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
-                      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
-                        {lang === "en" ? "Additional Information" : "ተጨማሪ መረጃ"}
-                      </h3>
-
-                      {/* Last Login */}
-                      <div>
-                        <CInput
-                          label={lang === "en" ? "Last Login" : "የመጨረሻ መግቢያ"}
-                          value={lang === "en" ? "Not available" : "አልተገኘም"}
-                          isDisabled
-                          className="w-full"
-                          classNames={{
-                            inputWrapper:
-                              "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
-                          }}
-                        />
-                      </div>
-                    </div>
                   </div>
                 </div>
 
-                {/* Action Buttons */}
-                {isEditing && (
-                  <div className="flex flex-col sm:flex-row gap-3 justify-end mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
-                    <Button
-                      onPress={handleCancel}
-                      startContent={<X className="w-4 h-4" />}
-                      variant="flat"
-                      color="default"
-                      isDisabled={isPending}
-                      size="lg"
-                    >
-                      {lang === "en" ? "Cancel" : "ሰርዝ"}
-                    </Button>
-                    <Button
-                      type="submit"
-                      startContent={<Save className="w-4 h-4" />}
-                      color="primary"
-                      isLoading={isPending}
-                      size="lg"
-                      className="bg-sky-500 hover:bg-sky-600 text-white"
-                    >
-                      {lang === "en" ? "Save Changes" : "ለውጦችን አስቀምጥ"}
-                    </Button>
+                {/* Right Column */}
+                <div className="space-y-6">
+                  {/* Username */}
+                  <div>
+                    <CInput
+                      label={lang === "en" ? "Username" : "የተጠቃሚ ስም"}
+                      value={
+                        profile.username
+                          ? `@${profile.username}`
+                          : lang === "en"
+                          ? "Not set"
+                          : "አልተቀመጠም"
+                      }
+                      isDisabled
+                      className="w-full"
+                      classNames={{
+                        inputWrapper:
+                          "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                      }}
+                    />
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-1">
+                      {lang === "en"
+                        ? "Username cannot be changed"
+                        : "የተጠቃሚ ስም ሊቀየር አይችልም"}
+                    </p>
                   </div>
-                )}
+
+                  {/* Department (using Region) */}
+                  <div>
+                    <CInput
+                      {...register("region")}
+                      label={lang === "en" ? "Region" : "ክልል"}
+                      isDisabled={!isEditing}
+                      errorMessage={formState.errors.region?.message}
+                      isInvalid={!!formState.errors.region}
+                      className="w-full"
+                      classNames={{
+                        inputWrapper: isEditing
+                          ? "bg-white dark:bg-gray-800 border-sky-300 dark:border-sky-700"
+                          : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                      }}
+                    />
+                  </div>
+
+                  {/* Location */}
+                  <div>
+                    <CInput
+                      {...register("city")}
+                      label={lang === "en" ? "Location" : "አካባቢ"}
+                      isDisabled={!isEditing}
+                      errorMessage={formState.errors.city?.message}
+                      isInvalid={!!formState.errors.city}
+                      className="w-full"
+                      classNames={{
+                        inputWrapper: isEditing
+                          ? "bg-white dark:bg-gray-800 border-sky-300 dark:border-sky-700"
+                          : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                      }}
+                    />
+                  </div>
+
+                  {/* Country */}
+                  <div>
+                    <CInput
+                      {...register("country")}
+                      label={lang === "en" ? "Country" : "ሀገር"}
+                      isDisabled={!isEditing}
+                      errorMessage={formState.errors.country?.message}
+                      isInvalid={!!formState.errors.country}
+                      className="w-full"
+                      classNames={{
+                        inputWrapper: isEditing
+                          ? "bg-white dark:bg-gray-800 border-sky-300 dark:border-sky-700"
+                          : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                      }}
+                    />
+                  </div>
+
+                  {/* Additional Fields */}
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                    <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
+                      {lang === "en" ? "Additional Information" : "ተጨማሪ መረጃ"}
+                    </h3>
+
+                    {/* Last Login */}
+                    <div>
+                      <CInput
+                        label={lang === "en" ? "Last Login" : "የመጨረሻ መግቢያ"}
+                        value={lang === "en" ? "Not available" : "አልተገኘም"}
+                        isDisabled
+                        className="w-full"
+                        classNames={{
+                          inputWrapper:
+                            "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
-            </form>
-          </div>
-        )}
 
-        {/* Security Tab Content (Placeholder) */}
-        {selectedTab === "security" && (
-          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-8 text-center text-gray-500 dark:text-gray-400">
-            {lang === "en"
-              ? "Security settings coming soon"
-              : "የደህንነት ማቀናበሪያዎች በቅርቡ ይመጣሉ"}
-          </div>
-        )}
-
-        {/* Preferences Tab Content (Placeholder) */}
-        {selectedTab === "preferences" && (
-          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-8 text-center text-gray-500 dark:text-gray-400">
-            {lang === "en" ? "Preferences coming soon" : "ምርጫዎች በቅርቡ ይመጣሉ"}
-          </div>
-        )}
+              {/* Action Buttons */}
+              {isEditing && (
+                <div className="flex flex-col sm:flex-row gap-3 justify-end mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
+                  <Button
+                    onPress={handleCancel}
+                    startContent={<X className="w-4 h-4" />}
+                    variant="flat"
+                    color="default"
+                    isDisabled={isPending}
+                    size="lg"
+                  >
+                    {lang === "en" ? "Cancel" : "ሰርዝ"}
+                  </Button>
+                  <Button
+                    type="submit"
+                    startContent={<Save className="w-4 h-4" />}
+                    color="primary"
+                    isLoading={isPending}
+                    size="lg"
+                    className="bg-sky-500 hover:bg-sky-600 text-white"
+                  >
+                    {lang === "en" ? "Save Changes" : "ለውጦችን አስቀምጥ"}
+                  </Button>
+                </div>
+              )}
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
