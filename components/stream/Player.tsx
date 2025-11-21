@@ -16,6 +16,8 @@ interface PlayerProps {
   title?: string;
   onVideoPlay?: () => void;
   onVideoPause?: () => void;
+  onVideoEnd?: () => void;
+  onVideoProgress?: (progress: number) => void;
 }
 
 function Player({
@@ -25,6 +27,8 @@ function Player({
   title,
   onVideoPlay,
   onVideoPause,
+  onVideoEnd,
+  onVideoProgress,
 }: PlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -168,8 +172,19 @@ function Player({
       onVideoPlay?.(); // Call onVideoPlay when video actually starts playing
     };
     const handleError = () => setIsLoading(false);
+    const handleEnded = () => {
+      onVideoEnd?.(); // Call onVideoEnd when video finishes
+    };
+    const handleTimeUpdate = () => {
+      updateTime();
+      // Calculate and report progress percentage
+      if (video.duration > 0) {
+        const progress = (video.currentTime / video.duration) * 100;
+        onVideoProgress?.(progress);
+      }
+    };
 
-    video.addEventListener("timeupdate", updateTime);
+    video.addEventListener("timeupdate", handleTimeUpdate);
     video.addEventListener("loadedmetadata", updateDuration);
     video.addEventListener("progress", updateBuffered);
     video.addEventListener("loadstart", handleLoadStart);
@@ -177,9 +192,10 @@ function Player({
     video.addEventListener("waiting", handleWaiting);
     video.addEventListener("playing", handlePlaying);
     video.addEventListener("error", handleError);
+    video.addEventListener("ended", handleEnded);
 
     return () => {
-      video.removeEventListener("timeupdate", updateTime);
+      video.removeEventListener("timeupdate", handleTimeUpdate);
       video.removeEventListener("loadedmetadata", updateDuration);
       video.removeEventListener("progress", updateBuffered);
       video.removeEventListener("loadstart", handleLoadStart);
@@ -187,6 +203,7 @@ function Player({
       video.removeEventListener("waiting", handleWaiting);
       video.removeEventListener("playing", handlePlaying);
       video.removeEventListener("error", handleError);
+      video.removeEventListener("ended", handleEnded);
     };
   }, [currentSrc]);
 
