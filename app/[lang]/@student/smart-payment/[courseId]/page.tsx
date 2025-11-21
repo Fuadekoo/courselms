@@ -1,27 +1,64 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useParams } from "next/navigation";
 import SmartPaymentMethod from "@/components/SmartPaymentMethod";
 import { Card, CardBody, CardHeader } from "@heroui/react";
 import { ArrowLeft, BookOpen } from "lucide-react";
 import Link from "next/link";
+import { usePaymentStore } from "@/stores";
 
 export default function SmartPaymentPage() {
   const params = useParams<{ lang: string; courseId: string }>();
   const lang = params?.lang || "en";
   const courseId = params?.courseId;
 
+  // Use Zustand payment store
+  const {
+    selectedCourseId,
+    courseDetails,
+    paymentMethod,
+    isProcessing,
+    paymentStatus,
+    selectCourse,
+    setPaymentMethod,
+    startPayment,
+    reset,
+  } = usePaymentStore();
+
+  // Set course on mount
+  useEffect(() => {
+    if (courseId) {
+      selectCourse(courseId, {
+        titleEn: "Sample Course",
+        titleAm: "ናሙና ኮርስ",
+        price: 500,
+        birrPrice: 500,
+        dolarPrice: 10,
+      });
+    }
+
+    return () => {
+      // Clean up on unmount
+      reset();
+    };
+  }, [courseId, selectCourse, reset]);
+
   // Mock course data - replace with actual course data
   const courseData = {
-    id: courseId,
-    title: "Sample Course",
-    price: 500, // This will be in ETB or USD based on location
+    id: selectedCourseId || courseId,
+    title: courseDetails?.titleEn || "Sample Course",
+    price: courseDetails?.price || 500,
     description: "Learn something amazing with this course",
   };
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handlePaymentInitiated = (paymentData: any) => {
     console.log("Payment initiated:", paymentData);
+    
+    // Update store
+    setPaymentMethod(paymentData.paymentType);
+    startPayment();
 
     // Here you would handle the actual payment initiation
     // For Chapa: redirect to Chapa payment page

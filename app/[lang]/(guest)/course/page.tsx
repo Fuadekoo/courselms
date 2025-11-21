@@ -2,7 +2,7 @@
 
 import useData from "@/hooks/useData";
 import { getCoursesForCustomer } from "@/lib/data/course";
-import React from "react";
+import React, { useEffect, useMemo } from "react";
 import Loading from "@/components/loading";
 import NoData from "@/components/noData";
 import { useParams, useSearchParams } from "next/navigation";
@@ -13,9 +13,11 @@ import {
   CardFooter,
   CardHeader,
   Chip,
+  Input,
 } from "@heroui/react";
-import { Clock, Users, Star } from "lucide-react";
+import { Clock, Users, Star, Search } from "lucide-react";
 import Link from "next/link";
+import { useCourseFilterStore } from "@/stores";
 
 export default function Page() {
   const params = useParams<{ lang: string }>(),
@@ -25,6 +27,33 @@ export default function Page() {
       func: getCoursesForCustomer,
       args: [],
     });
+
+  // Use Zustand store for filtering and search
+  const {
+    searchTerm,
+    selectedLevel,
+    setSearchTerm,
+    setSelectedLevel,
+    clearFilters,
+  } = useCourseFilterStore();
+
+  // Filter courses based on store state
+  const filteredCourses = useMemo(() => {
+    if (!data) return [];
+
+    return data.filter((course: any) => {
+      // Search filter
+      const matchesSearch =
+        !searchTerm ||
+        course.titleEn?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        course.titleAm?.toLowerCase().includes(searchTerm.toLowerCase());
+
+      // Level filter
+      const matchesLevel = !selectedLevel || course.level === selectedLevel;
+
+      return matchesSearch && matchesLevel;
+    });
+  }, [data, searchTerm, selectedLevel]);
 
   return (
     <div className="min-h-screen">
@@ -52,9 +81,99 @@ export default function Page() {
                 </p>
               </div>
 
+              {/* Search and Filter Section */}
+              <div className="mb-8 space-y-4">
+                <div className="flex flex-col md:flex-row gap-4 items-center">
+                  {/* Search Bar */}
+                  <div className="w-full md:flex-1">
+                    <Input
+                      placeholder={
+                        lang === "en" ? "Search courses..." : "ኮርሶችን ፈልግ..."
+                      }
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      startContent={<Search className="w-4 h-4" />}
+                      isClearable
+                      onClear={() => setSearchTerm("")}
+                      classNames={{
+                        input: "text-base",
+                        inputWrapper: "bg-white dark:bg-gray-800",
+                      }}
+                    />
+                  </div>
+
+                  {/* Level Filter */}
+                  <div className="flex gap-2 flex-wrap">
+                    <Button
+                      size="sm"
+                      variant={selectedLevel === null ? "solid" : "bordered"}
+                      color={selectedLevel === null ? "primary" : "default"}
+                      onClick={() => setSelectedLevel(null)}
+                    >
+                      {lang === "en" ? "All" : "ሁሉም"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={
+                        selectedLevel === "BEGINNER" ? "solid" : "bordered"
+                      }
+                      color={
+                        selectedLevel === "BEGINNER" ? "primary" : "default"
+                      }
+                      onClick={() => setSelectedLevel("BEGINNER")}
+                    >
+                      {lang === "en" ? "Beginner" : "ጀማሪ"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={
+                        selectedLevel === "INTERMEDIATE" ? "solid" : "bordered"
+                      }
+                      color={
+                        selectedLevel === "INTERMEDIATE" ? "primary" : "default"
+                      }
+                      onClick={() => setSelectedLevel("INTERMEDIATE")}
+                    >
+                      {lang === "en" ? "Intermediate" : "መካከለኛ"}
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={
+                        selectedLevel === "ADVANCED" ? "solid" : "bordered"
+                      }
+                      color={
+                        selectedLevel === "ADVANCED" ? "primary" : "default"
+                      }
+                      onClick={() => setSelectedLevel("ADVANCED")}
+                    >
+                      {lang === "en" ? "Advanced" : "ከፍተኛ"}
+                    </Button>
+                  </div>
+                </div>
+
+                {/* Results Count */}
+                <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
+                  <span>
+                    {lang === "en"
+                      ? `Showing ${filteredCourses.length} of ${data.length} courses`
+                      : `ከ ${data.length} ኮርሶች ${filteredCourses.length} በማሳየት ላይ`}
+                  </span>
+                  {(searchTerm || selectedLevel) && (
+                    <Button
+                      size="sm"
+                      variant="light"
+                      onClick={clearFilters}
+                      color="primary"
+                    >
+                      {lang === "en" ? "Clear Filters" : "ማጣሪያዎችን አጽዳ"}
+                    </Button>
+                  )}
+                </div>
+              </div>
+
               {/* Courses Grid */}
               <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-                {data.map((course, i) => (
+                {filteredCourses.map((course, i) => (
                   <Card
                     key={i}
                     className="flex flex-col hover:shadow-lg transition-shadow bg-background border border-divider"

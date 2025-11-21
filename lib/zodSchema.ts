@@ -67,7 +67,10 @@ export const courseSchema = z.object({
     .gt(0, "birr price must be greater than 0"),
   level: z.enum(["beginner", "intermediate", "advanced"], { message: "" }),
   language: z.string({ message: "" }).nonempty("language is required"),
-  duration: z.string({ message: "" }).time("duration must be time 00:00").optional(),
+  duration: z
+    .string({ message: "" })
+    .time("duration must be time 00:00")
+    .optional(),
   accessEn: z.string({ message: "" }).nonempty("access is required"),
   accessAm: z.string({ message: "" }).nonempty("access is required"),
   certificate: z.coerce.boolean({
@@ -111,7 +114,9 @@ export const courseSchema = z.object({
             .string({ message: "" })
             .nonempty("sub activity title is required"),
           video: z.string({ message: "" }).optional(),
-          thumbnail: z.string({ message: "" }).optional(),
+          thumbnail: z
+            .string({ message: "" })
+            .nonempty("thumbnail is required"),
         })
       ),
       questions: z
