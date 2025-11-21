@@ -1,0 +1,65 @@
+[1mdiff --cc app/[lang]/@student/mycourse/[id]/page.tsx[m
+[1mindex 50df196,039e110..0000000[m
+[1m--- a/app/[lang]/@student/mycourse/[id]/page.tsx[m
+[1m+++ b/app/[lang]/@student/mycourse/[id]/page.tsx[m
+[36m@@@ -481,40 -493,25 +476,59 @@@[m [mexport default function Page() [m
+            <div className="overflow-hidden sm:overflow-auto lg:pr-[340px] transition-all duration-300 grid grid-rows-[auto_1fr]">[m
+              {/* VIDEO PLAYER SECTION */}[m
+              <div className="flex-shrink-0 bg-black dark:bg-black w-full mx-auto lg:max-w-none">[m
+[31m -              {currentVideo.url && ([m
+[32m +              {currentVideo && currentVideo.url && ([m
+                  <div className="relative w-full">[m
+                    <div className="relative w-full aspect-video bg-black">[m
+[32m++<<<<<<< HEAD[m
+[32m +                    {currentVideo.thumbnail && showThumbnail && ([m
+[32m +                      <div[m
+[32m +                        className="absolute inset-0 z-[5] pointer-events-none subactivity-thumbnail-overlay transition-opacity duration-300"[m
+[32m +                        style={{ opacity: showThumbnail ? 1 : 0 }}[m
+[32m +                      >[m
+[32m +                        <img[m
+[32m +                          src={currentVideo.thumbnail}[m
+[32m +                          alt={currentVideo.title}[m
+[32m +                          className="w-full h-full object-cover"[m
+[32m +                        />[m
+[32m +                      </div>[m
+[32m +                    )}[m
+[32m +                    <div className="relative z-10">[m
+[32m +                      <Player[m
+[32m +                        src={currentVideo.url}[m
+[32m +                        type="local"[m
+[32m +                        title={currentVideo.title}[m
+[32m +                        onVideoPlay={() => {[m
+[32m +                          // Hide thumbnail when video actually starts playing[m
+[32m +                          setShowThumbnail(false);[m
+[32m +                        }}[m
+[32m +                        onVideoPause={() => {[m
+[32m +                          // Show thumbnail when video is paused (if it exists)[m
+[32m +                          if (currentVideo && currentVideo.thumbnail) {[m
+[32m +                            setShowThumbnail(true);[m
+[32m +                          }[m
+[32m +                        }}[m
+[32m +                        onVideoProgress={handleVideoProgress}[m
+[32m +                        onVideoEnd={handleVideoEnd}[m
+[32m +                      />[m
+[32m +                    </div>[m
+[32m++=======[m
+[32m+                     <Player[m
+[32m+                       src={currentVideo.url}[m
+[32m+                       type="local"[m
+[32m+                       title={currentVideo.title}[m
+[32m+                       poster={currentVideo.thumbnail} // Pass thumbnail as poster[m
+[32m+                       onVideoPlay={() => {[m
+[32m+                         // Hide thumbnail when video actually starts playing[m
+[32m+                         setShowThumbnail(false);[m
+[32m+                       }}[m
+[32m+                       onVideoPause={() => {[m
+[32m+                         // Show thumbnail when video is paused (if it exists)[m
+[32m+                         if (currentVideo.thumbnail) {[m
+[32m+                           setShowThumbnail(true);[m
+[32m+                         }[m
+[32m+                       }}[m
+[32m+                     />[m
+[32m++>>>>>>> fe0a50a0bcef4947f69a45ee2f832a6ea3180cd0[m
+                    </div>[m
+                  </div>[m
+                )}[m

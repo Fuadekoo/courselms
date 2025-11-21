@@ -48,10 +48,10 @@ const authConfig = {
         pathname.includes("/login") || pathname.includes("/signup");
 
       // If logged in and trying to access auth pages, redirect to appropriate dashboard
-      if (isLoggedIn && isAuthPage) {
+      if (isLoggedIn && isAuthPage && auth.user) {
         const role = auth.user.role;
         let redirectPath = `/${lang}`;
-
+        
         if (role === "instructor") {
           redirectPath = `/${lang}/dashboard`;
         } else if (role === "manager") {
@@ -59,7 +59,7 @@ const authConfig = {
         } else if (role === "student") {
           redirectPath = `/${lang}/course`;
         }
-
+        
         return Response.redirect(new URL(redirectPath, request.nextUrl.origin));
       }
 
