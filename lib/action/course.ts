@@ -101,28 +101,31 @@ export async function courseRegistration(
       });
       console.log("🗑️ Found activities to delete:", activities.length);
       
-      for (const activity of activities) {
+      // Delete ALL questions related to this course (both activity and final exam questions)
+      // This is simpler and prevents orphaned data
+      const allQuestions = await prisma.question.findMany({
+        where: {
+          OR: [
+            { activityId: { in: activities.map(a => a.id) } },
+            { courseId: id, activityId: null },
+          ]
+        },
+        select: { id: true }
+      });
+
+      const questionIds = allQuestions.map(q => q.id);
+      
+      if (questionIds.length > 0) {
         await prisma.questionAnswer.deleteMany({
-          where: { question: { activityId: activity.id } },
+          where: { questionId: { in: questionIds } },
         });
         await prisma.questionOption.deleteMany({
-          where: { question: { activityId: activity.id } },
+          where: { questionId: { in: questionIds } },
         });
         await prisma.question.deleteMany({
-          where: { activityId: activity.id },
+          where: { id: { in: questionIds } },
         });
       }
-
-      // Delete final exam questions (those with courseId but no activityId)
-      await prisma.questionAnswer.deleteMany({
-        where: { question: { courseId: id, activityId: null } },
-      });
-      await prisma.questionOption.deleteMany({
-        where: { question: { courseId: id, activityId: null } },
-      });
-      await prisma.question.deleteMany({
-        where: { courseId: id, activityId: null },
-      });
 
       await prisma.activity.deleteMany({ where: { courseId: id } });
 
@@ -212,17 +215,33 @@ export async function courseRegistration(
         }
       }
 
-      // Create final exam questions and update shared questions
+      // Create final exam questions (only if provided)
       if (finalExamQuestions && finalExamQuestions.length > 0) {
+        console.log(`📝 Processing ${finalExamQuestions.length} final exam questions`);
+        
+        // Track which activity questions we've already marked to prevent duplicates
+        const markedActivityQuestions = new Set<string>();
+        // Track created standalone questions to prevent duplicates
+        const createdStandaloneQuestions = new Set<string>();
+        
         for (const examQuestion of finalExamQuestions) {
           if (
             examQuestion.isSharedFromActivity &&
             examQuestion.sourceActivityIndex !== undefined &&
             examQuestion.sourceQuestionIndex !== undefined
           ) {
-            // For shared questions: find the existing activity question and update it to include courseId
+            // For shared questions: update the activity question to also belong to final exam
             const activityIndex = examQuestion.sourceActivityIndex;
             const questionIndex = examQuestion.sourceQuestionIndex;
+            
+            // Create a unique key for this activity question
+            const activityQuestionKey = `${activityIndex}-${questionIndex}`;
+            
+            // Skip if we've already processed this activity question
+            if (markedActivityQuestions.has(activityQuestionKey)) {
+              console.log(`⚠️ Skipping duplicate shared question reference: Activity ${activityIndex}, Question ${questionIndex}`);
+              continue;
+            }
 
             if (activityIndex < updatedCourse.activity.length) {
               const targetActivity = updatedCourse.activity[activityIndex];
@@ -236,15 +255,31 @@ export async function courseRegistration(
               if (questionIndex < existingQuestions.length) {
                 const targetQuestion = existingQuestions[questionIndex];
 
-                // Update the question to also be part of the final exam
+                // Update the question to mark it as part of final exam
                 await prisma.question.update({
                   where: { id: targetQuestion.id },
                   data: { courseId: id }, // Add courseId to mark it as final exam question
                 });
+                
+                // Mark this activity question as processed
+                markedActivityQuestions.add(activityQuestionKey);
+                console.log(`✅ Marked activity question ${activityIndex}-${questionIndex} as final exam question`);
+              } else {
+                console.log(`⚠️ Question index ${questionIndex} out of bounds for activity ${activityIndex}`);
               }
+            } else {
+              console.log(`⚠️ Activity index ${activityIndex} out of bounds`);
             }
           } else {
-            // Only create standalone final exam questions (not tied to activities)
+            // Create standalone final exam questions (not tied to activities)
+            // Create a unique key based on question content to detect duplicates
+            const questionKey = `${examQuestion.question}-${examQuestion.options.join('|')}`;
+            
+            if (createdStandaloneQuestions.has(questionKey)) {
+              console.log(`⚠️ Skipping duplicate standalone question: "${examQuestion.question.substring(0, 50)}..."`);
+              continue;
+            }
+            
             const createdQuestion = await prisma.question.create({
               data: {
                 question: examQuestion.question,
@@ -274,8 +309,14 @@ export async function courseRegistration(
                 });
               }
             }
+            
+            // Mark this question as created
+            createdStandaloneQuestions.add(questionKey);
+            console.log(`✅ Created standalone final exam question: "${examQuestion.question.substring(0, 50)}..."`);
           }
         }
+      } else {
+        console.log("ℹ️ No final exam questions provided - skipping");
       }
     } else {
       const {
@@ -356,17 +397,33 @@ export async function courseRegistration(
           }
         }
 
-        // Create final exam questions and update shared questions
+        // Create final exam questions (only if provided)
         if (finalExamQuestions && finalExamQuestions.length > 0) {
+          console.log(`📝 Processing ${finalExamQuestions.length} final exam questions`);
+          
+          // Track which activity questions we've already marked to prevent duplicates
+          const markedActivityQuestions = new Set<string>();
+          // Track created standalone questions to prevent duplicates
+          const createdStandaloneQuestions = new Set<string>();
+          
           for (const examQuestion of finalExamQuestions) {
             if (
               examQuestion.isSharedFromActivity &&
               examQuestion.sourceActivityIndex !== undefined &&
               examQuestion.sourceQuestionIndex !== undefined
             ) {
-              // For shared questions: find the existing activity question and update it to include courseId
+              // For shared questions: update the activity question to also belong to final exam
               const activityIndex = examQuestion.sourceActivityIndex;
               const questionIndex = examQuestion.sourceQuestionIndex;
+              
+              // Create a unique key for this activity question
+              const activityQuestionKey = `${activityIndex}-${questionIndex}`;
+              
+              // Skip if we've already processed this activity question
+              if (markedActivityQuestions.has(activityQuestionKey)) {
+                console.log(`⚠️ Skipping duplicate shared question reference: Activity ${activityIndex}, Question ${questionIndex}`);
+                continue;
+              }
 
               // Find the activity that was just created
               const activities = await prisma.activity.findMany({
@@ -386,15 +443,31 @@ export async function courseRegistration(
                 if (questionIndex < existingQuestions.length) {
                   const targetQuestion = existingQuestions[questionIndex];
 
-                  // Update the question to also be part of the final exam
+                  // Update the question to mark it as part of final exam
                   await prisma.question.update({
                     where: { id: targetQuestion.id },
                     data: { courseId }, // Add courseId to mark it as final exam question
                   });
+                  
+                  // Mark this activity question as processed
+                  markedActivityQuestions.add(activityQuestionKey);
+                  console.log(`✅ Marked activity question ${activityIndex}-${questionIndex} as final exam question`);
+                } else {
+                  console.log(`⚠️ Question index ${questionIndex} out of bounds for activity ${activityIndex}`);
                 }
+              } else {
+                console.log(`⚠️ Activity index ${activityIndex} out of bounds`);
               }
             } else {
-              // Only create standalone final exam questions (not tied to activities)
+              // Create standalone final exam questions (not tied to activities)
+              // Create a unique key based on question content to detect duplicates
+              const questionKey = `${examQuestion.question}-${examQuestion.options.join('|')}`;
+              
+              if (createdStandaloneQuestions.has(questionKey)) {
+                console.log(`⚠️ Skipping duplicate standalone question: "${examQuestion.question.substring(0, 50)}..."`);
+                continue;
+              }
+              
               const createdQuestion = await prisma.question.create({
                 data: {
                   question: examQuestion.question,
@@ -424,8 +497,14 @@ export async function courseRegistration(
                   });
                 }
               }
+              
+              // Mark this question as created
+              createdStandaloneQuestions.add(questionKey);
+              console.log(`✅ Created standalone final exam question: "${examQuestion.question.substring(0, 50)}..."`);
             }
           }
+        } else {
+          console.log("ℹ️ No final exam questions provided - skipping");
         }
       }
     }

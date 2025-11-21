@@ -301,11 +301,19 @@ export async function getCourseForManager(id: string) {
             const activity = course.activity[activityIndex];
             const questionInActivity = activity.question.findIndex(
               (activityQuestion: any) => {
-                // Match by content since we don't have direct ID mapping
+                // Improved matching: check question text, options count, AND option values
+                const optionsMatch =
+                  activityQuestion.questionOptions.length ===
+                    q.questionOptions.length &&
+                  activityQuestion.questionOptions.every(
+                    (opt: any, idx: number) =>
+                      opt.option === q.questionOptions[idx]?.option
+                  );
+
                 return (
                   activityQuestion.question === q.question &&
-                  activityQuestion.questionOptions.length ===
-                    q.questionOptions.length
+                  optionsMatch &&
+                  activityQuestion.answerExplanation === q.answerExplanation
                 );
               }
             );
