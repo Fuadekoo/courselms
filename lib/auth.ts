@@ -35,10 +35,35 @@ const authConfig = {
   },
   trustHost: true,
   callbacks: {
-    authorized: async ({}) => {
-      // if (auth && url.includes("/login")) {
-      //   return Response.redirect(new URL("/", nextUrl));
-      // } else
+    authorized: async ({ auth, request }) => {
+      const { pathname } = request.nextUrl;
+      const isLoggedIn = !!auth?.user;
+
+      // Extract language from URL (e.g., /en/login or /am/login)
+      const langMatch = pathname.match(/^\/(en|am)/);
+      const lang = langMatch ? langMatch[1] : "en";
+
+      // Check if user is trying to access login/signup pages
+      const isAuthPage =
+        pathname.includes("/login") || pathname.includes("/signup");
+
+      // If logged in and trying to access auth pages, redirect to appropriate dashboard
+      if (isLoggedIn && isAuthPage) {
+        const role = auth.user.role;
+        let redirectPath = `/${lang}`;
+
+        if (role === "instructor") {
+          redirectPath = `/${lang}/dashboard`;
+        } else if (role === "manager") {
+          redirectPath = `/${lang}/manager`;
+        } else if (role === "student") {
+          redirectPath = `/${lang}/course`;
+        }
+
+        return Response.redirect(new URL(redirectPath, request.nextUrl.origin));
+      }
+
+      // Allow all other routes
       return true;
     },
     jwt: async ({ token, user }) => {

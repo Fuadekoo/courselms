@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Logo from "@/components/Logo";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -12,6 +13,7 @@ import { sendOTP } from "@/lib/action";
 import CountrySelector from "@/components/CountrySelector";
 import OTPInput from "@/components/OTPInput";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import Loading from "@/components/loading";
 
 // Ensure signup returns StateType:
 // type StateType = { status: true; message: string } | { status: false; cause: string; message: string };
@@ -37,6 +39,7 @@ export default function Page() {
     lang = params?.lang ?? "en",
     searchParams = useSearchParams(),
     router = useRouter(),
+    { data: session, status } = useSession(),
     [currentStep, setCurrentStep] = useState(1),
     [selectedCountry, setSelectedCountry] = useState("+251"),
     [otp, setOtp] = useState(""),
@@ -72,6 +75,24 @@ export default function Page() {
         error: lang == "en" ? "Failed to send OTP" : "OTP መላክ አልተሳካም",
       }
     );
+
+  // Redirect authenticated users to their dashboard
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      const role = session.user.role;
+      let redirectPath = `/${lang}`;
+      
+      if (role === "instructor") {
+        redirectPath = `/${lang}/dashboard`;
+      } else if (role === "manager") {
+        redirectPath = `/${lang}/manager`;
+      } else if (role === "student") {
+        redirectPath = `/${lang}/course`;
+      }
+      
+      router.replace(redirectPath);
+    }
+  }, [status, session, router, lang]);
 
   // OTP Timer effect
   useEffect(() => {
@@ -209,6 +230,24 @@ export default function Page() {
     lang == "en" ? "OTP Verification" : "OTP ማረጋገጫ",
     lang == "en" ? "Set Password" : "የይለፍ ቃል ያዘጋጁ",
   ];
+
+  // Show loading while checking authentication
+  if (status === "loading") {
+    return (
+      <div className="min-h-dvh flex items-center justify-center">
+        <Loading />
+      </div>
+    );
+  }
+
+  // If authenticated, don't render signup form (will redirect)
+  if (status === "authenticated") {
+    return (
+      <div className="min-h-dvh flex items-center justify-center">
+        <Loading />
+      </div>
+    );
+  }
 
   return (
     <div className="h-dvh p-4 grid content-center md:justify-center">

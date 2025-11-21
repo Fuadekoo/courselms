@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import Logo from "@/components/Logo";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -10,6 +11,7 @@ import useAction from "@/hooks/useAction";
 import { authenticate } from "@/lib/action/user";
 import { CButton } from "@/components/heroui";
 import { Form, Input } from "@heroui/react";
+import Loading from "@/components/loading";
 
 const formSchema = z.object({
   userName: z.string({ message: "" }).nonempty("User Name is required"),
@@ -26,6 +28,7 @@ export default function Page() {
       }
     ),
     router = useRouter(),
+    { data: session, status } = useSession(),
     { action, isPending } = useAction(authenticate, undefined, {
       onSuccess(state) {
         // Handle client-side redirect after successful login
@@ -36,6 +39,42 @@ export default function Page() {
       success: lang == "en" ? "Successfully logged in" : "በተሳካ ሁኔታ ገብተዋል",
       error: lang == "en" ? "Logged in failed" : "መግባት አልተሳካም",
     });
+
+  // Redirect authenticated users to their dashboard
+  useEffect(() => {
+    if (status === "authenticated" && session?.user) {
+      const role = session.user.role;
+      let redirectPath = `/${lang}`;
+      
+      if (role === "instructor") {
+        redirectPath = `/${lang}/dashboard`;
+      } else if (role === "manager") {
+        redirectPath = `/${lang}/manager`;
+      } else if (role === "student") {
+        redirectPath = `/${lang}/course`;
+      }
+      
+      router.replace(redirectPath);
+    }
+  }, [status, session, router, lang]);
+
+  // Show loading while checking authentication
+  if (status === "loading") {
+    return (
+      <div className="min-h-dvh flex items-center justify-center">
+        <Loading />
+      </div>
+    );
+  }
+
+  // If authenticated, don't render login form (will redirect)
+  if (status === "authenticated") {
+    return (
+      <div className="min-h-dvh flex items-center justify-center">
+        <Loading />
+      </div>
+    );
+  }
 
   // Process phone numbers: handle leading 0 and add default country code
   const processPhoneNumber = (userName: string): string => {
