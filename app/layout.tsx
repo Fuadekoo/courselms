@@ -6,7 +6,7 @@ import { ThemeProvider } from "next-themes";
 import { SessionProvider } from "next-auth/react";
 import { auth } from "@/lib/auth";
 import { UIProviders } from "@/components/heroUIProvider";
-// import DevToolsProtection from "@/components/DevToolsProtection";
+import DevToolsProtection from "@/components/DevToolsProtection";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -63,7 +63,7 @@ export default async function RootLayout({
               enableSystem={false}
               disableTransitionOnChange={false}
             >
-              {/* <DevToolsProtection /> */}
+              <DevToolsProtection />
               <div className="relative min-h-screen bg-gradient-to-br from-neutral-50 via-brand-50/30 to-neutral-100 dark:from-neutral-950 dark:via-brand-950/50 dark:to-neutral-900">
                 {/* Background Pattern */}
                 <div className="absolute inset-0 opacity-30">
