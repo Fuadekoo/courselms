@@ -1,10 +1,5 @@
-import React from "react";
-import { Spinner } from "@heroui/react";
+import Loading from "@/components/loading";
 
-export default function Loading() {
-  return (
-    <div className="size-full grid place-content-center">
-      <Spinner />
-    </div>
-  );
+export default function MessageLoading() {
+  return <Loading />;
 }
