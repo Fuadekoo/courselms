@@ -222,6 +222,7 @@ export default function Page() {
 
      
 
+        // Load final exam questions if they exist
         if (data && "finalExamQuestions" in data && data.finalExamQuestions) {
           const examQuestions = data.finalExamQuestions as TQuestion[];
           setFinalExamQuestions(examQuestions);
@@ -230,13 +231,14 @@ export default function Page() {
             examQuestions,
             { shouldValidate: false }
           );
+        } else {
+          // No final exam questions, ensure it's empty
+          setFinalExamQuestions([]);
+          setValue("finalExamQuestions", [], { shouldValidate: false });
         }
 
         setValue("id", data.id, { shouldValidate: false });
         setIsDataLoaded(true);
-        
-        // Reset store when loading new course
-        resetStore();
       }
     },
   });
@@ -257,13 +259,6 @@ export default function Page() {
       // Update store with form data if needed
     }
   }, [isDataLoaded, watch]);
-  
-  // Reset store on unmount
-  useEffect(() => {
-    return () => {
-      resetStore();
-    };
-  }, [resetStore]);
 
  
 
@@ -1127,11 +1122,14 @@ export default function Page() {
                       {lang === "en"
                         ? "Final Exam Questions"
                         : "የመጨረሻ ፈተና ጥያቄዎች"}
+                      <span className="ml-2 text-sm font-normal text-gray-500">
+                        ({lang === "en" ? "Optional" : "አማራጭ"})
+                      </span>
                     </h2>
                     <p className="text-sm text-gray-600 mt-1">
                       {lang === "en"
-                        ? "Questions selected for the final examination"
-                        : "ለመጨረሻ ፈተና የተመረጡ ጥያቄዎች"}
+                        ? "Add questions from activities or create new ones for the final exam"
+                        : "ከእንቅስቃሴዎች ጥያቄዎችን ይጨምሩ ወይም ለመጨረሻው ፈተና አዲስ ይፍጠሩ"}
                     </p>
                   </div>
                 </div>
@@ -1143,8 +1141,8 @@ export default function Page() {
                     <FileText className="size-12 text-gray-300 mx-auto mb-4" />
                     <p className="text-gray-500 mb-2">
                       {lang === "en"
-                        ? "No questions for final exam"
-                        : "ለመጨረሻ ፈተና ምንም ጥያቄዎች የሉም"}
+                        ? "No final exam questions yet"
+                        : "እስካሁን የመጨረሻ ፈተና ጥያቄዎች የሉም"}
                     </p>
                     <p className="text-sm text-gray-400">
                       {lang === "en"

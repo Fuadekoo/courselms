@@ -57,7 +57,7 @@ export default function Page() {
               {
                 icon: <Clock className="" />,
                 label: lang == "en" ? "Duration" : "ቆይታ",
-                value: data.duration,
+                value: data.duration || (lang == "en" ? "Not specified" : "አልተገለጸም"),
               },
               {
                 icon: <Logs className="" />,

@@ -10,6 +10,9 @@
  * - uiStore: UI state (modals, sidebar, notifications, loading)
  * - uploadStore: File upload state management
  * - subActivityThumbnailStore: SubActivity thumbnail upload state
+ * - courseFilterStore: Course browsing filters and pagination
+ * - studentProgressStore: Student course progress and completion tracking
+ * - paymentStore: Payment and checkout process state
  */
 
 export * from "./courseRegistrationStore";
@@ -18,4 +21,7 @@ export * from "./videoQAStore";
 export * from "./uiStore";
 export * from "./uploadStore";
 export * from "./subActivityThumbnailStore";
+export * from "./courseFilterStore";
+export * from "./studentProgressStore";
+export * from "./paymentStore";
 
