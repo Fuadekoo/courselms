@@ -311,8 +311,44 @@ export async function getMySingleCourseContent(
 
     if (!course) return null;
 
+    // Get progress for all sub-activities
+    const subActivityIds = course.activity.flatMap(
+      (activity) => activity.subActivity.map((sub) => sub.id)
+    );
+
+    const progress = await prisma.studentProgress.findMany({
+      where: {
+        userId: studentId,
+        subActivityId: { in: subActivityIds },
+      },
+      select: {
+        subActivityId: true,
+        isCompleted: true,
+      },
+    });
+
+    // Create a map of subActivityId -> isCompleted
+    const progressMap: Record<string, boolean> = {};
+    progress.forEach((p) => {
+      progressMap[p.subActivityId] = p.isCompleted;
+    });
+
+    // Calculate total progress
+    const totalSubActivities = subActivityIds.length;
+    const completedSubActivities = progress.filter((p) => p.isCompleted).length;
+    const progressPercentage =
+      totalSubActivities > 0
+        ? Math.round((completedSubActivities / totalSubActivities) * 100)
+        : 0;
+
     const fuad = {
       ...course,
+      progress: {
+        total: totalSubActivities,
+        completed: completedSubActivities,
+        percentage: progressPercentage,
+        subActivityProgress: progressMap,
+      },
     } as any;
 
     return fuad;
@@ -836,6 +872,139 @@ export async function clearStudentQuizAnswers(
       cause: "server_error",
       message: "Failed to clear quiz answers",
     } as StateType;
+  }
+}
+
+export async function completeSubActivity(subActivityId: string) {
+  try {
+    const user = await auth();
+    if (!user?.user?.id) {
+      return {
+        status: false,
+        message: "Unauthenticated",
+      };
+    }
+    const userId = user.user.id;
+
+    // Verify the sub-activity exists and the user has access to the course
+    const subActivity = await prisma.subActivity.findUnique({
+      where: { id: subActivityId },
+      include: {
+        activity: {
+          select: {
+            courseId: true,
+          },
+        },
+      },
+    });
+
+    if (!subActivity) {
+      return {
+        status: false,
+        message: "Sub-activity not found",
+      };
+    }
+
+    // Verify user has access to the course
+    const order = await prisma.order.findFirst({
+      where: {
+        userId,
+        courseId: subActivity.activity.courseId,
+        status: "paid",
+      },
+    });
+
+    if (!order) {
+      return {
+        status: false,
+        message: "Access denied to this course",
+      };
+    }
+
+    // Upsert student progress - mark as completed
+    await prisma.studentProgress.upsert({
+      where: {
+        userId_subActivityId: {
+          userId,
+          subActivityId,
+        },
+      },
+      update: {
+        isCompleted: true,
+        completedAt: new Date(),
+        isStarted: true,
+      },
+      create: {
+        userId,
+        subActivityId,
+        isCompleted: true,
+        completedAt: new Date(),
+        isStarted: true,
+      },
+    });
+
+    return {
+      status: true,
+      message: "Sub-activity completed successfully",
+    };
+  } catch (error) {
+    console.error("Error completing sub-activity:", error);
+    return {
+      status: false,
+      message: "Failed to complete sub-activity",
+    };
+  }
+}
+
+export async function getSubActivityProgress(courseId: string, studentId: string) {
+  try {
+    // Get all sub-activities for the course with their progress
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      select: {
+        activity: {
+          select: {
+            subActivity: {
+              select: {
+                id: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!course) {
+      return {};
+    }
+
+    // Get all sub-activity IDs
+    const subActivityIds = course.activity.flatMap(
+      (activity) => activity.subActivity.map((sub) => sub.id)
+    );
+
+    // Get progress for all sub-activities
+    const progress = await prisma.studentProgress.findMany({
+      where: {
+        userId: studentId,
+        subActivityId: { in: subActivityIds },
+      },
+      select: {
+        subActivityId: true,
+        isCompleted: true,
+      },
+    });
+
+    // Create a map of subActivityId -> isCompleted
+    const progressMap: Record<string, boolean> = {};
+    progress.forEach((p) => {
+      progressMap[p.subActivityId] = p.isCompleted;
+    });
+
+    return progressMap;
+  } catch (error) {
+    console.error("Error fetching sub-activity progress:", error);
+    return {};
   }
 }
 

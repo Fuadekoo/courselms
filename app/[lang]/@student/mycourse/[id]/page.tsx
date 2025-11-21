@@ -8,11 +8,9 @@ import {
   CheckCircle2,
   Sparkles,
   X,
-  ShieldAlert,
-  Trophy,
-  Lock,
   Circle,
   MessageCircle,
+  Loader2,
 } from "lucide-react";
 import { Accordion, AccordionItem, Skeleton } from "@heroui/react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
@@ -24,6 +22,7 @@ import {
   unlockTheFinalExamAndQuiz,
   getFinalExamStatus,
   getActivityQuizStatus,
+  completeSubActivity,
 } from "@/actions/student/mycourse";
 import Loading from "@/components/loading";
 import NoData from "@/components/noData";
@@ -208,6 +207,8 @@ function CourseContent({
             <ul className="space-y-1 p-2">
               {activity.subActivity.map((sub: any) => {
                 const isActive = sub.video === currentVideoUrl;
+                const isCompleted =
+                  contentData?.progress?.subActivityProgress?.[sub.id] === true;
                 return (
                   <li
                     key={sub.id}
@@ -226,25 +227,35 @@ function CourseContent({
                     }`}
                   >
                     {sub.thumbnail ? (
-                      <div className="flex-shrink-0 w-16 h-10 rounded overflow-hidden bg-gray-200">
+                      <div className="flex-shrink-0 w-16 h-10 rounded overflow-hidden bg-gray-200 relative">
                         <img
                           src={sub.thumbnail}
                           alt={lang === "en" ? sub.titleEn : sub.titleAm}
                           className="w-full h-full object-cover"
                         />
+                        {isCompleted && (
+                          <div className="absolute top-1 right-1 bg-green-500 rounded-full p-0.5">
+                            <CheckCircle2 className="w-3 h-3 text-white" />
+                          </div>
+                        )}
                       </div>
                     ) : (
                       <div className="flex-shrink-0 w-16 h-10 rounded bg-gray-200 flex items-center justify-center">
                         {isActive ? (
                           <PlayCircle className="text-primary w-5 h-5" />
+                        ) : isCompleted ? (
+                          <CheckCircle2 className="text-green-500 w-5 h-5" />
                         ) : (
-                          <CheckCircle2 className="text-gray-400 w-5 h-5" />
+                          <PlayCircle className="text-gray-400 w-5 h-5" />
                         )}
                       </div>
                     )}
                     <span className="break-words overflow-wrap-anywhere flex-1">
                       {lang === "en" ? sub.titleEn : sub.titleAm}
                     </span>
+                    {isCompleted && !isActive && (
+                      <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0" />
+                    )}
                   </li>
                 );
               })}
@@ -332,129 +343,34 @@ function CourseContent({
 
       {/* FINAL EXAM BUTTON */}
       <div className="mt-6 mx-4 mb-4">
-        <div className="relative overflow-hidden rounded-2xl border border-slate-200 dark:border-slate-700 bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 shadow-lg">
-          {/* Gradient overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-sky-500/10 via-purple-500/10 to-emerald-500/10 dark:from-sky-400/10 dark:via-purple-400/10 dark:to-emerald-400/10" />
-
-          <div className="relative p-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div
-                  className={`relative w-14 h-14 rounded-2xl flex items-center justify-center shadow-lg ${
-                    finalExamLocked
-                      ? "bg-gradient-to-br from-amber-400 to-orange-500"
-                      : "bg-gradient-to-br from-emerald-400 to-teal-500"
-                  }`}
-                >
-                  {finalExamLocked ? (
-                    <Lock className="w-7 h-7 text-white" />
-                  ) : (
-                    <Trophy className="w-7 h-7 text-white" />
-                  )}
-                  {/* Shine effect */}
-                  <div className="absolute inset-0 rounded-2xl bg-gradient-to-tr from-white/30 to-transparent" />
-                </div>
-
-                <div>
-                  <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-1">
-                    {lang === "en" ? "Final Exam" : "የመጨረሻ ፈተና"}
-                  </h3>
-                  {/* <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
-                    {finalExamLocked
-                      ? lang === "en"
-                        ? "Complete all activities to unlock"
-                        : "ሁሉንም እንቅስቃሴዎች ይ桀ርሱ"
-                      : examStatus === "done"
-                      ? lang === "en"
-                        ? "Exam completed successfully"
-                        : "ፈተናው በተሳካ ሁኔታ ተጠናቋል"
-                      : examStatus === "partial"
-                      ? lang === "en"
-                        ? "Resume your exam"
-                        : "ፈተናዎን ይቀጥሉ"
-                      : lang === "en"
-                      ? "Test your knowledge"
-                      : "እውቀትዎን ይሞክሩ"}
-                  </p> */}
-
-                  {/* Progress indicator for exam status */}
-                  {!finalExamLocked && (
-                    <div className="flex items-center gap-2 mt-2">
-                      <div
-                        className={`w-2 h-2 rounded-full ${
-                          examStatus === "done"
-                            ? "bg-emerald-500"
-                            : examStatus === "partial"
-                            ? "bg-amber-500"
-                            : "bg-slate-300"
-                        }`}
-                      />
-                      <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                        {examStatus === "done"
-                          ? lang === "en"
-                            ? "Completed"
-                            : "ተጠናቋል"
-                          : examStatus === "partial"
-                          ? lang === "en"
-                            ? "In Progress"
-                            : "በሂደት ላይ"
-                          : lang === "en"
-                          ? "Not Started"
-                          : "አልተጀመረም"}
-                      </span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex flex-col items-end gap-2">
-                {!finalExamLocked ? (
-                  <button
-                    onClick={() =>
-                      router.push(`/${lang}/mycourse/${courseId}/finalexam`)
-                    }
-                    className="group relative px-6 py-3 rounded-xl font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-xl hover:scale-105 active:scale-95 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-400 hover:to-blue-500"
-                  >
-                    {/* Button shine effect */}
-                    <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-
-                    <span className="relative flex items-center gap-2">
-                      {examStatus === "done" ? (
-                        <>
-                          <CheckCircle2 className="w-5 h-5" />
-                          {lang === "en" ? "Review Exam" : "ፈተናን ይገምግሙ"}
-                        </>
-                      ) : examStatus === "partial" ? (
-                        <>
-                          <PlayCircle className="w-5 h-5" />
-                          {lang === "en" ? "Continue Exam" : "ፈተናን ይቀጥሉ"}
-                        </>
-                      ) : (
-                        <>
-                          <Trophy className="w-5 h-5" />
-                          {lang === "en" ? "Start Exam" : "ፈተናን ይጀምሩ"}
-                        </>
-                      )}
-                    </span>
-                  </button>
-                ) : (
-                  <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-100 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-800">
-                    <ShieldAlert className="w-4 h-4 text-amber-600 dark:text-amber-400" />
-                    <span className="text-sm font-medium text-amber-700 dark:text-amber-300">
-                      {lang === "en" ? "Locked" : "ተቆልፏል"}
-                    </span>
-                  </div>
-                )}
-
-                {/* Small info text */}
-                {/* <p className="text-xs text-slate-500 dark:text-slate-400 text-right max-w-32">
-                  {lang === "en"
-                    ? "Certification available"
-                    : "የምስክር ወረቀት ይገኛል"}
-                </p> */}
-              </div>
-            </div>
-          </div>
+        <div className="flex items-center justify-between p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800">
+          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+            {lang === "en" ? "Final Exam" : "የመጨረሻ ፈተና"}
+          </h3>
+          {!finalExamLocked ? (
+            <button
+              onClick={() =>
+                router.push(`/${lang}/mycourse/${courseId}/finalexam`)
+              }
+              className="px-4 py-2 rounded-lg font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+            >
+              {examStatus === "done"
+                ? lang === "en"
+                  ? "Review Exam"
+                  : "ፈተናን ይገምግሙ"
+                : examStatus === "partial"
+                ? lang === "en"
+                  ? "Continue Exam"
+                  : "ፈተናን ይቀጥሉ"
+                : lang === "en"
+                ? "Start Exam"
+                : "ፈተናን ይጀምሩ"}
+            </button>
+          ) : (
+            <span className="text-sm text-amber-600 dark:text-amber-400">
+              {lang === "en" ? "Locked" : "ተቆልፏል"}
+            </span>
+          )}
         </div>
       </div>
     </div>
@@ -499,6 +415,10 @@ export default function Page() {
   });
   const [showThumbnail, setShowThumbnail] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [completedSubActivities, setCompletedSubActivities] = useState<
+    Set<string>
+  >(new Set());
 
   useEffect(() => {
     if (data?.video) {
@@ -511,6 +431,16 @@ export default function Page() {
       setShowThumbnail(true); // Reset thumbnail visibility when video changes
     }
   }, [data, lang]);
+
+  // Initialize completed sub-activities from content data
+  useEffect(() => {
+    if (contentData?.progress?.subActivityProgress) {
+      const completed = Object.entries(contentData.progress.subActivityProgress)
+        .filter(([, isCompleted]) => isCompleted)
+        .map(([subActivityId]) => subActivityId);
+      setCompletedSubActivities(new Set(completed));
+    }
+  }, [contentData]);
 
   const handleSelectVideo = (
     videoUrl: string,
@@ -527,6 +457,34 @@ export default function Page() {
     setShowThumbnail(true); // Show thumbnail when selecting a new video
     setIsSidebarOpen(false);
   };
+
+  const handleComplete = async () => {
+    if (!currentVideo.subActivityId || isCompleting) return;
+
+    setIsCompleting(true);
+    try {
+      const result = await completeSubActivity(currentVideo.subActivityId);
+      if (result?.status) {
+        // Update local state
+        setCompletedSubActivities((prev) => {
+          const newSet = new Set(prev);
+          newSet.add(currentVideo.subActivityId);
+          return newSet;
+        });
+        // Refresh content data to get updated progress
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error("Error completing sub-activity:", error);
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  // Check if current sub-activity is completed
+  const isCurrentCompleted =
+    !!currentVideo.subActivityId &&
+    completedSubActivities.has(currentVideo.subActivityId);
 
   return (
     <div className="fixed inset-0 top-16 overflow-hidden">
@@ -573,6 +531,37 @@ export default function Page() {
                       />
                     </div>
                   </div>
+                </div>
+              )}
+
+              {/* Complete Button - Only show for sub-activities (not introduction video) */}
+              {currentVideo.subActivityId && (
+                <div className="w-full bg-white dark:bg-gray-900 px-4 py-4">
+                  <button
+                    onClick={handleComplete}
+                    disabled={isCompleting || isCurrentCompleted}
+                    className={`w-full px-6 py-3 rounded-lg font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed ${
+                      isCurrentCompleted
+                        ? "bg-green-500 hover:bg-green-600"
+                        : "bg-blue-600 hover:bg-blue-700"
+                    }`}
+                  >
+                    {isCompleting ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <Loader2 className="w-5 h-5 animate-spin" />
+                        <span>
+                          {lang === "en" ? "Completing..." : "በመጠናቀቅ ላይ..."}
+                        </span>
+                      </div>
+                    ) : isCurrentCompleted ? (
+                      <div className="flex items-center justify-center gap-2">
+                        <CheckCircle2 className="w-5 h-5" />
+                        <span>{lang === "en" ? "Completed" : "ተጠናቋል"}</span>
+                      </div>
+                    ) : (
+                      <span>{lang === "en" ? "Complete" : "ጨርስ"}</span>
+                    )}
+                  </button>
                 </div>
               )}
             </div>
@@ -751,18 +740,10 @@ export default function Page() {
               {/* Fixed Header */}
               <div className="flex-shrink-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700/50 px-5 py-4 shadow-sm">
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center w-10 h-10 bg-gradient-to-br from-primary-500 via-primary-600 to-primary-700 dark:from-primary-400 dark:via-primary-500 dark:to-primary-600 rounded-xl shadow-lg">
-                    <PlayCircle className="w-5 h-5 text-white" />
-                  </div>
                   <div className="flex-1 min-w-0">
                     <h2 className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">
                       {lang === "en" ? "Course Content" : "የኮርስ ይዘት"}
                     </h2>
-                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">
-                      {lang === "en"
-                        ? "Select a lesson to continue"
-                        : "ትምህርት ለመቀጠል ይምረጡ"}
-                    </p>
                   </div>
                 </div>
               </div>
@@ -785,14 +766,32 @@ export default function Page() {
 
               {/* Fixed Progress Footer */}
               <div className="flex-shrink-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-t border-gray-200 dark:border-gray-700/50 px-5 py-3 shadow-sm">
-                <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
-                  <span className="font-medium">
-                    {lang === "en" ? "Your Progress" : "እድገትዎ"}
-                  </span>
-                  <span className="font-semibold text-primary-600 dark:text-primary-400">
-                    {/* Progress percentage can be calculated here */}
-                    0%
-                  </span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
+                    <span className="font-medium">
+                      {lang === "en" ? "Your Progress" : "እድገትዎ"}
+                    </span>
+                    <span className="font-semibold text-primary-600 dark:text-primary-400">
+                      {contentData?.progress?.percentage || 0}%
+                    </span>
+                  </div>
+                  {contentData?.progress && (
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                      <div
+                        className="bg-green-500 h-2 rounded-full transition-all duration-300"
+                        style={{
+                          width: `${contentData.progress.percentage || 0}%`,
+                        }}
+                      />
+                    </div>
+                  )}
+                  {contentData?.progress && (
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {contentData.progress.completed || 0} /{" "}
+                      {contentData.progress.total || 0}{" "}
+                      {lang === "en" ? "completed" : "ተጠናቋል"}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

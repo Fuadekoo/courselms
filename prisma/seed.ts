@@ -261,8 +261,20 @@ import prisma from "@/lib/db";
     const createdCourses = [];
     for (let i = 0; i < courses.length; i++) {
       const courseData = courses[i];
-      // Assign different channels to different courses
+      // Assign different channels to different courses, or null if channel already used
       const channelIndex = i % channels.length;
+      let channelId = channels[channelIndex]?.id || null;
+      
+      // Check if channel is already used
+      if (channelId) {
+        const existingCourseWithChannel = await prisma.course.findFirst({
+          where: { channelId },
+        });
+        if (existingCourseWithChannel) {
+          channelId = null; // Set to null if channel is already used
+        }
+      }
+      
       const course = await prisma.course.create({
         data: {
           titleEn: courseData.titleEn,
@@ -320,7 +332,7 @@ import prisma from "@/lib/db";
               ],
             },
           },
-          channelId: channels[channelIndex].id,
+          ...(channelId ? { channelId } : {}),
           incomeRate: {
             createMany: {
               data: [
