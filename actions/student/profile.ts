@@ -1,6 +1,7 @@
 "use server";
 import prisma from "@/lib/db";
 import { auth } from "@/lib/auth";
+import { StateType } from "@/lib/definations";
 
 export async function getProfile() {
   const session = await auth();
@@ -14,6 +15,7 @@ export async function getProfile() {
     where: { id: userId },
     select: {
       id: true,
+      username: true,
       firstName: true,
       fatherName: true,
       lastName: true,
@@ -97,4 +99,46 @@ export async function getProfile() {
     completedCoursesCount,
     questionsAnswered,
   };
+}
+
+export async function updateProfile(
+  prevState: StateType,
+  data:
+    | {
+        firstName: string;
+        fatherName: string;
+        lastName: string;
+        country: string;
+        region: string;
+        city: string;
+      }
+    | undefined
+): Promise<StateType> {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return { status: false, cause: "Unauthorized", message: "You must be logged in" };
+  }
+
+  if (!data) {
+    return { status: false, cause: "no_data", message: "No data provided" };
+  }
+
+  try {
+    await prisma.user.update({
+      where: { id: session.user.id },
+      data: {
+        firstName: data.firstName || "",
+        fatherName: data.fatherName || "",
+        lastName: data.lastName || "",
+        country: data.country || "",
+        region: data.region || "",
+        city: data.city || "",
+      },
+    });
+
+    return { status: true };
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    return { status: false, cause: "update_error", message: "Failed to update profile" };
+  }
 }

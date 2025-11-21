@@ -1,175 +1,502 @@
-import { getProfile } from "@/actions/student/profile";
-import { 
-  User, 
-  Phone, 
-  BookOpen, 
-  GraduationCap, 
-  MapPin, 
-  Award,
-  Calendar,
-  CheckCircle2
-} from "lucide-react";
+"use client";
 
-export default async function StudentProfilePage() {
-  const profile = await getProfile();
+import { getProfile, updateProfile } from "@/actions/student/profile";
+import { CInput } from "@/components/heroui";
+import Loading from "@/components/loading";
+import useAction from "@/hooks/useAction";
+import useData from "@/hooks/useData";
+import { Edit2, Save, X } from "lucide-react";
+import { useParams } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useState } from "react";
+import { Button, Tabs, Tab } from "@heroui/react";
 
-  const fullName = [profile.firstName, profile.fatherName, profile.lastName]
-    .filter(Boolean)
-    .join(" ");
+const profileSchema = z.object({
+  firstName: z.string({ message: "" }).min(1, "First Name is required"),
+  fatherName: z.string({ message: "" }).min(1, "Father Name is required"),
+  lastName: z.string({ message: "" }).min(1, "Last Name is required"),
+  country: z.string({ message: "" }).min(1, "Country is required"),
+  region: z.string({ message: "" }).min(1, "Region is required"),
+  city: z.string({ message: "" }).min(1, "City is required"),
+});
 
-  const location = [profile.city, profile.region, profile.country]
-    .filter(Boolean)
-    .join(", ");
+type ProfileFormData = z.infer<typeof profileSchema>;
 
-  const stats = [
-    {
-      icon: BookOpen,
-      label: "Enrolled Courses",
-      value: profile.enrolledCoursesCount,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50",
+export default function StudentProfilePage() {
+  const params = useParams<{ lang: string }>();
+  const lang = params?.lang ?? "en";
+  const [isEditing, setIsEditing] = useState(false);
+  const [selectedTab, setSelectedTab] = useState("profile");
+
+  const { handleSubmit, register, formState, setValue, reset } =
+    useForm<ProfileFormData>({
+      resolver: zodResolver(profileSchema),
+      defaultValues: {
+        firstName: "",
+        fatherName: "",
+        lastName: "",
+        country: "",
+        region: "",
+        city: "",
+      },
+    });
+
+  // Get profile data for display
+  const {
+    data: profile,
+    loading,
+    refresh,
+  } = useData({
+    func: getProfile,
+    args: [],
+    onSuccess(data) {
+      setValue("firstName", data.firstName || "");
+      setValue("fatherName", data.fatherName || "");
+      setValue("lastName", data.lastName || "");
+      setValue("country", data.country || "");
+      setValue("region", data.region || "");
+      setValue("city", data.city || "");
+      reset({
+        firstName: data.firstName || "",
+        fatherName: data.fatherName || "",
+        lastName: data.lastName || "",
+        country: data.country || "",
+        region: data.region || "",
+        city: data.city || "",
+      });
     },
-    {
-      icon: GraduationCap,
-      label: "Completed",
-      value: profile.completedCoursesCount,
-      color: "text-green-600",
-      bgColor: "bg-green-50",
+  });
+
+  const { action, isPending } = useAction(updateProfile, undefined, {
+    loading: lang === "en" ? "Updating profile..." : "መገለጫ በማዘመን ላይ...",
+    success:
+      lang === "en" ? "Profile updated successfully" : "መገለጫ በተሳካ ሁኔታ ተዘመነ",
+    error: lang === "en" ? "Failed to update profile" : "መገለጫ ማዘመን አልተሳካም",
+    onSuccess() {
+      setIsEditing(false);
+      refresh();
     },
-    {
-      icon: Award,
-      label: "Questions Answered",
-      value: profile.questionsAnswered,
-      color: "text-purple-600",
-      bgColor: "bg-purple-50",
-    },
-  ];
+  });
+
+  const onSubmit = (data: ProfileFormData) => {
+    action(data);
+  };
+
+  const handleCancel = () => {
+    reset();
+    setIsEditing(false);
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  if (loading || !profile) {
+    return <Loading />;
+  }
+
+  const fullName =
+    [profile.firstName, profile.fatherName, profile.lastName]
+      .filter(Boolean)
+      .join(" ") || (lang === "en" ? "User" : "ተጠቃሚ");
+
+  const location =
+    [profile.city, profile.region, profile.country]
+      .filter(Boolean)
+      .join(", ") || (lang === "en" ? "Not set" : "አልተቀመጠም");
+
+  // Get initial letter for avatar
+  const initial = fullName.charAt(0).toUpperCase() || "U";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Profile Header Card */}
-        <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-6">
-          {/* Cover Background */}
-          <div className="h-32 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500" />
-          
-          {/* Profile Content */}
-          <div className="px-6 pb-6">
-            {/* Avatar */}
-            <div className="flex flex-col sm:flex-row items-center sm:items-end -mt-16 mb-4">
-              <div className="relative">
-                <div className="w-32 h-32 rounded-full border-4 border-white bg-gradient-to-br from-blue-400 to-purple-600 flex items-center justify-center shadow-xl">
-                  <User className="w-16 h-16 text-white" />
+    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 py-6 sm:py-8 px-4 sm:px-6">
+      <div className="max-w-6xl mx-auto">
+        {/* Header Section */}
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center">
+                  <span className="text-white font-semibold text-lg">U</span>
                 </div>
-                <div className="absolute bottom-2 right-2 w-6 h-6 bg-green-500 rounded-full border-2 border-white" />
+                <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
+                  {lang === "en" ? "User Profile" : "የተጠቃሚ መገለጫ"}
+                </h1>
               </div>
-              
-              <div className="sm:ml-6 mt-4 sm:mt-0 text-center sm:text-left flex-1">
-                <h1 className="text-3xl font-bold text-gray-900">{fullName}</h1>
-                <p className="text-gray-600 capitalize mt-1">
-                  {profile.role} Account
-                </p>
-              </div>
-            </div>
-
-            {/* Info Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-              {/* Phone */}
-              <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <Phone className="w-5 h-5 text-blue-600" />
-                </div>
-                <div>
-                  <p className="text-xs text-gray-500">Phone Number</p>
-                  <p className="font-semibold text-gray-900">{profile.phoneNumber}</p>
-                </div>
-              </div>
-
-              {/* Location */}
-              {location && (
-                <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                  <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
-                    <MapPin className="w-5 h-5 text-purple-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Location</p>
-                    <p className="font-semibold text-gray-900">{location}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Gender */}
-              {profile.gender && (
-                <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                  <div className="w-10 h-10 bg-pink-100 rounded-full flex items-center justify-center">
-                    <User className="w-5 h-5 text-pink-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Gender</p>
-                    <p className="font-semibold text-gray-900 capitalize">{profile.gender}</p>
-                  </div>
-                </div>
-              )}
-
-              {/* Age */}
-              {profile.age && (
-                <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
-                  <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                    <Calendar className="w-5 h-5 text-green-600" />
-                  </div>
-                  <div>
-                    <p className="text-xs text-gray-500">Age</p>
-                    <p className="font-semibold text-gray-900">{profile.age} years</p>
-                  </div>
-                </div>
-              )}
+              <p className="text-gray-600 dark:text-gray-400 text-sm sm:text-base">
+                {lang === "en"
+                  ? "Manage your account settings and preferences"
+                  : "የመለያዎን ማቀናበሪያዎች እና ምርጫዎችን ያቅዱ"}
+              </p>
             </div>
           </div>
-        </div>
 
-        {/* Statistics Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {stats.map((stat, index) => (
-            <div
-              key={index}
-              className="bg-white rounded-xl shadow-lg p-6 hover:shadow-xl transition-shadow duration-300"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div className={`w-12 h-12 ${stat.bgColor} rounded-lg flex items-center justify-center`}>
-                  <stat.icon className={`w-6 h-6 ${stat.color}`} />
-                </div>
-                <CheckCircle2 className="w-5 h-5 text-gray-300" />
-              </div>
-              <h3 className="text-3xl font-bold text-gray-900 mb-1">
-                {stat.value}
-              </h3>
-              <p className="text-sm text-gray-600">{stat.label}</p>
-            </div>
-          ))}
-        </div>
-
-        {/* Progress Section */}
-        {profile.enrolledCoursesCount > 0 && (
-          <div className="mt-6 bg-white rounded-xl shadow-lg p-6">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Learning Progress</h2>
-            <div className="space-y-4">
-              <div>
-                <div className="flex justify-between mb-2">
-                  <span className="text-sm font-medium text-gray-700">Course Completion</span>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {Math.round((profile.completedCoursesCount / profile.enrolledCoursesCount) * 100)}%
+          {/* Tabs */}
+          <Tabs
+            aria-label="Profile tabs"
+            selectedKey={selectedTab}
+            onSelectionChange={(key) => setSelectedTab(key.toString())}
+            classNames={{
+              base: "w-full",
+              tabList:
+                "gap-6 w-full relative rounded-none p-0 border-b border-gray-200 dark:border-gray-800",
+              cursor: "w-full bg-sky-500",
+              tab: "max-w-fit px-0 h-12",
+              tabContent:
+                "group-data-[selected=true]:text-sky-500 text-gray-500 dark:text-gray-400",
+            }}
+          >
+            <Tab
+              key="profile"
+              title={
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium">
+                    {lang === "en" ? "Profile" : "መገለጫ"}
                   </span>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
-                  <div
-                    className="bg-gradient-to-r from-blue-500 to-purple-600 h-3 rounded-full transition-all duration-500"
-                    style={{
-                      width: `${(profile.completedCoursesCount / profile.enrolledCoursesCount) * 100}%`,
-                    }}
-                  />
+              }
+            />
+            <Tab
+              key="security"
+              title={
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium">
+                    {lang === "en" ? "Security" : "ደህንነት"}
+                  </span>
                 </div>
-              </div>
+              }
+              isDisabled
+            />
+            <Tab
+              key="preferences"
+              title={
+                <div className="flex items-center space-x-2">
+                  <span className="font-medium">
+                    {lang === "en" ? "Preferences" : "ምርጫዎች"}
+                  </span>
+                </div>
+              }
+              isDisabled
+            />
+          </Tabs>
+        </div>
+
+        {/* Profile Information Section */}
+        {selectedTab === "profile" && (
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800">
+            {/* Section Header */}
+            <div className="px-6 py-6 border-b border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+                {lang === "en" ? "Profile Information" : "የመገለጫ መረጃ"}
+              </h2>
+              {!isEditing && (
+                <Button
+                  onPress={handleEdit}
+                  startContent={<Edit2 className="w-4 h-4" />}
+                  color="primary"
+                  variant="flat"
+                  size="sm"
+                  className="bg-sky-50 hover:bg-sky-100 text-sky-600 dark:bg-sky-950/30 dark:text-sky-400"
+                >
+                  {lang === "en" ? "Edit" : "አርም"}
+                </Button>
+              )}
             </div>
+
+            {/* Form Content */}
+            <form onSubmit={handleSubmit(onSubmit)}>
+              <div className="p-6 sm:p-8">
+                {/* Avatar Section */}
+                <div className="flex justify-center mb-8">
+                  <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-gray-900 dark:bg-gray-800 flex items-center justify-center">
+                    <span className="text-white font-bold text-3xl sm:text-4xl">
+                      {initial}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Two Column Layout */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 sm:gap-8">
+                  {/* Left Column */}
+                  <div className="space-y-6">
+                    {/* Full Name - Show combined or individual fields */}
+                    {!isEditing ? (
+                      <div>
+                        <CInput
+                          label={lang === "en" ? "Full Name" : "ሙሉ ስም"}
+                          value={
+                            fullName || (lang === "en" ? "Not set" : "አልተቀመጠም")
+                          }
+                          isDisabled
+                          className="w-full"
+                          classNames={{
+                            inputWrapper:
+                              "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                          }}
+                        />
+                      </div>
+                    ) : (
+                      <>
+                        <div>
+                          <CInput
+                            {...register("firstName")}
+                            label={lang === "en" ? "First Name" : "የመጀመሪያ ስም"}
+                            isDisabled={false}
+                            errorMessage={formState.errors.firstName?.message}
+                            isInvalid={!!formState.errors.firstName}
+                            className="w-full"
+                            classNames={{
+                              inputWrapper:
+                                "bg-white dark:bg-gray-800 border-sky-300 dark:border-sky-700",
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <CInput
+                            {...register("fatherName")}
+                            label={lang === "en" ? "Father Name" : "የአባት ስም"}
+                            isDisabled={false}
+                            errorMessage={formState.errors.fatherName?.message}
+                            isInvalid={!!formState.errors.fatherName}
+                            className="w-full"
+                            classNames={{
+                              inputWrapper:
+                                "bg-white dark:bg-gray-800 border-sky-300 dark:border-sky-700",
+                            }}
+                          />
+                        </div>
+                        <div>
+                          <CInput
+                            {...register("lastName")}
+                            label={lang === "en" ? "Last Name" : "የአያት ስም"}
+                            isDisabled={false}
+                            errorMessage={formState.errors.lastName?.message}
+                            isInvalid={!!formState.errors.lastName}
+                            className="w-full"
+                            classNames={{
+                              inputWrapper:
+                                "bg-white dark:bg-gray-800 border-sky-300 dark:border-sky-700",
+                            }}
+                          />
+                        </div>
+                      </>
+                    )}
+
+                    {/* Email Address */}
+                    <div>
+                      <CInput
+                        label={lang === "en" ? "Email Address" : "ኢሜይል አድራሻ"}
+                        value={lang === "en" ? "Not available" : "አልተገኘም"}
+                        isDisabled
+                        className="w-full"
+                        classNames={{
+                          inputWrapper:
+                            "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                        }}
+                      />
+                    </div>
+
+                    {/* Phone Number */}
+                    <div>
+                      <CInput
+                        label={lang === "en" ? "Phone Number" : "የስልክ ቁጥር"}
+                        value={profile.phoneNumber || ""}
+                        isDisabled
+                        className="w-full"
+                        classNames={{
+                          inputWrapper:
+                            "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                        }}
+                      />
+                    </div>
+
+                    {/* Role */}
+                    <div>
+                      <CInput
+                        label={lang === "en" ? "Role" : "ሚና"}
+                        value={
+                          profile.role
+                            ? profile.role.charAt(0).toUpperCase() +
+                              profile.role.slice(1)
+                            : ""
+                        }
+                        isDisabled
+                        className="w-full"
+                        classNames={{
+                          inputWrapper:
+                            "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                        }}
+                      />
+                    </div>
+
+                    {/* Account Information Section */}
+                    <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
+                        {lang === "en" ? "Account Information" : "የመለያ መረጃ"}
+                      </h3>
+
+                      {/* Member Since */}
+                      <div>
+                        <CInput
+                          label={lang === "en" ? "Member Since" : "አባል የሆነው"}
+                          value={lang === "en" ? "Not available" : "አልተገኘም"}
+                          isDisabled
+                          className="w-full"
+                          classNames={{
+                            inputWrapper:
+                              "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Right Column */}
+                  <div className="space-y-6">
+                    {/* Username */}
+                    <div>
+                      <CInput
+                        label={lang === "en" ? "Username" : "የተጠቃሚ ስም"}
+                        value={
+                          profile.username
+                            ? `@${profile.username}`
+                            : lang === "en"
+                            ? "Not set"
+                            : "አልተቀመጠም"
+                        }
+                        isDisabled
+                        className="w-full"
+                        classNames={{
+                          inputWrapper:
+                            "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                        }}
+                      />
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-1">
+                        {lang === "en"
+                          ? "Username cannot be changed"
+                          : "የተጠቃሚ ስም ሊቀየር አይችልም"}
+                      </p>
+                    </div>
+
+                    {/* Department (using Region) */}
+                    <div>
+                      <CInput
+                        {...register("region")}
+                        label={lang === "en" ? "Region" : "ክልል"}
+                        isDisabled={!isEditing}
+                        errorMessage={formState.errors.region?.message}
+                        isInvalid={!!formState.errors.region}
+                        className="w-full"
+                        classNames={{
+                          inputWrapper: isEditing
+                            ? "bg-white dark:bg-gray-800 border-sky-300 dark:border-sky-700"
+                            : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                        }}
+                      />
+                    </div>
+
+                    {/* Location */}
+                    <div>
+                      <CInput
+                        {...register("city")}
+                        label={lang === "en" ? "Location" : "አካባቢ"}
+                        isDisabled={!isEditing}
+                        errorMessage={formState.errors.city?.message}
+                        isInvalid={!!formState.errors.city}
+                        className="w-full"
+                        classNames={{
+                          inputWrapper: isEditing
+                            ? "bg-white dark:bg-gray-800 border-sky-300 dark:border-sky-700"
+                            : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                        }}
+                      />
+                    </div>
+
+                    {/* Country */}
+                    <div>
+                      <CInput
+                        {...register("country")}
+                        label={lang === "en" ? "Country" : "ሀገር"}
+                        isDisabled={!isEditing}
+                        errorMessage={formState.errors.country?.message}
+                        isInvalid={!!formState.errors.country}
+                        className="w-full"
+                        classNames={{
+                          inputWrapper: isEditing
+                            ? "bg-white dark:bg-gray-800 border-sky-300 dark:border-sky-700"
+                            : "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                        }}
+                      />
+                    </div>
+
+                    {/* Additional Fields */}
+                    <div className="pt-4 border-t border-gray-200 dark:border-gray-800">
+                      <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-4">
+                        {lang === "en" ? "Additional Information" : "ተጨማሪ መረጃ"}
+                      </h3>
+
+                      {/* Last Login */}
+                      <div>
+                        <CInput
+                          label={lang === "en" ? "Last Login" : "የመጨረሻ መግቢያ"}
+                          value={lang === "en" ? "Not available" : "አልተገኘም"}
+                          isDisabled
+                          className="w-full"
+                          classNames={{
+                            inputWrapper:
+                              "bg-gray-50 dark:bg-gray-800 border-gray-200 dark:border-gray-700",
+                          }}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                {isEditing && (
+                  <div className="flex flex-col sm:flex-row gap-3 justify-end mt-8 pt-6 border-t border-gray-200 dark:border-gray-800">
+                    <Button
+                      onPress={handleCancel}
+                      startContent={<X className="w-4 h-4" />}
+                      variant="flat"
+                      color="default"
+                      isDisabled={isPending}
+                      size="lg"
+                    >
+                      {lang === "en" ? "Cancel" : "ሰርዝ"}
+                    </Button>
+                    <Button
+                      type="submit"
+                      startContent={<Save className="w-4 h-4" />}
+                      color="primary"
+                      isLoading={isPending}
+                      size="lg"
+                      className="bg-sky-500 hover:bg-sky-600 text-white"
+                    >
+                      {lang === "en" ? "Save Changes" : "ለውጦችን አስቀምጥ"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            </form>
+          </div>
+        )}
+
+        {/* Security Tab Content (Placeholder) */}
+        {selectedTab === "security" && (
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-8 text-center text-gray-500 dark:text-gray-400">
+            {lang === "en"
+              ? "Security settings coming soon"
+              : "የደህንነት ማቀናበሪያዎች በቅርቡ ይመጣሉ"}
+          </div>
+        )}
+
+        {/* Preferences Tab Content (Placeholder) */}
+        {selectedTab === "preferences" && (
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800 p-8 text-center text-gray-500 dark:text-gray-400">
+            {lang === "en" ? "Preferences coming soon" : "ምርጫዎች በቅርቡ ይመጣሉ"}
           </div>
         )}
       </div>
