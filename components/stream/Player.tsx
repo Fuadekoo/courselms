@@ -373,7 +373,7 @@ function Player({
           position: "relative", // Critical for iOS
           overflow: "hidden",
           backgroundColor: "#000",
-          minHeight: "400px",
+          minHeight: isMobile ? "200px" : "400px", // Smaller min height on mobile
           aspectRatio: "16/9",
         }}
       >
@@ -455,6 +455,7 @@ function Player({
               cursor: "pointer",
               borderRadius: isFullscreen && isMobile && isLandscape ? 0 : 8,
               overflow: "hidden",
+              backgroundColor: "#000",
             }}
             onClick={(e) => {
               e.stopPropagation();
@@ -467,32 +468,46 @@ function Player({
               style={{
                 width: "100%",
                 height: "100%",
-                objectFit: "cover",
+                objectFit: "contain", // Show full image without cropping
                 display: "block",
+                backgroundColor: "#000",
               }}
             />
-            {/* Play Button Overlay */}
+            {/* Play Button Overlay - Responsive size */}
             <div
               style={{
                 position: "absolute",
                 top: "50%",
                 left: "50%",
                 transform: "translate(-50%, -50%)",
-                width: "80px",
-                height: "80px",
+                width: isMobile ? "60px" : "80px", // Smaller on mobile
+                height: isMobile ? "60px" : "80px",
                 borderRadius: "50%",
-                background: "rgba(59, 130, 246, 0.9)",
+                background: "rgba(59, 130, 246, 0.95)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
+                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.4)",
+                transition: "all 0.3s ease",
+              }}
+              onMouseEnter={(e) => {
+                if (!isMobile) {
+                  e.currentTarget.style.transform = "translate(-50%, -50%) scale(1.1)";
+                  e.currentTarget.style.background = "rgba(59, 130, 246, 1)";
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (!isMobile) {
+                  e.currentTarget.style.transform = "translate(-50%, -50%) scale(1)";
+                  e.currentTarget.style.background = "rgba(59, 130, 246, 0.95)";
+                }
               }}
             >
               <Play
-                size={40}
+                size={isMobile ? 28 : 40} // Smaller icon on mobile
                 color="white"
                 fill="white"
-                style={{ marginLeft: "4px" }}
+                style={{ marginLeft: "3px" }}
               />
             </div>
           </div>
