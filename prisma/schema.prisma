@@ -120,7 +120,7 @@ model Course {
   // currency        String          @default("ETB")
   level           CourseLevel
   language        String          @default("Amharic")
-  duration        String
+  duration        String?
   accessEn        String          @default("Access on mobile, computer")
   accessAm        String          @default("በሞባይል ፣ በኮምፒተር ላይ መጠቀም")
   certificate     Boolean         @default(false)

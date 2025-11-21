@@ -117,7 +117,7 @@ export default function CourseBasicInfo({
           <TimePicker
             value={watch ? watch("duration") : ""}
             onChange={(value: string) => setValue("duration", value)}
-            label={lang === "en" ? "Duration" : "ቆይታ"}
+            label={lang === "en" ? "Duration (Optional)" : "ቆይታ (አማራጭ)"}
             placeholder={lang === "en" ? "e.g., 01:09:09" : "ለምሳሌ፣ 01:09:09"}
           />
         </div>
