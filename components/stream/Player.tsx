@@ -8,6 +8,7 @@ import FullscreenButton from "./FullScreen";
 import CustomSpinner from "./CustomSpinner";
 import { VideoItem } from "../../types";
 import { cn } from "@/lib/utils";
+import "./VideoProtection.css";
 
 interface PlayerProps {
   src: string;
@@ -363,6 +364,13 @@ function Player({
       <div
         onMouseEnter={() => !isMobile && setShowControls(true)}
         onMouseLeave={() => !isMobile && setShowControls(false)}
+        onContextMenu={(e) => e.preventDefault()} // Disable right-click on container
+        onKeyDown={(e) => {
+          // Prevent download shortcuts (Ctrl+S, Cmd+S, etc.)
+          if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+            e.preventDefault();
+          }
+        }}
         className={cn(
           "relative max-md:w-full",
           isFullscreen ? "md:w-full" : "md:w-[70%]"
@@ -375,6 +383,9 @@ function Player({
           backgroundColor: "#000",
           minHeight: isMobile ? "200px" : "400px", // Smaller min height on mobile
           aspectRatio: "16/9",
+          userSelect: "none", // Disable text/element selection
+          WebkitUserSelect: "none",
+          MozUserSelect: "none",
         }}
       >
         {/* Placeholder UI when video is not available or not loaded yet */}
@@ -523,6 +534,10 @@ function Player({
           x-webkit-airplay="allow"
           width="100%"
           height="auto"
+          controlsList="nodownload nofullscreen noremoteplayback" // Disable download button
+          disablePictureInPicture // Disable PiP
+          disableRemotePlayback // Disable casting
+          onContextMenu={(e) => e.preventDefault()} // Disable right-click
           style={{
             borderRadius: isFullscreen && isMobile && isLandscape ? 0 : 8,
             width: "100%",
@@ -534,6 +549,10 @@ function Player({
             zIndex: 1,
             WebkitTapHighlightColor: "transparent",
             touchAction: "manipulation",
+            pointerEvents: "auto", // Enable interaction but with protections
+            userSelect: "none", // Disable text selection
+            WebkitUserSelect: "none", // Safari
+            MozUserSelect: "none", // Firefox
           }}
           onPlay={(e) => {
             e.stopPropagation();
@@ -578,6 +597,13 @@ function Player({
             setIsLoading(false);
           }}
         />
+
+        {/* Watermark Overlay - Deters screen recording and shows ownership */}
+        {videoAvailable && !hasError && (
+          <div className="video-watermark">
+            {title || "Melaverse © Protected Content"}
+          </div>
+        )}
 
         {/* Center Play Button - Show when paused and not loading */}
         {!playing && !isLoading && isOnline && (
