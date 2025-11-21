@@ -1,13 +1,35 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import fs from "fs";
 import path from "path";
+import { verifyVideoToken, isDownloadManager } from "@/lib/videoSecurity";
 
 export default function handler(req: NextApiRequest, res: NextApiResponse) {
   try {
-    const { file } = req.query;
+    const { file, token } = req.query;
+    const userAgent = req.headers['user-agent'];
+    const referer = req.headers['referer'];
 
+    // 1. Block download managers
+    if (isDownloadManager(userAgent)) {
+      res.status(404).send("Not Found");
+      return;
+    }
+
+    // 2. Check referer (must come from your domain)
+    if (!referer || !referer.includes(req.headers.host || '')) {
+      res.status(403).send("Forbidden");
+      return;
+    }
+
+    // 3. Validate file parameter
     if (!file || typeof file !== "string") {
-      res.status(400).send("Missing or invalid file parameter");
+      res.status(404).send("Not Found");
+      return;
+    }
+
+    // 4. Verify token
+    if (!verifyVideoToken(token as string, file)) {
+      res.status(404).send("Not Found"); // Return 404 instead of 403 to confuse attackers
       return;
     }
 
@@ -23,9 +45,14 @@ export default function handler(req: NextApiRequest, res: NextApiResponse) {
     const fileSize = stat.size;
     const range = req.headers.range;
 
+    // Add security headers
     res.setHeader("Accept-Ranges", "bytes");
-    res.setHeader("Access-Control-Allow-Origin", "*");
-    res.setHeader("Cross-Origin-Resource-Policy", "cross-origin");
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
+    res.setHeader("Content-Security-Policy", "default-src 'self'");
+    res.setHeader("Cache-Control", "private, no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
 
     // ✅ Safari fix — handle both range and full requests
     if (range) {
