@@ -1,17 +1,16 @@
 "use client";
 
-import { getProfile, updateProfile } from "@/actions/student/profile";
 import { CInput } from "@/components/heroui";
 import Loading from "@/components/loading";
-import useAction from "@/hooks/useAction";
-import useData from "@/hooks/useData";
 import { Edit2, Save, X } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@heroui/react";
+import { useStudentProfile } from "@/stores";
+import { toast } from "sonner";
 
 const profileSchema = z.object({
   firstName: z.string({ message: "" }).min(1, "First Name is required"),
@@ -29,6 +28,14 @@ export default function StudentProfilePage() {
   const lang = params?.lang ?? "en";
   const [isEditing, setIsEditing] = useState(false);
 
+  // Use Zustand store for profile data with automatic caching
+  const {
+    profile,
+    isLoading,
+    updateProfile: updateProfileAction,
+  } = useStudentProfile();
+  const [isUpdating, setIsUpdating] = useState(false);
+
   const { handleSubmit, register, formState, setValue, reset } =
     useForm<ProfileFormData>({
       resolver: zodResolver(profileSchema),
@@ -42,45 +49,56 @@ export default function StudentProfilePage() {
       },
     });
 
-  // Get profile data for display
-  const {
-    data: profile,
-    loading,
-    refresh,
-  } = useData({
-    func: getProfile,
-    args: [],
-    onSuccess(data) {
-      setValue("firstName", data.firstName || "");
-      setValue("fatherName", data.fatherName || "");
-      setValue("lastName", data.lastName || "");
-      setValue("country", data.country || "");
-      setValue("region", data.region || "");
-      setValue("city", data.city || "");
+  // Update form when profile data is loaded
+  useEffect(() => {
+    if (profile) {
+      setValue("firstName", profile.firstName || "");
+      setValue("fatherName", profile.fatherName || "");
+      setValue("lastName", profile.lastName || "");
+      setValue("country", profile.country || "");
+      setValue("region", profile.region || "");
+      setValue("city", profile.city || "");
       reset({
-        firstName: data.firstName || "",
-        fatherName: data.fatherName || "",
-        lastName: data.lastName || "",
-        country: data.country || "",
-        region: data.region || "",
-        city: data.city || "",
+        firstName: profile.firstName || "",
+        fatherName: profile.fatherName || "",
+        lastName: profile.lastName || "",
+        country: profile.country || "",
+        region: profile.region || "",
+        city: profile.city || "",
       });
-    },
-  });
+    }
+  }, [profile, setValue, reset]);
 
-  const { action, isPending } = useAction(updateProfile, undefined, {
-    loading: lang === "en" ? "Updating profile..." : "መገለጫ በማዘመን ላይ...",
-    success:
-      lang === "en" ? "Profile updated successfully" : "መገለጫ በተሳካ ሁኔታ ተዘመነ",
-    error: lang === "en" ? "Failed to update profile" : "መገለጫ ማዘመን አልተሳካም",
-    onSuccess() {
-      setIsEditing(false);
-      refresh();
-    },
-  });
+  const onSubmit = async (data: ProfileFormData) => {
+    setIsUpdating(true);
+    const loadingToast = toast.loading(
+      lang === "en" ? "Updating profile..." : "መገለጫ በማዘመን ላይ..."
+    );
 
-  const onSubmit = (data: ProfileFormData) => {
-    action(data);
+    try {
+      const result = await updateProfileAction({} as any, data);
+
+      if (result && result.status) {
+        toast.success(
+          lang === "en" ? "Profile updated successfully" : "መገለጫ በተሳካ ሁኔታ ተዘመነ",
+          { id: loadingToast }
+        );
+        setIsEditing(false);
+      } else {
+        toast.error(
+          result?.message ||
+            (lang === "en" ? "Failed to update profile" : "መገለጫ ማዘመን አልተሳካም"),
+          { id: loadingToast }
+        );
+      }
+    } catch (error) {
+      toast.error(
+        lang === "en" ? "Failed to update profile" : "መገለጫ ማዘመን አልተሳካም",
+        { id: loadingToast }
+      );
+    } finally {
+      setIsUpdating(false);
+    }
   };
 
   const handleCancel = () => {
@@ -92,7 +110,7 @@ export default function StudentProfilePage() {
     setIsEditing(true);
   };
 
-  if (loading || !profile) {
+  if (isLoading || !profile) {
     return <Loading />;
   }
 
@@ -411,7 +429,7 @@ export default function StudentProfilePage() {
                     startContent={<X className="w-4 h-4" />}
                     variant="flat"
                     color="default"
-                    isDisabled={isPending}
+                    isDisabled={isUpdating}
                     size="lg"
                   >
                     {lang === "en" ? "Cancel" : "ሰርዝ"}
@@ -420,7 +438,7 @@ export default function StudentProfilePage() {
                     type="submit"
                     startContent={<Save className="w-4 h-4" />}
                     color="primary"
-                    isLoading={isPending}
+                    isLoading={isUpdating}
                     size="lg"
                     className="bg-sky-500 hover:bg-sky-600 text-white"
                   >

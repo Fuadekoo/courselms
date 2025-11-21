@@ -1,21 +1,28 @@
-/**
- * Centralized Zustand store exports
- * 
- * This file exports all Zustand stores for easy importing throughout the application.
- * 
- * Stores:
- * - courseRegistrationStore: Course registration form and upload state
- * - examStore: Final exam state management
- * - videoQAStore: Video Q&A state for instructors and students
- * - uiStore: UI state (modals, sidebar, notifications, loading)
- * - uploadStore: File upload state management
- * - subActivityThumbnailStore: SubActivity thumbnail upload state
- */
+// Export all stores
+export { useStudentStore } from './useStudentStore';
+export { useUserStore } from './useUserStore';
+export { useCourseStore } from './useCourseStore';
 
-export * from "./courseRegistrationStore";
-export * from "./examStore";
-export * from "./videoQAStore";
-export * from "./uiStore";
-export * from "./uploadStore";
-export * from "./subActivityThumbnailStore";
+// Export existing stores
+export { useCourseRegistrationStore } from './courseRegistrationStore';
+export { useExamStore } from './examStore';
+export { useVideoQAStore, useVideoQAFilteredQuestions } from './videoQAStore';
+export { useUploadStore } from './uploadStore';
+export { useUIStore } from './uiStore';
+export { useSubActivityThumbnailStore } from './subActivityThumbnailStore';
 
+// Export all hooks
+export { 
+  useStudentProfile, 
+  useStudentDashboard, 
+  useStudentCourses,
+  useStudentFullData 
+} from '@/hooks/useStudentData';
+
+export { useUserData } from '@/hooks/useUserData';
+
+export { useCoursesList, useCourseDetail } from '@/hooks/useCourseData';
+
+// Re-export types
+export type { VideoQuestion, VideoResponse } from './videoQAStore';
+export type { ExamQuestion } from './examStore';
