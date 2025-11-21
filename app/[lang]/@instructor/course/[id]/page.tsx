@@ -35,7 +35,9 @@ export default function Page() {
   }, [searchParams]);
 
   return loading ? (
-    <Loading />
+    <div className="flex items-center justify-center min-h-screen">
+      <Loading />
+    </div>
   ) : !data ? (
     <NoData />
   ) : (

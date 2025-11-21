@@ -20,6 +20,7 @@ import {
   X,
   RotateCcw,
 } from "lucide-react";
+import Loading from "@/components/loading";
 
 export default function Page() {
   const router = useRouter();
@@ -187,8 +188,8 @@ export default function Page() {
 
   if (loading) {
     return (
-      <div className="min-h-dvh bg-background text-foreground flex items-center justify-center p-6">
-        <div className="text-sm opacity-70">Loading quiz…</div>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loading />
       </div>
     );
   }

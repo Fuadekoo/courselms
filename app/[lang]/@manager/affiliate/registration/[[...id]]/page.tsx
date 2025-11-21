@@ -63,7 +63,9 @@ export default function Page() {
     });
 
   return loading ? (
-    <Loading />
+    <div className="flex items-center justify-center min-h-screen">
+      <Loading />
+    </div>
   ) : (
     <div className="grid md:place-content-center overflow-auto">
       <Form

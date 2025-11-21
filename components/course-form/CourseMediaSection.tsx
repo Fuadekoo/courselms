@@ -61,8 +61,8 @@ function CourseMediaSection({
             src={videoSrc}
             type={selectedVideoFile ? "url" : "local"}
             title="Melaverse video player" 
+            poster={thumbnail} // Show thumbnail as poster
             key={selectedVideoFile ? 'uploaded' : 'database'}
-
           />
         ) : (
           <div

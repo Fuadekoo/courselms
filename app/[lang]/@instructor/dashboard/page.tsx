@@ -7,6 +7,7 @@ import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import EmptyState from "@/components/ui/EmptyState";
 import PageHeader from "@/components/layout/PageHeader";
 import Section from "@/components/layout/Section";
+import Loading from "@/components/loading";
 import Overview01 from "../../@manager/_components/overview01";
 import Overview02 from "../../@manager/_components/overview02";
 import Overview03 from "../../@manager/_components/overview03";
@@ -44,11 +45,8 @@ export default function Page() {
   // Loading state
   if (status === "loading") {
     return (
-      <div className="min-h-[60vh] flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <LoadingSpinner size="lg" />
-          <p className="text-neutral-600 dark:text-neutral-400">Checking authentication...</p>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loading />
       </div>
     );
   }
@@ -88,24 +86,8 @@ export default function Page() {
   // Loading data state
   if (loading) {
     return (
-      <div className="space-y-6">
-        <PageHeader
-          title="Instructor Dashboard"
-          subtitle="Loading your analytics and overview..."
-        />
-        <div className="grid gap-6">
-          <div className="card p-6">
-            <div className="h-32 skeleton" />
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="card p-6">
-              <div className="h-64 skeleton" />
-            </div>
-            <div className="card p-6">
-              <div className="h-64 skeleton" />
-            </div>
-          </div>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loading />
       </div>
     );
   }

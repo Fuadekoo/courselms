@@ -2,6 +2,7 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import useData from "@/hooks/useData";
+import Loading from "@/components/loading";
 
 import {
   Button,
@@ -154,20 +155,9 @@ export default function Page() {
 
   if (loading) {
     return (
-      <ScrollablePageWrapper>
-        <PageHeader
-          title={lang === "en" ? "Communications" : "መግቢያዎች"}
-          subtitle={lang === "en" ? "Loading communication tools..." : "የመገናኛ መሳሪያዎች በመጫን ላይ..."}
-        />
-        <div className="space-y-6">
-          <div className="card p-6">
-            <div className="h-64 skeleton" />
-          </div>
-          <div className="card p-6">
-            <div className="h-48 skeleton" />
-          </div>
-        </div>
-      </ScrollablePageWrapper>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loading />
+      </div>
     );
   }
 

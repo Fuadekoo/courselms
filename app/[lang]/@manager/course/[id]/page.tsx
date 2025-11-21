@@ -13,6 +13,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import Overview01 from "../../_components/overview01";
 import Overview02 from "../../_components/overview02";
 import Overview03 from "../../_components/overview03";
+import Loading from "@/components/loading";
 
 export default function Page() {
   const params = useParams<{ id: string }>(),
@@ -44,31 +45,9 @@ export default function Page() {
   // Loading state
   if (loading) {
     return (
-      <ScrollablePageWrapper>
-        <PageHeader
-          title="Course Analytics"
-          subtitle="Loading course performance data..."
-        />
-        <div className="grid gap-6">
-          <div className="card p-6">
-            <div className="h-32 skeleton" />
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="card p-6">
-              <div className="h-64 skeleton" />
-            </div>
-            <div className="card p-6">
-              <div className="h-64 skeleton" />
-            </div>
-          </div>
-          <div className="card p-6">
-            <div className="h-48 skeleton" />
-          </div>
-          <div className="card p-6">
-            <div className="h-96 skeleton" />
-          </div>
-        </div>
-      </ScrollablePageWrapper>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loading />
+      </div>
     );
   }
 

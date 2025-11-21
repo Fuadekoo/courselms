@@ -112,13 +112,8 @@ function CourseContent({
 
   if (contentLoading) {
     return (
-      <div className="w-full p-4 space-y-4 pt-16">
-        <Skeleton className="h-8 w-3/4 mb-4" />
-        <div className="space-y-2">
-          <Skeleton className="h-14 w-full" />
-          <Skeleton className="h-14 w-full" />
-          <Skeleton className="h-14 w-full" />
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loading />
       </div>
     );
   }
@@ -501,35 +496,22 @@ export default function Page() {
               {currentVideo.url && (
                 <div className="relative w-full">
                   <div className="relative w-full aspect-video bg-black">
-                    {currentVideo.thumbnail && showThumbnail && (
-                      <div
-                        className="absolute inset-0 z-[5] pointer-events-none subactivity-thumbnail-overlay transition-opacity duration-300"
-                        style={{ opacity: showThumbnail ? 1 : 0 }}
-                      >
-                        <img
-                          src={currentVideo.thumbnail}
-                          alt={currentVideo.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-                    <div className="relative z-10">
-                      <Player
-                        src={currentVideo.url}
-                        type="local"
-                        title={currentVideo.title}
-                        onVideoPlay={() => {
-                          // Hide thumbnail when video actually starts playing
-                          setShowThumbnail(false);
-                        }}
-                        onVideoPause={() => {
-                          // Show thumbnail when video is paused (if it exists)
-                          if (currentVideo.thumbnail) {
-                            setShowThumbnail(true);
-                          }
-                        }}
-                      />
-                    </div>
+                    <Player
+                      src={currentVideo.url}
+                      type="local"
+                      title={currentVideo.title}
+                      poster={currentVideo.thumbnail} // Pass thumbnail as poster
+                      onVideoPlay={() => {
+                        // Hide thumbnail when video actually starts playing
+                        setShowThumbnail(false);
+                      }}
+                      onVideoPause={() => {
+                        // Show thumbnail when video is paused (if it exists)
+                        if (currentVideo.thumbnail) {
+                          setShowThumbnail(true);
+                        }
+                      }}
+                    />
                   </div>
                 </div>
               )}

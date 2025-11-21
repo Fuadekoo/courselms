@@ -111,7 +111,11 @@ export default function StudentProfilePage() {
   };
 
   if (isLoading || !profile) {
-    return <Loading />;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Loading />
+      </div>
+    );
   }
 
   const fullName =

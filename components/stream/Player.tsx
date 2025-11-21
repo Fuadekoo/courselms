@@ -14,6 +14,7 @@ interface PlayerProps {
   type?: "url" | "local";
   playlist?: VideoItem[];
   title?: string;
+  poster?: string; // Thumbnail image URL
   onVideoPlay?: () => void;
   onVideoPause?: () => void;
 }
@@ -23,6 +24,7 @@ function Player({
   type = "local",
   playlist = [],
   title,
+  poster,
   onVideoPlay,
   onVideoPause,
 }: PlayerProps) {
@@ -43,6 +45,7 @@ function Player({
   const [isLandscape, setIsLandscape] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [videoAvailable, setVideoAvailable] = useState(!!src);
+  const [hasStartedPlaying, setHasStartedPlaying] = useState(false); // Track if video has ever started
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   
   // Reset video availability when src changes
@@ -51,6 +54,7 @@ function Player({
       setVideoAvailable(false);
       setHasError(false);
       setIsLoading(true);
+      setHasStartedPlaying(false); // Reset when video changes
     } else {
       setVideoAvailable(false);
       setHasError(true);
@@ -165,6 +169,7 @@ function Player({
     const handleWaiting = () => setIsLoading(true);
     const handlePlaying = () => {
       setIsLoading(false);
+      setHasStartedPlaying(true); // Mark that video has started playing
       onVideoPlay?.(); // Call onVideoPlay when video actually starts playing
     };
     const handleError = () => setIsLoading(false);
@@ -437,9 +442,66 @@ function Player({
           </div>
         )}
         
+        {/* Thumbnail Overlay - Shows until video starts playing */}
+        {poster && !hasStartedPlaying && (
+          <div
+            style={{
+              position: "absolute",
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              zIndex: 2,
+              cursor: "pointer",
+              borderRadius: isFullscreen && isMobile && isLandscape ? 0 : 8,
+              overflow: "hidden",
+            }}
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePlay();
+            }}
+          >
+            <img
+              src={poster}
+              alt="Video thumbnail"
+              style={{
+                width: "100%",
+                height: "100%",
+                objectFit: "cover",
+                display: "block",
+              }}
+            />
+            {/* Play Button Overlay */}
+            <div
+              style={{
+                position: "absolute",
+                top: "50%",
+                left: "50%",
+                transform: "translate(-50%, -50%)",
+                width: "80px",
+                height: "80px",
+                borderRadius: "50%",
+                background: "rgba(59, 130, 246, 0.9)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.3)",
+              }}
+            >
+              <Play
+                size={40}
+                color="white"
+                fill="white"
+                style={{ marginLeft: "4px" }}
+              />
+            </div>
+          </div>
+        )}
+        
         <video
           ref={videoRef}
           src={currentSrc}
+          poster={poster} // Add poster attribute for native fallback
           playsInline
           preload="metadata"
           webkit-playsinline="true"
@@ -461,6 +523,7 @@ function Player({
           onPlay={(e) => {
             e.stopPropagation();
             setPlaying(true);
+            setHasStartedPlaying(true); // Hide thumbnail when playing starts
             onVideoPlay?.();
           }}
           onPause={(e) => {

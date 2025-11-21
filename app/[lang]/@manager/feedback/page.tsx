@@ -10,6 +10,7 @@ import { getFeedback, getAverageRating } from "@/lib/data/courseMaterials";
 import ScrollablePageWrapper from "@/components/layout/ScrollablePageWrapper";
 import PageHeader from "@/components/layout/PageHeader";
 import EmptyState from "@/components/ui/EmptyState";
+import Loading from "@/components/loading";
 
 interface FeedbackItem {
   id: string;
@@ -92,20 +93,9 @@ export default function Page() {
 
   if (loadingCourses) {
     return (
-      <ScrollablePageWrapper>
-        <PageHeader
-          title={lang === "en" ? "Course Feedback" : "የኮርስ አስተያየት"}
-          subtitle={lang === "en" ? "Loading feedback data..." : "አስተያየት መረጃ በመጫን ላይ..."}
-        />
-        <div className="space-y-6">
-          <div className="card p-6">
-            <div className="h-32 skeleton" />
-          </div>
-          <div className="card p-6">
-            <div className="h-64 skeleton" />
-          </div>
-        </div>
-      </ScrollablePageWrapper>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loading />
+      </div>
     );
   }
 

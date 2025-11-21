@@ -12,6 +12,7 @@ import Overview03 from "../_components/overview03";
 import { getOverviewData } from "@/actions/manager/course";
 import useData from "@/hooks/useData";
 import { useSearchParams } from "next/navigation";
+import Loading from "@/components/loading";
 
 export default function Page() {
   const searchParams = useSearchParams(),
@@ -43,30 +44,8 @@ export default function Page() {
   // Loading state
   if (loading) {
     return (
-      <div className="space-y-6">
-        <PageHeader
-          title="Manager Dashboard"
-          subtitle="Loading analytics and overview data..."
-        />
-        <div className="grid gap-6">
-          <div className="card p-6">
-            <div className="h-32 skeleton" />
-          </div>
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="card p-6">
-              <div className="h-64 skeleton" />
-            </div>
-            <div className="card p-6">
-              <div className="h-64 skeleton" />
-            </div>
-          </div>
-          <div className="card p-6">
-            <div className="h-48 skeleton" />
-          </div>
-          <div className="card p-6">
-            <div className="h-96 skeleton" />
-          </div>
-        </div>
+      <div className="flex items-center justify-center min-h-screen">
+        <Loading />
       </div>
     );
   }
