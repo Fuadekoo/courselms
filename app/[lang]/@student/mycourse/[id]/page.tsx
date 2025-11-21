@@ -16,6 +16,7 @@ import { Accordion, AccordionItem, Skeleton } from "@heroui/react";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 import useData from "@/hooks/useData";
+import { useStudentProgressStore } from "@/stores";
 import {
   getMySingleCourse,
   getMySingleCourseContent,
@@ -349,18 +350,20 @@ export default function Page() {
 
   const finalExamLocked = Boolean((locks as any)?.finalExamLocked);
 
-  const [currentVideo, setCurrentVideo] = useState({
-    url: "",
-    title: "",
-    subActivityId: "",
-    thumbnail: "",
-  });
+  // Use Zustand store for progress tracking
+  const {
+    currentVideo,
+    setCurrentVideo,
+    completedSubActivities,
+    markSubActivityComplete,
+    setSubActivityProgress,
+    setOverallProgress,
+  } = useStudentProgressStore();
+
+  // Local UI state
   const [showThumbnail, setShowThumbnail] = useState(true);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
-  const [completedSubActivities, setCompletedSubActivities] = useState<
-    Set<string>
-  >(new Set());
   const [videoProgress, setVideoProgress] = useState<number>(0);
   const [hasAutoCompleted, setHasAutoCompleted] = useState<Set<string>>(
     new Set()
@@ -381,12 +384,12 @@ export default function Page() {
   // Initialize completed sub-activities from content data
   useEffect(() => {
     if (contentData?.progress?.subActivityProgress) {
-      const completed = Object.entries(contentData.progress.subActivityProgress)
-        .filter(([, isCompleted]) => isCompleted)
-        .map(([subActivityId]) => subActivityId);
-      setCompletedSubActivities(new Set(completed));
+      setSubActivityProgress(contentData.progress.subActivityProgress);
     }
-  }, [contentData]);
+    if (contentData?.progress?.percentage) {
+      setOverallProgress(contentData.progress.percentage);
+    }
+  }, [contentData, setSubActivityProgress, setOverallProgress]);
 
   const handleSelectVideo = (
     videoUrl: string,
@@ -412,6 +415,7 @@ export default function Page() {
     // Auto-complete if video reaches 90% and not already completed
     if (
       progress >= 90 &&
+      currentVideo &&
       currentVideo.subActivityId &&
       !isCurrentCompleted &&
       !hasAutoCompleted.has(currentVideo.subActivityId) &&
@@ -427,6 +431,7 @@ export default function Page() {
   const handleVideoEnd = () => {
     // Auto-complete on video end if not already completed
     if (
+      currentVideo &&
       currentVideo.subActivityId &&
       !isCurrentCompleted &&
       !hasAutoCompleted.has(currentVideo.subActivityId) &&
@@ -440,18 +445,14 @@ export default function Page() {
   };
 
   const handleComplete = async () => {
-    if (!currentVideo.subActivityId || isCompleting) return;
+    if (!currentVideo || !currentVideo.subActivityId || isCompleting) return;
 
     setIsCompleting(true);
     try {
       const result = await completeSubActivity(currentVideo.subActivityId);
       if (result?.status) {
-        // Update local state
-        setCompletedSubActivities((prev) => {
-          const newSet = new Set(prev);
-          newSet.add(currentVideo.subActivityId);
-          return newSet;
-        });
+        // Update store with completion
+        markSubActivityComplete(currentVideo.subActivityId);
         // Refresh content data to get updated progress
         window.location.reload();
       }
@@ -464,6 +465,7 @@ export default function Page() {
 
   // Check if current sub-activity is completed
   const isCurrentCompleted =
+    !!currentVideo &&
     !!currentVideo.subActivityId &&
     completedSubActivities.has(currentVideo.subActivityId);
 
@@ -479,7 +481,7 @@ export default function Page() {
           <div className="overflow-hidden sm:overflow-auto lg:pr-[340px] transition-all duration-300 grid grid-rows-[auto_1fr]">
             {/* VIDEO PLAYER SECTION */}
             <div className="flex-shrink-0 bg-black dark:bg-black w-full mx-auto lg:max-w-none">
-              {currentVideo.url && (
+              {currentVideo && currentVideo.url && (
                 <div className="relative w-full">
                   <div className="relative w-full aspect-video bg-black">
                     {currentVideo.thumbnail && showThumbnail && (
@@ -505,7 +507,7 @@ export default function Page() {
                         }}
                         onVideoPause={() => {
                           // Show thumbnail when video is paused (if it exists)
-                          if (currentVideo.thumbnail) {
+                          if (currentVideo && currentVideo.thumbnail) {
                             setShowThumbnail(true);
                           }
                         }}
@@ -518,7 +520,7 @@ export default function Page() {
               )}
 
               {/* Complete Button - Only show for sub-activities (not introduction video) */}
-              {currentVideo.subActivityId && (
+              {currentVideo && currentVideo.subActivityId && (
                 <div className="bg-white dark:bg-gray-900 px-4 py-4 flex justify-end items-center">
                   <button
                     onClick={handleComplete}
@@ -610,7 +612,7 @@ export default function Page() {
                           contentLoading={contentLoading}
                           onSelectVideo={handleSelectVideo}
                           lang={lang}
-                          currentVideoUrl={currentVideo.url}
+                          currentVideoUrl={currentVideo?.url || ""}
                           courseId={courseId}
                           finalExamLocked={finalExamLocked}
                           examStatus={examStatus || "not-done"}
@@ -764,7 +766,7 @@ export default function Page() {
                   </div>
 
                   {/* Current Video Progress */}
-                  {currentVideo.subActivityId && (
+                  {currentVideo && currentVideo.subActivityId && (
                     <div className="space-y-1 pt-2 border-t border-gray-100 dark:border-gray-700">
                       <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
                         <span className="font-medium">
@@ -795,7 +797,7 @@ export default function Page() {
                     contentLoading={contentLoading}
                     onSelectVideo={handleSelectVideo}
                     lang={lang}
-                    currentVideoUrl={currentVideo.url}
+                    currentVideoUrl={currentVideo?.url || ""}
                     courseId={courseId}
                     finalExamLocked={finalExamLocked}
                     examStatus={examStatus || "not-done"}
@@ -850,7 +852,7 @@ export default function Page() {
                       contentLoading={contentLoading}
                       onSelectVideo={handleSelectVideo}
                       lang={lang}
-                      currentVideoUrl={currentVideo.url}
+                      currentVideoUrl={currentVideo?.url || ""}
                       courseId={courseId}
                       finalExamLocked={finalExamLocked}
                       examStatus={examStatus || "not-done"}
