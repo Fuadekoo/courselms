@@ -82,7 +82,10 @@ export async function getMyCoursesWithProgress() {
       select: { courseId: true },
     });
 
-    console.log("getMyCoursesWithProgress: Paid orders found:", paidOrders.length);
+    console.log(
+      "getMyCoursesWithProgress: Paid orders found:",
+      paidOrders.length
+    );
 
     const courseIds = paidOrders.map((order) => order.courseId);
 
@@ -161,7 +164,10 @@ export async function getMyCoursesWithProgress() {
     // Sort by progress (ascending) - show courses with less progress first
     coursesWithProgress.sort((a, b) => a.progress - b.progress);
 
-    console.log("getMyCoursesWithProgress: Returning courses:", coursesWithProgress.length);
+    console.log(
+      "getMyCoursesWithProgress: Returning courses:",
+      coursesWithProgress.length
+    );
     return coursesWithProgress;
   } catch (error) {
     console.error("Error fetching my courses with progress:", error);
@@ -312,8 +318,8 @@ export async function getMySingleCourseContent(
     if (!course) return null;
 
     // Get progress for all sub-activities
-    const subActivityIds = course.activity.flatMap(
-      (activity) => activity.subActivity.map((sub) => sub.id)
+    const subActivityIds = course.activity.flatMap((activity) =>
+      activity.subActivity.map((sub) => sub.id)
     );
 
     const progress = await prisma.studentProgress.findMany({
@@ -394,7 +400,7 @@ export async function getActivityQuiz(activityId: string) {
 
       for (const ans of prevAnswers) {
         const qid = ans.studentQuiz.questionId;
-        if (byQuestionId[qid]) continue; // keep latest due to desc order       
+        if (byQuestionId[qid]) continue; // keep latest due to desc order
         byQuestionId[qid] = ans.selectedOptionId;
       }
     }
@@ -409,7 +415,7 @@ export async function getActivityQuiz(activityId: string) {
   }
 }
 
-// Check if the activity quiz is done, partially done, or not started for this logged-in student                                                                
+// Check if the activity quiz is done, partially done, or not started for this logged-in student
 export async function getActivityQuizStatus(activityId: string) {
   try {
     const user = await auth();
@@ -425,7 +431,7 @@ export async function getActivityQuizStatus(activityId: string) {
 
     const answered = await prisma.studentQuiz.groupBy({
       by: ["questionId"],
-      where: { userId, questionId: { in: questions.map((q) => q.id) } },        
+      where: { userId, questionId: { in: questions.map((q) => q.id) } },
       _count: { questionId: true },
     });
     const uniqueAnswered = answered.length;
@@ -482,7 +488,7 @@ export async function saveStudentQuizAnswers(
         throw new Error("invalid_option");
       }
 
-      // Use upsert to handle both new and updated answers for activity quizzes 
+      // Use upsert to handle both new and updated answers for activity quizzes
       const studentQuiz = await tx.studentQuiz.upsert({
         where: {
           userId_questionId_isFinalExam: {
@@ -501,7 +507,7 @@ export async function saveStudentQuizAnswers(
         },
       });
 
-      // Delete existing answers for this quiz (if any) and create new one      
+      // Delete existing answers for this quiz (if any) and create new one
       await tx.studentQuizAnswer.deleteMany({
         where: { studentQuizId: studentQuiz.id },
       });
@@ -521,7 +527,7 @@ export async function saveStudentQuizAnswers(
   } catch (error: any) {
     console.error("Error saving student quiz answers", error);
     const cause =
-      error?.message === "invalid_option" ? "invalid_option" : "server_error";  
+      error?.message === "invalid_option" ? "invalid_option" : "server_error";
     return {
       status: false,
       cause,
@@ -663,7 +669,7 @@ export async function submitFinalExamAnswers(
         },
       });
 
-      // Delete existing answers for this quiz (if any) and create new one      
+      // Delete existing answers for this quiz (if any) and create new one
       await tx.studentQuizAnswer.deleteMany({
         where: { studentQuizId: studentQuiz.id },
       });
@@ -676,7 +682,7 @@ export async function submitFinalExamAnswers(
     return { status: true } as StateType;
   } catch (error: any) {
     const cause =
-      error?.message === "invalid_option" ? "invalid_option" : "server_error";  
+      error?.message === "invalid_option" ? "invalid_option" : "server_error";
     return {
       status: false,
       cause,
@@ -707,7 +713,7 @@ export async function readyToCertification(courseId: string) {
     // Get all final exam questions for this course with their correct answer id
     const questions = await prisma.question.findMany({
       where: { courseId },
-      select: { id: true, questionAnswer: { select: { answerId: true } } },     
+      select: { id: true, questionAnswer: { select: { answerId: true } } },
     });
 
     const total = questions.length;
@@ -739,7 +745,7 @@ export async function readyToCertification(courseId: string) {
     const latestAnswers: Record<string, string> = {};
     for (const ans of answers) {
       const qid = ans.studentQuiz.questionId;
-      if (!latestAnswers[qid]) latestAnswers[qid] = ans.selectedOptionId;       
+      if (!latestAnswers[qid]) latestAnswers[qid] = ans.selectedOptionId;
     }
 
     // If student hasn't answered any, return nottaken
@@ -755,7 +761,7 @@ export async function readyToCertification(courseId: string) {
     const correctByQid: Record<string, string | undefined> = {};
     for (const q of questions as any[]) {
       const qa = q.questionAnswer as any;
-      const correctId = Array.isArray(qa) ? qa[0]?.answerId : qa?.answerId;     
+      const correctId = Array.isArray(qa) ? qa[0]?.answerId : qa?.answerId;
       correctByQid[q.id] = correctId;
     }
 
@@ -846,7 +852,7 @@ export async function clearStudentQuizAnswers(
           studentQuiz: {
             userId,
             questionId: { in: questions.map((q) => q.id) },
-            isFinalExam: false, // Only clear activity quiz answers, not final exam                                                                             
+            isFinalExam: false, // Only clear activity quiz answers, not final exam
           },
         },
       });
@@ -956,7 +962,10 @@ export async function completeSubActivity(subActivityId: string) {
   }
 }
 
-export async function getSubActivityProgress(courseId: string, studentId: string) {
+export async function getSubActivityProgress(
+  courseId: string,
+  studentId: string
+) {
   try {
     // Get all sub-activities for the course with their progress
     const course = await prisma.course.findUnique({
@@ -979,8 +988,8 @@ export async function getSubActivityProgress(courseId: string, studentId: string
     }
 
     // Get all sub-activity IDs
-    const subActivityIds = course.activity.flatMap(
-      (activity) => activity.subActivity.map((sub) => sub.id)
+    const subActivityIds = course.activity.flatMap((activity) =>
+      activity.subActivity.map((sub) => sub.id)
     );
 
     // Get progress for all sub-activities
@@ -1047,7 +1056,7 @@ export async function unlockTheFinalExamAndQuiz(courseId: string) {
     }
 
     // Get completion status for each activity
-    const activityCompletionPromises = activities.map(async (activity) => {     
+    const activityCompletionPromises = activities.map(async (activity) => {
       if (activity.question.length === 0) {
         // No quiz means always unlocked
         return {
@@ -1077,7 +1086,7 @@ export async function unlockTheFinalExamAndQuiz(courseId: string) {
       };
     });
 
-    const completionStatuses = await Promise.all(activityCompletionPromises);   
+    const completionStatuses = await Promise.all(activityCompletionPromises);
 
     // Apply sequential access logic
     let nextUnlockActivityId: string | null = null;
@@ -1095,7 +1104,7 @@ export async function unlockTheFinalExamAndQuiz(courseId: string) {
           ...activity,
           ...completion,
           locked: false,
-          question: activity.question, // Include question data for frontend    
+          question: activity.question, // Include question data for frontend
         };
       }
 
@@ -1103,12 +1112,12 @@ export async function unlockTheFinalExamAndQuiz(courseId: string) {
       const prevCompletion = completionStatuses[index - 1];
       const locked = !prevCompletion?.completed;
 
-      // Mark as next unlockable if current is locked and prev is completed     
-      if (locked && prevCompletion?.completed && !nextUnlockActivityId) {       
+      // Mark as next unlockable if current is locked and prev is completed
+      if (locked && prevCompletion?.completed && !nextUnlockActivityId) {
         nextUnlockActivityId = activity.id;
       }
 
-      // If this activity is unlocked but not completed, it's the next to work on                                                                               
+      // If this activity is unlocked but not completed, it's the next to work on
       if (!locked && !completion?.completed && !nextUnlockActivityId) {
         nextUnlockActivityId = activity.id;
       }
@@ -1117,7 +1126,7 @@ export async function unlockTheFinalExamAndQuiz(courseId: string) {
         ...activity,
         ...completion,
         locked,
-        question: activity.question, // Include question data for frontend      
+        question: activity.question, // Include question data for frontend
       };
     });
 
@@ -1200,5 +1209,139 @@ export async function getCertificateDetails(courseId: string) {
   } catch (error) {
     console.error("Error in getCertificateDetails:", error);
     return { status: false, message: "Server error" } as any;
+  }
+}
+
+export async function getAllCertificates() {
+  try {
+    const user = await auth();
+    const userId = user?.user?.id;
+    if (!userId) {
+      return [];
+    }
+
+    // Get all paid courses
+    const paidOrders = await prisma.order.findMany({
+      where: { userId, status: "paid" },
+      select: { courseId: true },
+    });
+
+    const courseIds = paidOrders.map((order) => order.courseId);
+    if (courseIds.length === 0) {
+      return [];
+    }
+
+    // Get courses with certificate enabled
+    const courses = await prisma.course.findMany({
+      where: {
+        id: { in: courseIds },
+        certificate: true,
+      },
+      select: {
+        id: true,
+        titleEn: true,
+        titleAm: true,
+        thumbnail: true,
+        instructor: {
+          select: {
+            firstName: true,
+            fatherName: true,
+          },
+        },
+        activity: {
+          select: {
+            subActivity: {
+              select: { id: true },
+            },
+          },
+        },
+      },
+    });
+
+    // Get student progress
+    const studentProgress = await prisma.studentProgress.findMany({
+      where: { userId },
+      select: {
+        subActivityId: true,
+        isCompleted: true,
+        subActivity: {
+          select: {
+            activity: {
+              select: {
+                courseId: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    // Check which courses are completed and have taken final exam
+    const certificates: Array<{
+      courseId: string;
+      courseTitle: string;
+      thumbnail: string | null;
+      instructorName: string;
+      issuedAt: string;
+    }> = [];
+
+    for (const course of courses) {
+      // Check if course is completed (100% progress)
+      const totalSubActivities = course.activity.reduce(
+        (sum, activity) => sum + activity.subActivity.length,
+        0
+      );
+
+      if (totalSubActivities === 0) continue;
+
+      const completedSubActivities = studentProgress.filter(
+        (progress) =>
+          progress.subActivity.activity.courseId === course.id &&
+          progress.isCompleted
+      ).length;
+
+      const progressPercentage =
+        (completedSubActivities / totalSubActivities) * 100;
+
+      // Check if final exam is taken (through question relation)
+      const finalExam = await prisma.studentQuiz.findFirst({
+        where: {
+          userId,
+          isFinalExam: true,
+          question: {
+            courseId: course.id,
+          },
+        },
+        orderBy: {
+          takenAt: "desc",
+        },
+      });
+
+      // Only include if course is completed and final exam is taken
+      if (progressPercentage === 100 && finalExam) {
+        const courseTitle = course.titleEn || course.titleAm || "Course";
+        const instructorName = course.instructor
+          ? [course.instructor.firstName, course.instructor.fatherName]
+              .filter(Boolean)
+              .join(" ")
+          : "Unknown";
+
+        certificates.push({
+          courseId: course.id,
+          courseTitle,
+          thumbnail: course.thumbnail,
+          instructorName,
+          issuedAt: finalExam.takenAt.toISOString(),
+        });
+      }
+    }
+
+    // Sort by issued date (newest first)
+    return certificates.sort(
+      (a, b) => new Date(b.issuedAt).getTime() - new Date(a.issuedAt).getTime()
+    );
+  } catch (error) {
+    console.error("Error in getAllCertificates:", error);
+    return [];
   }
 }
