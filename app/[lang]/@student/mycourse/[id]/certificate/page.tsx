@@ -39,8 +39,10 @@ function EnglishCertification({
   // const percent = Math.round(data.percent || 0);
   const result = String(data.result || "").toLowerCase();
 
-  // const certificateId = `${courseId}-${issued.getTime()}`;
-  const qrPath = data.qrcode || `/${lang}/mycourse/${courseId}/finalexam`;
+  // Use full URL from data (server returns full URL with userId)
+  const qrPath =
+    data.qrcode ||
+    `https://e-learning.darelkubra.com/${lang}/verify/${courseId}`;
 
   // Generate QR code when qrPath changes
   useEffect(() => {
@@ -202,8 +204,10 @@ function AmharicCertification({
 
   const result = String(data.result || "").toLowerCase();
 
-  // const certificateId = `${courseId}-${issued.getTime()}`;
-  const qrPath = data.qrcode || `/${lang}/mycourse/${courseId}/finalexam`;
+  // Use full URL from data (server returns full URL with userId)
+  const qrPath =
+    data.qrcode ||
+    `https://e-learning.darelkubra.com/${lang}/verify/${courseId}`;
 
   useEffect(() => {
     async function generateQr() {

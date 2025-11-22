@@ -1193,7 +1193,8 @@ export async function getCertificateDetails(courseId: string) {
       : undefined;
 
     const issuedAt = new Date().toISOString();
-    const qrcode = `/en/@student/mycourse/${courseId}/finalexam`;
+    // QR code should point to the verify page with full URL
+    const qrcode = `https://e-learning.darelkubra.com/en/verify/${courseId}/${userId}`;
 
     return {
       status: true,
@@ -1343,5 +1344,232 @@ export async function getAllCertificates() {
   } catch (error) {
     console.error("Error in getAllCertificates:", error);
     return [];
+  }
+}
+
+export async function verifyCertificate(courseId: string, userId: string) {
+  try {
+    // Check if course exists
+    const course = await prisma.course.findUnique({
+      where: { id: courseId },
+      select: {
+        id: true,
+        titleEn: true,
+        titleAm: true,
+        certificate: true,
+        instructor: {
+          select: {
+            firstName: true,
+            fatherName: true,
+          },
+        },
+      },
+    });
+
+    if (!course) {
+      return {
+        status: false,
+        enrolled: false,
+        finalExamCompleted: false,
+        message: "Course not found",
+      } as any;
+    }
+
+    // Check if course has certificate enabled
+    if (!course.certificate) {
+      return {
+        status: false,
+        enrolled: false,
+        finalExamCompleted: false,
+        message: "This course does not offer certificates",
+      } as any;
+    }
+
+    // Check if user exists
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      select: {
+        id: true,
+        firstName: true,
+        fatherName: true,
+        lastName: true,
+      },
+    });
+
+    if (!user) {
+      return {
+        status: false,
+        enrolled: false,
+        finalExamCompleted: false,
+        message: "User not found",
+      } as any;
+    }
+
+    // Check if user is enrolled (order with status "paid")
+    const order = await prisma.order.findFirst({
+      where: {
+        userId,
+        courseId,
+        status: "paid",
+      },
+    });
+
+    if (!order) {
+      return {
+        status: false,
+        enrolled: false,
+        finalExamCompleted: false,
+        message: "User is not enrolled in this course or the order is not paid",
+      } as any;
+    }
+
+    // Check if final exam is completed
+    const finalExamQuestions = await prisma.question.findMany({
+      where: { courseId },
+      select: { id: true },
+    });
+
+    if (finalExamQuestions.length === 0) {
+      return {
+        status: false,
+        enrolled: true,
+        finalExamCompleted: false,
+        message: "No final exam available for this course",
+      } as any;
+    }
+
+    // Check if user has taken the final exam
+    const finalExamAnswers = await prisma.studentQuiz.groupBy({
+      by: ["questionId"],
+      where: {
+        userId,
+        questionId: { in: finalExamQuestions.map((q) => q.id) },
+        isFinalExam: true,
+      },
+      _count: { questionId: true },
+    });
+
+    const answeredCount = finalExamAnswers.length;
+    const totalQuestions = finalExamQuestions.length;
+
+    if (answeredCount < totalQuestions) {
+      return {
+        status: false,
+        enrolled: true,
+        finalExamCompleted: false,
+        message: "Final exam has not been completed yet",
+      } as any;
+    }
+
+    // User is enrolled and final exam is completed - get certificate data
+    // Calculate certificate details similar to getCertificateDetails
+    const studentName = [user.firstName, user.fatherName, user.lastName]
+      .filter(Boolean)
+      .join(" ");
+
+    // Get final exam results
+    const questions = await prisma.question.findMany({
+      where: { courseId },
+      select: {
+        id: true,
+        questionAnswer: { select: { answerId: true } },
+      },
+    });
+
+    const answers = await prisma.studentQuizAnswer.findMany({
+      where: {
+        studentQuiz: {
+          userId,
+          questionId: { in: questions.map((q) => q.id) },
+          isFinalExam: true,
+        },
+      },
+      select: {
+        selectedOptionId: true,
+        studentQuiz: { select: { questionId: true } },
+      },
+      orderBy: { id: "desc" },
+    });
+
+    // Map latest answer per question
+    const latestAnswers: Record<string, string> = {};
+    for (const ans of answers) {
+      const qid = ans.studentQuiz.questionId;
+      if (!latestAnswers[qid]) latestAnswers[qid] = ans.selectedOptionId;
+    }
+
+    // Build correct answer map
+    const correctByQid: Record<string, string | undefined> = {};
+    for (const q of questions as any[]) {
+      const qa = q.questionAnswer as any;
+      const correctId = Array.isArray(qa) ? qa[0]?.answerId : qa?.answerId;
+      correctByQid[q.id] = correctId;
+    }
+
+    // Calculate correct answers
+    let correct = 0;
+    for (const q of questions) {
+      const correctId = correctByQid[q.id];
+      if (correctId && latestAnswers[q.id] === correctId) correct++;
+    }
+
+    const percent = (correct / totalQuestions) * 100;
+
+    let result: "poor" | "good" | "veryGood" | "excellent";
+    if (percent < 50) result = "poor";
+    else if (percent < 70) result = "good";
+    else if (percent < 85) result = "veryGood";
+    else result = "excellent";
+
+    const courseTitle = course.titleEn || course.titleAm || "Course";
+    const instructorName = course.instructor
+      ? [course.instructor.firstName, course.instructor.fatherName]
+          .filter(Boolean)
+          .join(" ")
+      : undefined;
+
+    // Get the date when final exam was taken
+    const finalExam = await prisma.studentQuiz.findFirst({
+      where: {
+        userId,
+        isFinalExam: true,
+        question: {
+          courseId: course.id,
+        },
+      },
+      orderBy: {
+        takenAt: "desc",
+      },
+    });
+
+    const issuedAt =
+      finalExam?.takenAt.toISOString() || new Date().toISOString();
+    // QR code should point to the verify page with full URL
+    const qrcode = `https://e-learning.darelkubra.com/en/verify/${courseId}/${userId}`;
+
+    return {
+      status: true,
+      enrolled: true,
+      finalExamCompleted: true,
+      certificateData: {
+        status: true,
+        courseTitle,
+        studentName,
+        instructorName,
+        percent,
+        result,
+        issuedAt,
+        qrcode,
+      },
+      message: "Certificate verified successfully",
+    } as any;
+  } catch (error) {
+    console.error("Error in verifyCertificate:", error);
+    return {
+      status: false,
+      enrolled: false,
+      finalExamCompleted: false,
+      message: "Server error occurred while verifying certificate",
+    } as any;
   }
 }
