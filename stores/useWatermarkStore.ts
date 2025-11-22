@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { devtools, persist } from 'zustand/middleware';
+import { devtools, persist, PersistStorage } from 'zustand/middleware';
 
 // Cookie helper functions
 const setCookie = (name: string, value: string, days: number = 30) => {
@@ -115,7 +115,7 @@ export const useWatermarkStore = create<WatermarkState>()(
       {
         name: 'watermark-storage',
         storage: {
-          getItem: (name) => {
+          getItem: (name: string): string | null => {
             // Try to get from cookies first
             const username = getCookie('watermark_username') || null;
             const phoneNumber = getCookie('watermark_phone') || null;
@@ -136,10 +136,14 @@ export const useWatermarkStore = create<WatermarkState>()(
             }
             
             // Fallback to localStorage
-            const str = localStorage.getItem(name);
-            return str;
+            try {
+              const str = localStorage.getItem(name);
+              return str;
+            } catch (error) {
+              return null;
+            }
           },
-          setItem: (name, value) => {
+          setItem: (name: string, value: string): void => {
             try {
               const parsed = JSON.parse(value);
               const userData = parsed.state?.userData;
@@ -161,19 +165,27 @@ export const useWatermarkStore = create<WatermarkState>()(
               }
               
               // Also save to localStorage as backup
-              localStorage.setItem(name, value);
+              try {
+                localStorage.setItem(name, value);
+              } catch (e) {
+                // localStorage might not be available
+              }
             } catch (error) {
               console.error('Error saving watermark data:', error);
             }
           },
-          removeItem: (name) => {
+          removeItem: (name: string): void => {
             removeCookie('watermark_username');
             removeCookie('watermark_phone');
             removeCookie('watermark_fullname');
             removeCookie('watermark_timestamp');
-            localStorage.removeItem(name);
+            try {
+              localStorage.removeItem(name);
+            } catch (e) {
+              // localStorage might not be available
+            }
           },
-        },
+        } as PersistStorage<WatermarkState>,
         partialize: (state) => ({
           userData: state.userData,
         }),
