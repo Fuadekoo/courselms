@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { devtools, persist, PersistStorage } from 'zustand/middleware';
+import { devtools, persist } from 'zustand/middleware';
 
 // Cookie helper functions
 const setCookie = (name: string, value: string, days: number = 30) => {
@@ -115,7 +115,7 @@ export const useWatermarkStore = create<WatermarkState>()(
       {
         name: 'watermark-storage',
         storage: {
-          getItem: (name: string): string | null => {
+          getItem: (name: string) => {
             // Try to get from cookies first
             const username = getCookie('watermark_username') || null;
             const phoneNumber = getCookie('watermark_phone') || null;
@@ -143,9 +143,10 @@ export const useWatermarkStore = create<WatermarkState>()(
               return null;
             }
           },
-          setItem: (name: string, value: string): void => {
+          setItem: (name: string, value: unknown) => {
             try {
-              const parsed = JSON.parse(value);
+              const valueStr = typeof value === 'string' ? value : JSON.stringify(value);
+              const parsed = JSON.parse(valueStr);
               const userData = parsed.state?.userData;
               
               if (userData) {
@@ -166,7 +167,7 @@ export const useWatermarkStore = create<WatermarkState>()(
               
               // Also save to localStorage as backup
               try {
-                localStorage.setItem(name, value);
+                localStorage.setItem(name, valueStr);
               } catch (e) {
                 // localStorage might not be available
               }
@@ -174,7 +175,7 @@ export const useWatermarkStore = create<WatermarkState>()(
               console.error('Error saving watermark data:', error);
             }
           },
-          removeItem: (name: string): void => {
+          removeItem: (name: string) => {
             removeCookie('watermark_username');
             removeCookie('watermark_phone');
             removeCookie('watermark_fullname');
@@ -185,7 +186,7 @@ export const useWatermarkStore = create<WatermarkState>()(
               // localStorage might not be available
             }
           },
-        } as PersistStorage<WatermarkState>,
+        } as any,
         partialize: (state) => ({
           userData: state.userData,
         }),
