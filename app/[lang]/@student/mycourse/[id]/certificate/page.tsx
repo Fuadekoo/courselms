@@ -390,10 +390,15 @@ export default function Page() {
     let originalTransform = "";
     let originalPosition = "";
     let originalOverflow = "";
+    let originalPadding = "";
     let certContainer: HTMLElement | null = null;
     let originalContainerTransform = "";
     let originalContainerWidth = "";
     let originalContainerMaxWidth = "";
+    let originalContainerHeight = "";
+    let originalContainerMinHeight = "";
+    let originalContainerOverflow = "";
+    let originalContainerBorder = "";
 
     try {
       // Scroll to top to ensure certificate is visible
@@ -402,7 +407,16 @@ export default function Page() {
       // Wait a bit for scroll to complete
       await new Promise((resolve) => setTimeout(resolve, 100));
 
-      // Store original styles to restore later
+      // Find the actual certificate container (the one with border-8)
+      certContainer = node.querySelector(
+        ".certificate-container"
+      ) as HTMLElement;
+
+      if (!certContainer) {
+        throw new Error("Certificate container not found");
+      }
+
+      // Store original styles of the parent node
       originalWidth = node.style.width;
       originalMinWidth = node.style.minWidth;
       originalMaxWidth = node.style.maxWidth;
@@ -413,64 +427,95 @@ export default function Page() {
       originalTransform = node.style.transform;
       originalPosition = node.style.position;
       originalOverflow = node.style.overflow;
+      originalPadding = node.style.padding;
 
       // Store certificate container styles
-      certContainer = node.querySelector(
-        ".certificate-container"
-      ) as HTMLElement;
+      originalContainerTransform = certContainer.style.transform;
+      originalContainerWidth = certContainer.style.width;
+      originalContainerMaxWidth = certContainer.style.maxWidth;
+      originalContainerHeight = certContainer.style.height;
+      originalContainerMinHeight = certContainer.style.minHeight;
+      originalContainerOverflow = certContainer.style.overflow;
+      originalContainerBorder = certContainer.style.border;
 
-      if (certContainer) {
-        originalContainerTransform = certContainer.style.transform;
-        originalContainerWidth = certContainer.style.width;
-        originalContainerMaxWidth = certContainer.style.maxWidth;
-      }
-
-      // Temporarily apply desktop styles for PDF generation (same as desktop)
+      // Set parent node to exact A4 dimensions with no padding/margin
       node.style.width = `${A4_WIDTH}px`;
       node.style.minWidth = `${A4_WIDTH}px`;
       node.style.maxWidth = `${A4_WIDTH}px`;
       node.style.height = `${A4_HEIGHT}px`;
       node.style.minHeight = `${A4_HEIGHT}px`;
       node.style.maxHeight = `${A4_HEIGHT}px`;
-      node.style.margin = "0 auto";
+      node.style.margin = "0";
+      node.style.padding = "0";
       node.style.transform = "none";
       node.style.position = "relative";
       node.style.overflow = "visible";
+      node.style.boxSizing = "border-box";
 
-      // Also ensure certificate container is at full size
-      if (certContainer) {
-        certContainer.style.transform = "none";
-        certContainer.style.width = "100%";
-        certContainer.style.maxWidth = "100%";
-      }
+      // Set certificate container to fill parent exactly (including border)
+      // Use border-box so border is included in the width/height
+      certContainer.style.width = `${A4_WIDTH}px`;
+      certContainer.style.minWidth = `${A4_WIDTH}px`;
+      certContainer.style.maxWidth = `${A4_WIDTH}px`;
+      certContainer.style.height = `${A4_HEIGHT}px`;
+      certContainer.style.minHeight = `${A4_HEIGHT}px`;
+      certContainer.style.maxHeight = `${A4_HEIGHT}px`;
+      certContainer.style.transform = "none";
+      certContainer.style.overflow = "visible";
+      certContainer.style.boxSizing = "border-box";
+      certContainer.style.margin = "0";
+      certContainer.style.padding = "0";
+      certContainer.style.position = "relative";
 
-      // Wait for styles to apply
-      await new Promise((resolve) => setTimeout(resolve, 200));
+      // Wait for styles to apply and layout to settle
+      await new Promise((resolve) => setTimeout(resolve, 300));
 
-      // Generate image with high quality
-      const dataUrl = await toPng(node, {
+      // Get the actual computed dimensions after styles are applied
+      // This ensures we capture the full certificate including border
+      const rect = certContainer.getBoundingClientRect();
+      const actualWidth = Math.ceil(rect.width) || A4_WIDTH;
+      const actualHeight = Math.ceil(rect.height) || A4_HEIGHT;
+
+      // Generate image with high quality - capture the certificate container directly
+      // Don't specify width/height to let it capture at natural size (prevents clipping)
+      const dataUrl = await toPng(certContainer, {
         cacheBust: true,
         pixelRatio: 2,
         quality: 1.0,
         backgroundColor: "#ffffff",
-        width: A4_WIDTH,
-        height: A4_HEIGHT,
+        // Let toPng determine the natural size to avoid any clipping
+        // This ensures borders, shadows, and all content are captured
       });
 
-      // Create PDF
+      // Create PDF with actual dimensions
       const img = new window.Image();
       img.src = dataUrl;
 
       await new Promise((resolve, reject) => {
         img.onload = () => {
           try {
+            // Use actual image dimensions to ensure nothing is cut
+            const imgWidth = img.width;
+            const imgHeight = img.height;
+
+            // Create PDF with exact image dimensions
             const pdf = new jsPDF({
-              orientation: "landscape",
+              orientation: imgWidth > imgHeight ? "landscape" : "portrait",
               unit: "px",
-              format: [A4_WIDTH, A4_HEIGHT],
+              format: [imgWidth, imgHeight],
             });
 
-            pdf.addImage(dataUrl, "PNG", 0, 0, A4_WIDTH, A4_HEIGHT);
+            // Add image to PDF at full size (no scaling, no clipping)
+            pdf.addImage(
+              dataUrl,
+              "PNG",
+              0,
+              0,
+              imgWidth,
+              imgHeight,
+              undefined,
+              "FAST"
+            );
 
             // Save PDF - works on both mobile and desktop
             pdf.save("certificate.pdf");
@@ -494,14 +539,23 @@ export default function Page() {
         node.style.minHeight = originalMinHeight;
         node.style.maxHeight = originalMaxHeight;
         node.style.margin = originalMargin;
+        node.style.padding = originalPadding;
         node.style.transform = originalTransform;
         node.style.position = originalPosition;
         node.style.overflow = originalOverflow;
+        node.style.boxSizing = "";
 
         if (certContainer) {
           certContainer.style.transform = originalContainerTransform;
           certContainer.style.width = originalContainerWidth;
           certContainer.style.maxWidth = originalContainerMaxWidth;
+          certContainer.style.height = originalContainerHeight;
+          certContainer.style.minHeight = originalContainerMinHeight;
+          certContainer.style.overflow = originalContainerOverflow;
+          certContainer.style.border = originalContainerBorder;
+          certContainer.style.boxSizing = "";
+          certContainer.style.margin = "";
+          certContainer.style.padding = "";
         }
       }
       setIsDownloading(false);
