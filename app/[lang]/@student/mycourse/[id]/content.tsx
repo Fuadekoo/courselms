@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Accordion, AccordionItem, Skeleton } from "@heroui/react";
 import { PlayCircle, CheckCircle2 } from "lucide-react";
 
@@ -20,7 +20,12 @@ interface Activity {
 
 interface ContentProps {
   activities: Activity[];
-  onSelectVideo: (video: string, title: string, subActivityId?: string, thumbnail?: string) => void;
+  onSelectVideo: (
+    video: string,
+    title: string,
+    subActivityId?: string,
+    thumbnail?: string
+  ) => void;
   lang: string;
   currentVideoUrl: string;
   loading: boolean;
@@ -33,6 +38,49 @@ export default function Content({
   currentVideoUrl,
   loading,
 }: ContentProps) {
+  // Compute initial expanded section based on current video
+  const initialExpandedSection = useMemo(() => {
+    if (!activities || activities.length === 0) {
+      return "0";
+    }
+
+    // Find section containing the current video
+    const currentVideoSectionIndex = activities.findIndex((activity) =>
+      activity.subActivity.some((sub) => sub.video === currentVideoUrl)
+    );
+
+    if (currentVideoSectionIndex !== -1) {
+      return String(currentVideoSectionIndex);
+    }
+
+    // Default to first section
+    return "0";
+  }, [activities, currentVideoUrl]);
+
+  // Initialize expandedKeys with computed initial section
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => {
+    return new Set([initialExpandedSection]);
+  });
+
+  // Update expandedKeys when currentVideoUrl changes
+  useEffect(() => {
+    if (currentVideoUrl && activities) {
+      const currentVideoSectionIndex = activities.findIndex((activity) =>
+        activity.subActivity.some((sub) => sub.video === currentVideoUrl)
+      );
+
+      if (currentVideoSectionIndex !== -1) {
+        setExpandedKeys(new Set([String(currentVideoSectionIndex)]));
+      }
+    }
+  }, [currentVideoUrl, activities]);
+
+  // Update when initialExpandedSection changes
+  useEffect(() => {
+    if (initialExpandedSection) {
+      setExpandedKeys(new Set([initialExpandedSection]));
+    }
+  }, [initialExpandedSection]);
 
   if (loading) {
     return (
@@ -60,7 +108,11 @@ export default function Content({
       <h2 className="text-xl font-bold mb-4 px-4 pt-4">
         {lang === "en" ? "Course Content" : "የትምህርት ይዘት"}
       </h2>
-      <Accordion selectionMode="multiple" defaultExpandedKeys={["0"]}>
+      <Accordion
+        selectionMode="single"
+        selectedKeys={expandedKeys}
+        onSelectionChange={(keys) => setExpandedKeys(keys as Set<string>)}
+      >
         {activities.map((activity, index: number) => (
           <AccordionItem
             key={index}
@@ -110,7 +162,9 @@ export default function Content({
                         )}
                       </div>
                     )}
-                    <span className="break-words overflow-wrap-anywhere flex-1">{lang === "en" ? sub.titleEn : sub.titleAm}</span>
+                    <span className="break-words overflow-wrap-anywhere flex-1">
+                      {lang === "en" ? sub.titleEn : sub.titleAm}
+                    </span>
                   </li>
                 );
               })}

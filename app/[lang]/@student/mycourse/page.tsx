@@ -10,15 +10,11 @@ import CourseCard from "@/components/courseCard";
 import { useParams, useSearchParams } from "next/navigation";
 import { Button } from "@heroui/react";
 import Link from "next/link";
-import { useSession } from "next-auth/react";
 
 export default function Page() {
   const params = useParams<{ lang: string }>();
   const lang = params?.lang ?? "en";
   const searchParams = useSearchParams();
-  const { data: session } = useSession();
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const studentId = (session?.user as any)?.id;
 
   const { data: myCourses, loading: myCoursesLoading } = useData({
     func: getMyCoursesWithProgress,
@@ -43,7 +39,9 @@ export default function Page() {
           <Loading />
         ) : !myCourses || myCourses.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-            {lang === "en" ? "You haven't purchased any courses yet" : "እስካሁን ምንም ኮርስ አልገዛም"}
+            {lang === "en"
+              ? "You haven't purchased any courses yet"
+              : "እስካሁን ምንም ኮርስ አልገዛም"}
           </div>
         ) : (
           <div className="space-y-4">

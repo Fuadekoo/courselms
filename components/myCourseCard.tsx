@@ -33,9 +33,9 @@ export default function MyCourseCard({
   return (
     <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden shadow-lg hover:shadow-xl transition-shadow">
       <div className="flex flex-col md:flex-row">
-        {/* Thumbnail - Left Side */}
+        {/* Thumbnail - Left Side - Opens in-progress video */}
         <Link
-          href={`/${lang}/mycourse/${id}`}
+          href={`/${lang}/mycourse/${id}?video=inprogress`}
           className="relative block w-full md:w-64 lg:w-72 aspect-video md:aspect-auto md:h-40 bg-gray-100 dark:bg-gray-800 overflow-hidden group flex-shrink-0"
         >
           <Image
@@ -54,9 +54,9 @@ export default function MyCourseCard({
         {/* Content - Right Side */}
         <div className="flex-1 p-3 md:p-4 flex flex-col justify-between">
           <div className="space-y-2">
-            {/* Title */}
+            {/* Title - Opens intro video */}
             <Link
-              href={`/${lang}/mycourse/${id}`}
+              href={`/${lang}/mycourse/${id}?video=intro`}
               className="block group"
             >
               <h3 className="text-base md:text-lg font-bold text-gray-900 dark:text-white group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors line-clamp-2">
@@ -103,10 +103,10 @@ export default function MyCourseCard({
               </div>
             </div>
 
-            {/* Continue Button */}
+            {/* Continue Button - Opens in-progress video */}
             <Button
               as={Link}
-              href={`/${lang}/mycourse/${id}`}
+              href={`/${lang}/mycourse/${id}?video=inprogress`}
               color="primary"
               variant="bordered"
               className="w-full md:w-auto"

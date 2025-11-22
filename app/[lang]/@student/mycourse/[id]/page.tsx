@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { useParams, useRouter } from "next/navigation";
+import React, { useState, useEffect, useMemo } from "react";
+import { useParams, useRouter, useSearchParams } from "next/navigation";
 import {
   PlayCircle,
   CheckCircle2,
@@ -46,6 +46,7 @@ function CourseContent({
   courseId,
   finalExamLocked,
   examStatus,
+  forceOpenSectionIndex,
 }: {
   contentData: any;
   contentLoading: boolean;
@@ -66,13 +67,208 @@ function CourseContent({
   courseId: string;
   finalExamLocked: boolean;
   examStatus: string;
+  forceOpenSectionIndex?: number | null;
 }) {
   const router = useRouter();
   const [activityQuizStatuses, setActivityQuizStatuses] = useState<
     Record<string, string>
   >({});
   const [statusesLoading, setStatusesLoading] = useState(false);
-  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
+
+  // Compute initial expanded section synchronously using useMemo
+  const initialExpandedSection = useMemo(() => {
+    if (!contentData?.activity || contentData.activity.length === 0) {
+      return "0"; // Default to first section
+    }
+
+    // Priority 1: Force open section (from query params or parent)
+    if (
+      forceOpenSectionIndex !== null &&
+      forceOpenSectionIndex !== undefined &&
+      forceOpenSectionIndex >= 0 &&
+      forceOpenSectionIndex < contentData.activity.length
+    ) {
+      console.log("🎯 Initial: Force opening section:", forceOpenSectionIndex);
+      return String(forceOpenSectionIndex);
+    }
+
+    // Priority 2: Current playing video section
+    // First, try exact match
+    let currentVideoSectionIndex = contentData.activity.findIndex(
+      (activity: any) =>
+        activity.subActivity.some((sub: any) => sub.video === currentVideoUrl)
+    );
+
+    // If no exact match, try matching by subActivityId from store
+    if (
+      currentVideoSectionIndex === -1 &&
+      currentVideoFromStore?.subActivityId
+    ) {
+      currentVideoSectionIndex = contentData.activity.findIndex(
+        (activity: any) =>
+          activity.subActivity.some(
+            (sub: any) => sub.id === currentVideoFromStore.subActivityId
+          )
+      );
+    }
+
+    // If still no match, try partial URL matching (filename)
+    if (currentVideoSectionIndex === -1 && currentVideoUrl) {
+      const currentVideoFilename =
+        currentVideoUrl.split("/").pop() || currentVideoUrl;
+      currentVideoSectionIndex = contentData.activity.findIndex(
+        (activity: any) =>
+          activity.subActivity.some((sub: any) => {
+            const subVideoFilename = sub.video?.split("/").pop() || sub.video;
+            return (
+              subVideoFilename === currentVideoFilename ||
+              sub.video?.includes(currentVideoFilename)
+            );
+          })
+      );
+    }
+
+    if (currentVideoSectionIndex !== -1) {
+      console.log(
+        "🎯 Initial: Opening section with current video:",
+        currentVideoSectionIndex
+      );
+      return String(currentVideoSectionIndex);
+    }
+
+    // Priority 3: Last accessed video from store
+    if (currentVideoFromStore && currentVideoFromStore.subActivityId) {
+      const lastAccessedSectionIndex = contentData.activity.findIndex(
+        (activity: any) =>
+          activity.subActivity.some(
+            (sub: any) => sub.id === currentVideoFromStore.subActivityId
+          )
+      );
+      if (lastAccessedSectionIndex !== -1) {
+        console.log(
+          "🎯 Initial: Opening section with last accessed video:",
+          lastAccessedSectionIndex
+        );
+        return String(lastAccessedSectionIndex);
+      }
+    }
+
+    // Priority 4: In-progress video (first non-completed after completed ones)
+    let hasCompletedAny = false;
+    for (let i = 0; i < contentData.activity.length; i++) {
+      const activity = contentData.activity[i];
+      for (const sub of activity.subActivity) {
+        const isCompleted =
+          contentData?.progress?.subActivityProgress?.[sub.id] === true;
+        if (isCompleted) {
+          hasCompletedAny = true;
+        }
+        if (hasCompletedAny && !isCompleted && sub.id) {
+          console.log("🎯 Initial: Opening in-progress section:", i);
+          return String(i);
+        }
+      }
+    }
+
+    // Priority 5: Partially completed sections
+    for (let i = 0; i < contentData.activity.length; i++) {
+      const activity = contentData.activity[i];
+      const completedCount = activity.subActivity.filter(
+        (sub: any) =>
+          contentData?.progress?.subActivityProgress?.[sub.id] === true
+      ).length;
+      const totalCount = activity.subActivity.length;
+      if (completedCount > 0 && completedCount < totalCount) {
+        console.log("🎯 Initial: Opening partially completed section:", i);
+        return String(i);
+      }
+    }
+
+    // Priority 6: Last completed section (when no in-progress video exists)
+    const fullyCompletedSections = contentData.activity
+      .map((activity: any, index: number) => {
+        const completedCount = activity.subActivity.filter(
+          (sub: any) =>
+            contentData?.progress?.subActivityProgress?.[sub.id] === true
+        ).length;
+        const totalCount = activity.subActivity.length;
+        return completedCount === totalCount && totalCount > 0 ? index : null;
+      })
+      .filter((index: number | null): index is number => index !== null);
+
+    if (fullyCompletedSections.length > 0) {
+      const lastCompletedIndex = Math.max(...fullyCompletedSections);
+      const nextSectionIndex = lastCompletedIndex + 1;
+
+      // If there's a next section after the last completed one, open it
+      if (nextSectionIndex < contentData.activity.length) {
+        console.log(
+          "🎯 Initial: Opening next section after last completed:",
+          nextSectionIndex
+        );
+        return String(nextSectionIndex);
+      } else {
+        // Otherwise, open the last completed section
+        console.log(
+          "🎯 Initial: Opening last completed section:",
+          lastCompletedIndex
+        );
+        return String(lastCompletedIndex);
+      }
+    }
+
+    // Default: First section
+    console.log("🎯 Initial: Using default section: 0");
+    return "0";
+  }, [
+    contentData,
+    forceOpenSectionIndex,
+    currentVideoUrl,
+    currentVideoFromStore,
+  ]);
+
+  // Initialize expandedKeys with computed initial section
+  // This ensures the accordion has a section expanded from the start
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(() => {
+    return new Set([initialExpandedSection]);
+  });
+
+  // Update expandedKeys when initialExpandedSection changes (e.g., when contentData loads)
+  useEffect(() => {
+    if (initialExpandedSection && contentData?.activity) {
+      const newKeys = new Set([initialExpandedSection]);
+      console.log("🎯 Updating expanded section:", {
+        section: initialExpandedSection,
+        hasContentData: !!contentData,
+        activitiesCount: contentData.activity.length,
+        newKeys: Array.from(newKeys),
+      });
+      setExpandedKeys(newKeys);
+    }
+  }, [initialExpandedSection, contentData]);
+
+  // Handle forced section opening from parent (HIGHEST PRIORITY - runs first)
+  useEffect(() => {
+    if (
+      forceOpenSectionIndex !== null &&
+      forceOpenSectionIndex !== undefined &&
+      contentData?.activity &&
+      forceOpenSectionIndex >= 0 &&
+      forceOpenSectionIndex < contentData.activity.length
+    ) {
+      const sectionKey = String(forceOpenSectionIndex);
+      console.log("🎯 Force opening section:", {
+        index: forceOpenSectionIndex,
+        sectionKey,
+        totalSections: contentData.activity.length,
+        sectionTitle:
+          contentData.activity[forceOpenSectionIndex]?.titleEn ||
+          contentData.activity[forceOpenSectionIndex]?.titleAm,
+      });
+      // Immediately set the expanded keys
+      setExpandedKeys(new Set([sectionKey]));
+    }
+  }, [forceOpenSectionIndex, contentData]);
 
   // Fetch quiz statuses for all activities
   useEffect(() => {
@@ -119,9 +315,18 @@ function CourseContent({
     }
   };
 
-  // Update expanded section with professional priority logic
+  // Update expanded section with professional priority logic (for dynamic updates)
   useEffect(() => {
     if (!contentData?.activity || contentData.activity.length === 0) return;
+
+    // If forceOpenSectionIndex is set, skip automatic logic (parent is controlling it)
+    if (forceOpenSectionIndex !== null && forceOpenSectionIndex !== undefined) {
+      console.log(
+        "⏭️ Skipping auto-logic, using forceOpenSectionIndex:",
+        forceOpenSectionIndex
+      );
+      return;
+    }
 
     /**
      * Smart section expansion priority:
@@ -141,18 +346,62 @@ function CourseContent({
     });
 
     // Priority 1: Currently playing video section (from URL)
-    const currentVideoSectionIndex = contentData.activity.findIndex(
+    // First, try exact match
+    let currentVideoSectionIndex = contentData.activity.findIndex(
       (activity: any) =>
         activity.subActivity.some((sub: any) => sub.video === currentVideoUrl)
     );
 
-    if (currentVideoSectionIndex !== -1) {
-      console.log(
-        "✅ Priority 1: Opening section with current video URL:",
-        currentVideoSectionIndex
+    // If no exact match, try matching by filename or subActivityId from store
+    if (
+      currentVideoSectionIndex === -1 &&
+      currentVideoFromStore?.subActivityId
+    ) {
+      currentVideoSectionIndex = contentData.activity.findIndex(
+        (activity: any) =>
+          activity.subActivity.some(
+            (sub: any) => sub.id === currentVideoFromStore.subActivityId
+          )
       );
+    }
+
+    // If still no match, try partial URL matching (filename)
+    if (currentVideoSectionIndex === -1 && currentVideoUrl) {
+      const currentVideoFilename =
+        currentVideoUrl.split("/").pop() || currentVideoUrl;
+      currentVideoSectionIndex = contentData.activity.findIndex(
+        (activity: any) =>
+          activity.subActivity.some((sub: any) => {
+            const subVideoFilename = sub.video?.split("/").pop() || sub.video;
+            return (
+              subVideoFilename === currentVideoFilename ||
+              sub.video?.includes(currentVideoFilename)
+            );
+          })
+      );
+    }
+
+    if (currentVideoSectionIndex !== -1) {
+      console.log("✅ Priority 1: Opening section with current video URL:", {
+        sectionIndex: currentVideoSectionIndex,
+        currentVideoUrl,
+        matched: true,
+      });
       setExpandedKeys(new Set([String(currentVideoSectionIndex)]));
       return;
+    } else {
+      console.log("⚠️ Priority 1: No section found for current video:", {
+        currentVideoUrl,
+        currentVideoFromStore,
+        availableVideos: contentData.activity.map((a: any, idx: number) => ({
+          sectionIndex: idx,
+          videos: a.subActivity.map((s: any) => ({
+            id: s.id,
+            video: s.video,
+            title: s.titleEn || s.titleAm,
+          })),
+        })),
+      });
     }
 
     // Priority 2: Last accessed video from store (user's recent context)
@@ -168,62 +417,81 @@ function CourseContent({
       if (lastAccessedSectionIndex !== -1) {
         console.log(
           "✅ Priority 2: Opening section with last accessed video:",
-          lastAccessedSectionIndex
+          {
+            sectionIndex: lastAccessedSectionIndex,
+            videoId: currentVideoFromStore.subActivityId,
+            videoTitle: currentVideoFromStore.title,
+          }
         );
         setExpandedKeys(new Set([String(lastAccessedSectionIndex)]));
         return;
       }
     }
 
-    // Priority 3: In-progress section (partially completed OR has current video that's not completed)
-    // Find all sections with partial progress or active video
-    const inProgressSections = contentData.activity
+    // Also check if currentVideoFromStore URL matches any video (for intro video or other cases)
+    if (currentVideoFromStore && currentVideoFromStore.url) {
+      const currentVideoSectionIndex = contentData.activity.findIndex(
+        (activity: any) =>
+          activity.subActivity.some(
+            (sub: any) => sub.video === currentVideoFromStore.url
+          )
+      );
+
+      if (currentVideoSectionIndex !== -1) {
+        console.log(
+          "✅ Priority 2b: Opening section with current video URL from store:",
+          currentVideoSectionIndex
+        );
+        setExpandedKeys(new Set([String(currentVideoSectionIndex)]));
+        return;
+      }
+    }
+
+    // Priority 3: In-progress section (first non-completed video after completed ones)
+    // Find the first video that should be watched next (in-progress video)
+    let hasCompletedAny = false;
+    let inProgressSectionIndex = -1;
+
+    for (let i = 0; i < contentData.activity.length; i++) {
+      const activity = contentData.activity[i];
+
+      for (const sub of activity.subActivity) {
+        const isCompleted =
+          contentData?.progress?.subActivityProgress?.[sub.id] === true;
+
+        if (isCompleted) {
+          hasCompletedAny = true;
+        }
+
+        // If we've completed some videos and found a non-completed one, that's our in-progress video
+        if (hasCompletedAny && !isCompleted && sub.id) {
+          inProgressSectionIndex = i;
+          console.log("✅ Priority 3: Found in-progress video section:", {
+            sectionIndex: inProgressSectionIndex,
+            videoId: sub.id,
+            videoTitle: lang === "en" ? sub.titleEn : sub.titleAm,
+            hasCompletedAny,
+            matchesCurrentVideo:
+              currentVideoFromStore?.subActivityId === sub.id,
+          });
+          setExpandedKeys(new Set([String(inProgressSectionIndex)]));
+          return;
+        }
+      }
+    }
+
+    // Also check for partially completed sections (some done, not all)
+    const partiallyCompletedSections = contentData.activity
       .map((activity: any, index: number) => {
         const completedCount = activity.subActivity.filter(
           (sub: any) =>
             contentData?.progress?.subActivityProgress?.[sub.id] === true
         ).length;
-
         const totalCount = activity.subActivity.length;
 
-        // Check if this section contains a video being watched but not completed
-        const hasActiveIncompleteVideo = currentVideoFromStore?.subActivityId
-          ? activity.subActivity.some((sub: any) => {
-              const isThisVideo =
-                sub.id === currentVideoFromStore.subActivityId;
-              const isNotCompleted =
-                contentData?.progress?.subActivityProgress?.[sub.id] !== true;
-              return isThisVideo && isNotCompleted;
-            })
-          : false;
-
-        // Calculate completion percentage for sorting
-        const completionPercentage = (completedCount / totalCount) * 100;
-
-        console.log(`📊 Section ${index} analysis:`, {
-          completedCount,
-          totalCount,
-          hasActiveIncompleteVideo,
-          isInProgress:
-            (completedCount > 0 && completedCount < totalCount) ||
-            hasActiveIncompleteVideo,
-          subActivitiesIds: activity.subActivity.map((s: any) => s.id),
-          currentVideoSubActivityId: currentVideoFromStore?.subActivityId,
-        });
-
-        // Section is in-progress if:
-        // 1. Has some completed but not all, OR
-        // 2. Has a video being watched that's not completed yet
-        if (
-          (completedCount > 0 && completedCount < totalCount) ||
-          hasActiveIncompleteVideo
-        ) {
-          return {
-            index,
-            completionPercentage,
-            completedCount,
-            hasActiveVideo: hasActiveIncompleteVideo,
-          };
+        // Section is in-progress if it has some completed but not all
+        if (completedCount > 0 && completedCount < totalCount) {
+          return { index, completedCount, totalCount };
         }
         return null;
       })
@@ -231,36 +499,22 @@ function CourseContent({
         (
           item: {
             index: number;
-            completionPercentage: number;
             completedCount: number;
-            hasActiveVideo: boolean;
+            totalCount: number;
           } | null
         ): item is {
           index: number;
-          completionPercentage: number;
           completedCount: number;
-          hasActiveVideo: boolean;
+          totalCount: number;
         } => item !== null
       );
 
-    // Prioritize sections with active videos, then earliest incomplete
-    console.log("🔍 In-progress sections found:", inProgressSections);
-
-    if (inProgressSections.length > 0) {
-      const sectionWithActiveVideo = inProgressSections.find(
-        (section: {
-          index: number;
-          completionPercentage: number;
-          completedCount: number;
-          hasActiveVideo: boolean;
-        }) => section.hasActiveVideo
-      );
-      const targetSection = sectionWithActiveVideo || inProgressSections[0];
-      console.log("✅ Priority 3: Opening in-progress section:", {
+    if (partiallyCompletedSections.length > 0) {
+      const targetSection = partiallyCompletedSections[0];
+      console.log("✅ Priority 3b: Opening partially completed section:", {
         sectionIndex: targetSection.index,
-        hasActiveVideo: targetSection.hasActiveVideo,
         completedCount: targetSection.completedCount,
-        allInProgressSections: inProgressSections,
+        totalCount: targetSection.totalCount,
       });
       setExpandedKeys(new Set([String(targetSection.index)]));
       return;
@@ -310,7 +564,13 @@ function CourseContent({
     // Priority 5: Default to first section for new courses
     console.log("✅ Priority 5: Opening first section (default)");
     setExpandedKeys(new Set(["0"]));
-  }, [currentVideoUrl, contentData, currentVideoFromStore]);
+  }, [
+    currentVideoUrl,
+    contentData,
+    currentVideoFromStore,
+    forceOpenSectionIndex,
+    lang,
+  ]);
 
   if (contentLoading) {
     return (
@@ -328,16 +588,30 @@ function CourseContent({
     );
   }
 
+  // Debug: Log current expanded keys
+  console.log("🔍 Accordion Render - expandedKeys:", {
+    expandedKeys: Array.from(expandedKeys),
+    size: expandedKeys.size,
+    hasContentData: !!contentData,
+    activitiesCount: contentData?.activity?.length || 0,
+  });
+
   return (
     <div className="flex flex-col overflow-auto  ">
       <Accordion
         selectionMode="single"
         selectedKeys={expandedKeys}
-        onSelectionChange={(keys) => setExpandedKeys(keys as Set<string>)}
+        onSelectionChange={(keys) => {
+          console.log(
+            "🔄 Accordion selection changed:",
+            Array.from(keys as Set<string>)
+          );
+          setExpandedKeys(keys as Set<string>);
+        }}
       >
         {contentData.activity.map((activity: any, index: number) => (
           <AccordionItem
-            key={activity.id || index}
+            key={String(index)}
             aria-label={`Section ${index + 1}`}
             title={
               <span className="break-words overflow-wrap-anywhere">
@@ -355,14 +629,17 @@ function CourseContent({
                 return (
                   <li
                     key={sub.id}
-                    onClick={() =>
+                    onClick={() => {
+                      // Open the accordion section containing this video
+                      setExpandedKeys(new Set([String(index)]));
+                      // Select the video
                       onSelectVideo(
                         sub.video,
                         lang === "en" ? sub.titleEn : sub.titleAm,
                         sub.id,
                         sub.thumbnail || undefined
-                      )
-                    }
+                      );
+                    }}
                     className={`flex items-center gap-2 cursor-pointer p-3 rounded ${
                       isActive
                         ? "bg-primary-100 font-bold"
@@ -523,10 +800,14 @@ function CourseContent({
 // ---------------- MAIN PAGE ----------------
 export default function Page() {
   const params = useParams<{ lang: string; id: string }>();
+  const searchParams = useSearchParams();
   const lang = params?.lang || "en";
   const courseId = params?.id || "";
   const { data: session } = useSession();
   const studentId = (session?.user as any)?.id;
+
+  // Get video query parameter
+  const videoParam = searchParams?.get("video");
 
   const { data, loading } = useData({
     func: getMySingleCourse,
@@ -566,6 +847,9 @@ export default function Page() {
   const [hasAutoCompleted, setHasAutoCompleted] = useState<Set<string>>(
     new Set()
   );
+  const [forceOpenSectionIndex, setForceOpenSectionIndex] = useState<
+    number | null
+  >(null);
 
   useEffect(() => {
     if (data?.video) {
@@ -587,6 +871,87 @@ export default function Page() {
       setOverallProgress(contentData.progress.percentage);
     }
   }, [contentData, setSubActivityProgress, setOverallProgress]);
+
+  // Handle query parameter for video selection
+  useEffect(() => {
+    if (!contentData || !data) return;
+
+    // Find the first in-progress video (first non-completed video after some completed ones)
+    const findInProgressVideo = () => {
+      if (!contentData?.activity) return null;
+
+      let hasCompletedAny = false;
+
+      // Find the first non-completed video after we've seen at least one completed video
+      for (const activity of contentData.activity) {
+        for (const sub of activity.subActivity) {
+          const isCompleted =
+            contentData?.progress?.subActivityProgress?.[sub.id] === true;
+
+          if (isCompleted) {
+            hasCompletedAny = true;
+          }
+
+          // If we've completed some videos and found a non-completed one, that's our in-progress video
+          if (hasCompletedAny && !isCompleted && sub.id) {
+            return {
+              video: sub,
+              activityIndex: contentData.activity.indexOf(activity),
+            };
+          }
+        }
+      }
+
+      // If no in-progress video found, return null (all completed or none started)
+      return null;
+    };
+
+    if (videoParam === "intro" && data?.video) {
+      // Open intro video
+      setCurrentVideo({
+        url: data.video,
+        title: lang === "en" ? data.titleEn : data.titleAm,
+        subActivityId: "", // Introduction video has no subActivityId
+        thumbnail: data.thumbnail || "",
+      });
+    } else if (videoParam === "inprogress") {
+      // Find and open in-progress video
+      const inProgressVideo = findInProgressVideo();
+
+      if (inProgressVideo) {
+        setCurrentVideo({
+          url: inProgressVideo.video.video,
+          title:
+            lang === "en"
+              ? inProgressVideo.video.titleEn
+              : inProgressVideo.video.titleAm,
+          subActivityId: inProgressVideo.video.id,
+          thumbnail: inProgressVideo.video.thumbnail || "",
+        });
+        // Force open the accordion section containing the in-progress video
+        console.log(
+          "🔄 Setting forceOpenSectionIndex to:",
+          inProgressVideo.activityIndex
+        );
+        setForceOpenSectionIndex(inProgressVideo.activityIndex);
+        // Reset after a longer delay to ensure accordion opens
+        setTimeout(() => {
+          console.log("🔄 Resetting forceOpenSectionIndex");
+          setForceOpenSectionIndex(null);
+        }, 2000);
+      } else if (data?.video) {
+        // Fallback to intro if no in-progress video found
+        setCurrentVideo({
+          url: data.video,
+          title: lang === "en" ? data.titleEn : data.titleAm,
+          subActivityId: "",
+          thumbnail: data.thumbnail || "",
+        });
+        setForceOpenSectionIndex(null);
+      }
+    }
+    // If no video param, default behavior (intro video) is handled by the other useEffect
+  }, [videoParam, contentData, data, lang, setCurrentVideo]);
 
   const handleSelectVideo = (
     videoUrl: string,
@@ -646,7 +1011,21 @@ export default function Page() {
       if (result?.status) {
         // Update store with completion
         markSubActivityComplete(currentVideo.subActivityId);
+
+        // Find which section contains this video to keep accordion open
+        if (contentData?.activity && currentVideo.subActivityId) {
+          const sectionIndex = contentData.activity.findIndex((activity: any) =>
+            activity.subActivity.some(
+              (sub: any) => sub.id === currentVideo.subActivityId
+            )
+          );
+          if (sectionIndex !== -1) {
+            setForceOpenSectionIndex(sectionIndex);
+          }
+        }
+
         // Refresh content data to get updated progress
+        // Use router refresh instead of full page reload for better UX
         window.location.reload();
       }
     } catch (error) {
@@ -787,6 +1166,7 @@ export default function Page() {
                           courseId={courseId}
                           finalExamLocked={finalExamLocked}
                           examStatus={examStatus || "not-done"}
+                          forceOpenSectionIndex={forceOpenSectionIndex}
                         />
                       </TabsContent>
                       <TabsContent value="qa" className="mt-0">
@@ -951,6 +1331,7 @@ export default function Page() {
                     courseId={courseId}
                     finalExamLocked={finalExamLocked}
                     examStatus={examStatus || "not-done"}
+                    forceOpenSectionIndex={forceOpenSectionIndex}
                   />
                 </div>
               </div>
@@ -1007,6 +1388,7 @@ export default function Page() {
                       courseId={courseId}
                       finalExamLocked={finalExamLocked}
                       examStatus={examStatus || "not-done"}
+                      forceOpenSectionIndex={forceOpenSectionIndex}
                     />
                   </div>
                 </div>
