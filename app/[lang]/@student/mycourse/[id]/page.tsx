@@ -42,6 +42,7 @@ function CourseContent({
   onSelectVideo,
   lang,
   currentVideoUrl,
+  currentVideoFromStore,
   courseId,
   finalExamLocked,
   examStatus,
@@ -53,9 +54,15 @@ function CourseContent({
     title: string,
     subActivityId?: string,
     thumbnail?: string
-  ) => void; 
+  ) => void;
   lang: string;
   currentVideoUrl: string;
+  currentVideoFromStore: {
+    url: string;
+    title: string;
+    subActivityId: string;
+    thumbnail: string;
+  } | null;
   courseId: string;
   finalExamLocked: boolean;
   examStatus: string;
@@ -65,6 +72,7 @@ function CourseContent({
     Record<string, string>
   >({});
   const [statusesLoading, setStatusesLoading] = useState(false);
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
   // Fetch quiz statuses for all activities
   useEffect(() => {
@@ -111,6 +119,199 @@ function CourseContent({
     }
   };
 
+  // Update expanded section with professional priority logic
+  useEffect(() => {
+    if (!contentData?.activity || contentData.activity.length === 0) return;
+
+    /**
+     * Smart section expansion priority:
+     * 1. Current playing video section (from URL/active player)
+     * 2. Last accessed video section (from Zustand store)
+     * 3. First in-progress section (where user should continue)
+     * 4. Most recently completed section (last activity)
+     * 5. First section (fallback for new courses)
+     */
+
+    console.log("🎯 Accordion Logic Debug:", {
+      currentVideoUrl,
+      currentVideoFromStore,
+      hasProgress: !!contentData?.progress?.subActivityProgress,
+      progressDetails: contentData?.progress?.subActivityProgress,
+      totalSections: contentData.activity.length,
+    });
+
+    // Priority 1: Currently playing video section (from URL)
+    const currentVideoSectionIndex = contentData.activity.findIndex(
+      (activity: any) =>
+        activity.subActivity.some((sub: any) => sub.video === currentVideoUrl)
+    );
+
+    if (currentVideoSectionIndex !== -1) {
+      console.log(
+        "✅ Priority 1: Opening section with current video URL:",
+        currentVideoSectionIndex
+      );
+      setExpandedKeys(new Set([String(currentVideoSectionIndex)]));
+      return;
+    }
+
+    // Priority 2: Last accessed video from store (user's recent context)
+    // This handles cases where user was watching a video but hasn't completed it yet
+    if (currentVideoFromStore && currentVideoFromStore.subActivityId) {
+      const lastAccessedSectionIndex = contentData.activity.findIndex(
+        (activity: any) =>
+          activity.subActivity.some(
+            (sub: any) => sub.id === currentVideoFromStore.subActivityId
+          )
+      );
+
+      if (lastAccessedSectionIndex !== -1) {
+        console.log(
+          "✅ Priority 2: Opening section with last accessed video:",
+          lastAccessedSectionIndex
+        );
+        setExpandedKeys(new Set([String(lastAccessedSectionIndex)]));
+        return;
+      }
+    }
+
+    // Priority 3: In-progress section (partially completed OR has current video that's not completed)
+    // Find all sections with partial progress or active video
+    const inProgressSections = contentData.activity
+      .map((activity: any, index: number) => {
+        const completedCount = activity.subActivity.filter(
+          (sub: any) =>
+            contentData?.progress?.subActivityProgress?.[sub.id] === true
+        ).length;
+
+        const totalCount = activity.subActivity.length;
+
+        // Check if this section contains a video being watched but not completed
+        const hasActiveIncompleteVideo = currentVideoFromStore?.subActivityId
+          ? activity.subActivity.some((sub: any) => {
+              const isThisVideo =
+                sub.id === currentVideoFromStore.subActivityId;
+              const isNotCompleted =
+                contentData?.progress?.subActivityProgress?.[sub.id] !== true;
+              return isThisVideo && isNotCompleted;
+            })
+          : false;
+
+        // Calculate completion percentage for sorting
+        const completionPercentage = (completedCount / totalCount) * 100;
+
+        console.log(`📊 Section ${index} analysis:`, {
+          completedCount,
+          totalCount,
+          hasActiveIncompleteVideo,
+          isInProgress:
+            (completedCount > 0 && completedCount < totalCount) ||
+            hasActiveIncompleteVideo,
+          subActivitiesIds: activity.subActivity.map((s: any) => s.id),
+          currentVideoSubActivityId: currentVideoFromStore?.subActivityId,
+        });
+
+        // Section is in-progress if:
+        // 1. Has some completed but not all, OR
+        // 2. Has a video being watched that's not completed yet
+        if (
+          (completedCount > 0 && completedCount < totalCount) ||
+          hasActiveIncompleteVideo
+        ) {
+          return {
+            index,
+            completionPercentage,
+            completedCount,
+            hasActiveVideo: hasActiveIncompleteVideo,
+          };
+        }
+        return null;
+      })
+      .filter(
+        (
+          item: {
+            index: number;
+            completionPercentage: number;
+            completedCount: number;
+            hasActiveVideo: boolean;
+          } | null
+        ): item is {
+          index: number;
+          completionPercentage: number;
+          completedCount: number;
+          hasActiveVideo: boolean;
+        } => item !== null
+      );
+
+    // Prioritize sections with active videos, then earliest incomplete
+    console.log("🔍 In-progress sections found:", inProgressSections);
+
+    if (inProgressSections.length > 0) {
+      const sectionWithActiveVideo = inProgressSections.find(
+        (section: {
+          index: number;
+          completionPercentage: number;
+          completedCount: number;
+          hasActiveVideo: boolean;
+        }) => section.hasActiveVideo
+      );
+      const targetSection = sectionWithActiveVideo || inProgressSections[0];
+      console.log("✅ Priority 3: Opening in-progress section:", {
+        sectionIndex: targetSection.index,
+        hasActiveVideo: targetSection.hasActiveVideo,
+        completedCount: targetSection.completedCount,
+        allInProgressSections: inProgressSections,
+      });
+      setExpandedKeys(new Set([String(targetSection.index)]));
+      return;
+    }
+
+    console.log(
+      "⚠️ No in-progress sections found, continuing to Priority 4..."
+    );
+
+    // Priority 4: Last fully completed section (most recent activity)
+    const fullyCompletedSections = contentData.activity
+      .map((activity: any, index: number) => {
+        const completedCount = activity.subActivity.filter(
+          (sub: any) =>
+            contentData?.progress?.subActivityProgress?.[sub.id] === true
+        ).length;
+
+        const totalCount = activity.subActivity.length;
+
+        // Section is fully completed
+        return completedCount === totalCount && totalCount > 0 ? index : null;
+      })
+      .filter((index: number | null): index is number => index !== null);
+
+    if (fullyCompletedSections.length > 0) {
+      // Open the next section after the last completed one (if it exists)
+      // Otherwise, open the last completed section
+      const lastCompletedIndex = Math.max(...fullyCompletedSections);
+      const nextSectionIndex = lastCompletedIndex + 1;
+
+      if (nextSectionIndex < contentData.activity.length) {
+        console.log(
+          "✅ Priority 4: Opening next section after completed:",
+          nextSectionIndex
+        );
+        setExpandedKeys(new Set([String(nextSectionIndex)]));
+      } else {
+        console.log(
+          "✅ Priority 4: Opening last completed section:",
+          lastCompletedIndex
+        );
+        setExpandedKeys(new Set([String(lastCompletedIndex)]));
+      }
+      return;
+    }
+
+    // Priority 5: Default to first section for new courses
+    console.log("✅ Priority 5: Opening first section (default)");
+    setExpandedKeys(new Set(["0"]));
+  }, [currentVideoUrl, contentData, currentVideoFromStore]);
+
   if (contentLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -129,7 +330,11 @@ function CourseContent({
 
   return (
     <div className="flex flex-col overflow-auto  ">
-      <Accordion selectionMode="multiple" defaultExpandedKeys={["0"]}>
+      <Accordion
+        selectionMode="single"
+        selectedKeys={expandedKeys}
+        onSelectionChange={(keys) => setExpandedKeys(keys as Set<string>)}
+      >
         {contentData.activity.map((activity: any, index: number) => (
           <AccordionItem
             key={activity.id || index}
@@ -142,7 +347,7 @@ function CourseContent({
               </span>
             }
           >
-            <ul className="space-y-1 p-2">
+            <ul className="space-y-1 px-2 pb-2 pt-0">
               {activity.subActivity.map((sub: any) => {
                 const isActive = sub.video === currentVideoUrl;
                 const isCompleted =
@@ -358,7 +563,6 @@ export default function Page() {
   // Local UI state
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isCompleting, setIsCompleting] = useState(false);
-  const [videoProgress, setVideoProgress] = useState<number>(0);
   const [hasAutoCompleted, setHasAutoCompleted] = useState<Set<string>>(
     new Set()
   );
@@ -397,13 +601,10 @@ export default function Page() {
       thumbnail: thumbnail || "",
     });
     setIsSidebarOpen(false);
-    setVideoProgress(0); // Reset progress for new video
   };
 
   // Auto-complete when video reaches 90% or ends
   const handleVideoProgress = (progress: number) => {
-    setVideoProgress(progress);
-
     // Auto-complete if video reaches 90% and not already completed
     if (
       progress >= 90 &&
@@ -582,6 +783,7 @@ export default function Page() {
                           onSelectVideo={handleSelectVideo}
                           lang={lang}
                           currentVideoUrl={currentVideo?.url || ""}
+                          currentVideoFromStore={currentVideo}
                           courseId={courseId}
                           finalExamLocked={finalExamLocked}
                           examStatus={examStatus || "not-done"}
@@ -733,28 +935,6 @@ export default function Page() {
                       </div>
                     )}
                   </div>
-
-                  {/* Current Video Progress */}
-                  {currentVideo && currentVideo.subActivityId && (
-                    <div className="space-y-1 pt-2 border-t border-gray-100 dark:border-gray-700">
-                      <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-400">
-                        <span className="font-medium">
-                          {lang === "en" ? "Current Video" : "ወቅታዊ ቪዲዮ"}
-                        </span>
-                        <span className="font-semibold text-blue-600 dark:text-blue-400">
-                          {Math.round(videoProgress)}%
-                        </span>
-                      </div>
-                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5">
-                        <div
-                          className="bg-blue-500 h-1.5 rounded-full transition-all duration-200"
-                          style={{
-                            width: `${videoProgress}%`,
-                          }}
-                        />
-                      </div>
-                    </div>
-                  )}
                 </div>
               </div>
 
@@ -767,6 +947,7 @@ export default function Page() {
                     onSelectVideo={handleSelectVideo}
                     lang={lang}
                     currentVideoUrl={currentVideo?.url || ""}
+                    currentVideoFromStore={currentVideo}
                     courseId={courseId}
                     finalExamLocked={finalExamLocked}
                     examStatus={examStatus || "not-done"}
@@ -822,6 +1003,7 @@ export default function Page() {
                       onSelectVideo={handleSelectVideo}
                       lang={lang}
                       currentVideoUrl={currentVideo?.url || ""}
+                      currentVideoFromStore={currentVideo}
                       courseId={courseId}
                       finalExamLocked={finalExamLocked}
                       examStatus={examStatus || "not-done"}
