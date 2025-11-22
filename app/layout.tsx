@@ -6,6 +6,7 @@ import { ThemeProvider } from "next-themes";
 import { SessionProvider } from "next-auth/react";
 import { auth } from "@/lib/auth";
 import { UIProviders } from "@/components/heroUIProvider";
+import WatermarkSync from "@/components/WatermarkSync";
 // import DevToolsProtection from "@/components/DevToolsProtection";
 
 const geistSans = localFont({
@@ -72,7 +73,10 @@ export default async function RootLayout({
                 </div>
 
                 {/* Main Content */}
-                <div className="relative z-10">{children}</div>
+                <div className="relative z-10">
+                  <WatermarkSync />
+                  {children}
+                </div>
 
                 {/* Enhanced Toast Notifications */}
                 <Toaster

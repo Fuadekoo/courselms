@@ -1,7 +1,6 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
-import { useStudentProfile } from "@/hooks/useStudentData";
-import { useUserStore } from "@/stores/useUserStore";
+import { useWatermarkStore } from "@/stores/useWatermarkStore";
 
 interface Position {
   top: number;
@@ -9,51 +8,39 @@ interface Position {
 }
 
 const DynamicWatermark: React.FC = () => {
-  // Hooks must be called unconditionally
-  const { profile } = useStudentProfile();
-  const { userId } = useUserStore();
+  // Get data from watermark store (which reads from cookies)
+  const { userData, getFormattedTimestamp } = useWatermarkStore();
   
   const [position, setPosition] = useState<Position>({ top: 10, left: 10 });
+  const [isVisible, setIsVisible] = useState(false); // Control visibility
   const [isMounted, setIsMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const showTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const hideTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Check if user is logged in
-  const isLoggedIn = !!userId && !!profile;
+  // Check if user is logged in (has data in cookies)
+  const isLoggedIn = !!(userData.username || userData.phoneNumber || userData.fullName);
 
-  // Get user info
+  // Get user info from cookies/store
   const getUserInfo = () => {
-    if (!isLoggedIn || !profile) {
+    if (!isLoggedIn) {
       return {
         message: "The video is protected by Darulkubra",
       };
     }
 
-    // Construct full name
-    const nameParts = [
-      profile.firstName,
-      profile.fatherName,
-      profile.lastName,
-    ].filter(Boolean);
-    const fullName = nameParts.join(" ") || "Unknown";
+    // Get full name from store
+    const fullName = userData.fullName || userData.username || "Unknown";
 
     // Format phone number (mask middle digits for privacy)
-    const phoneNumber = profile.phoneNumber || "N/A";
+    const phoneNumber = userData.phoneNumber || "N/A";
     const maskedPhone =
       phoneNumber.length > 4
         ? `${phoneNumber.slice(0, 2)}***${phoneNumber.slice(-2)}`
         : phoneNumber;
 
-    // Get current timestamp
-    const timestamp = new Date().toLocaleString("en-US", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      second: "2-digit",
-    });
+    // Get timestamp from store (login time from local PC)
+    const timestamp = getFormattedTimestamp();
 
     return {
       fullName,
@@ -109,51 +96,77 @@ const DynamicWatermark: React.FC = () => {
     }
   };
 
-  // Update position every 10 seconds
+  // Show/hide cycle: Show for 5 seconds, hide for 10 seconds, repeat
   useEffect(() => {
     // Mark as mounted
     setIsMounted(true);
 
     // Initial position - wait a bit for container to render
     const updatePosition = () => {
-      // Use setTimeout to ensure DOM is ready
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
-      }
-      timeoutRef.current = setTimeout(() => {
+      setTimeout(() => {
         const newPosition = generateRandomPosition();
         setPosition(newPosition);
-        // Debug log (remove in production if needed)
-        // console.log('Watermark position updated:', newPosition);
-      }, 300);
+      }, 100);
     };
 
-    // Set initial position after a short delay to ensure container is rendered
-    const initialTimeout = setTimeout(() => {
+    // Function to show watermark
+    const showWatermark = () => {
+      // Update position before showing (new random position each time)
+      updatePosition();
+      setIsVisible(true);
+      
+      // Hide after 5 seconds
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
+      }
+      hideTimeoutRef.current = setTimeout(() => {
+        setIsVisible(false);
+        
+        // After hiding, wait 10 seconds then show again
+        if (showTimeoutRef.current) {
+          clearTimeout(showTimeoutRef.current);
+        }
+        showTimeoutRef.current = setTimeout(() => {
+          showWatermark(); // Recursive call to continue the cycle
+        }, 10000); // Wait 10 seconds before showing again
+      }, 5000); // Show for 5 seconds
+    };
+
+    // Set initial position
+    setTimeout(() => {
       updatePosition();
     }, 500);
 
-    // Change position every 10 seconds
-    intervalRef.current = setInterval(() => {
-      updatePosition();
-    }, 10000); // 10 seconds
+    // Start the cycle: Wait 10 seconds initially, then show for 5 seconds
+    if (showTimeoutRef.current) {
+      clearTimeout(showTimeoutRef.current);
+    }
+    showTimeoutRef.current = setTimeout(() => {
+      showWatermark();
+    }, 10000); // Initial wait: 10 seconds before first show
 
     // Cleanup
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
+      if (showTimeoutRef.current) {
+        clearTimeout(showTimeoutRef.current);
       }
-      if (timeoutRef.current) {
-        clearTimeout(timeoutRef.current);
+      if (hideTimeoutRef.current) {
+        clearTimeout(hideTimeoutRef.current);
       }
-      clearTimeout(initialTimeout);
     };
-  }, [isLoggedIn, profile]);
+  }, [isLoggedIn, userData]);
 
   const userInfo = getUserInfo();
 
-  // Always render, but show default position until mounted
-  const displayPosition = isMounted ? position : { top: 20, left: 20 };
+  // Don't render until mounted
+  if (!isMounted) {
+    return null;
+  }
+
+  // Don't render if not visible
+  if (!isVisible) {
+    return null;
+  }
 
   return (
     <div
@@ -161,52 +174,41 @@ const DynamicWatermark: React.FC = () => {
       className="dynamic-watermark"
       style={{
         position: "absolute",
-        top: `${displayPosition.top}px`,
-        left: `${displayPosition.left}px`,
+        top: `${position.top}px`,
+        left: `${position.left}px`,
         zIndex: 1000,
         pointerEvents: "none",
         userSelect: "none",
         WebkitUserSelect: "none",
         MozUserSelect: "none",
-        transition: isMounted ? "top 0.5s ease-in-out, left 0.5s ease-in-out" : "none",
-        opacity: 1,
-        visibility: "visible",
-        display: "block",
+        transition: "opacity 0.3s ease-in-out, top 0.5s ease-in-out, left 0.5s ease-in-out",
+        opacity: isVisible ? 1 : 0,
+        visibility: isVisible ? "visible" : "hidden",
+        display: isVisible ? "block" : "none",
       }}
     >
       <div
         style={{
-          background: "rgba(0, 0, 0, 0.85)",
-          backdropFilter: "blur(4px)",
-          padding: "10px 14px",
-          borderRadius: "8px",
-          border: "1px solid rgba(255, 255, 255, 0.3)",
-          boxShadow: "0 4px 12px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.1)",
-          color: "rgba(255, 255, 255, 0.95)",
-          fontSize: "13px",
-          fontFamily: "monospace",
-          lineHeight: "1.5",
+          // Match title watermark style - transparent, no background
+          color: "rgba(255, 255, 255, 0.3)",
+          fontSize: "14px",
+          fontWeight: 600,
+          fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+          lineHeight: "1.4",
           textAlign: "left",
-          minWidth: "220px",
+          textShadow: "0 1px 3px rgba(0, 0, 0, 0.5)",
           whiteSpace: "nowrap",
         }}
       >
         {isLoggedIn && userInfo.fullName ? (
           <div>
-            <div style={{ fontWeight: 600, marginBottom: "4px" }}>
-              {userInfo.fullName}
-            </div>
-            <div style={{ fontSize: "11px", opacity: 0.8 }}>
-              📱 {userInfo.phoneNumber}
-            </div>
-            <div style={{ fontSize: "10px", opacity: 0.7, marginTop: "2px" }}>
-              🕒 {userInfo.timestamp}
+            <div>{userInfo.fullName}</div>
+            <div style={{ fontSize: "12px", opacity: 0.8, marginTop: "2px" }}>
+              {userInfo.phoneNumber} • {userInfo.timestamp}
             </div>
           </div>
         ) : (
-          <div style={{ fontWeight: 600, textAlign: "center" }}>
-            {userInfo.message}
-          </div>
+          <div>{userInfo.message}</div>
         )}
       </div>
     </div>

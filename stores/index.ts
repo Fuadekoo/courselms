@@ -2,6 +2,7 @@
 export { useStudentStore } from "./useStudentStore";
 export { useUserStore } from "./useUserStore";
 export { useCourseStore } from "./useCourseStore";
+export { useWatermarkStore } from "./useWatermarkStore";
 
 // Export existing stores
 export { useCourseRegistrationStore } from "./courseRegistrationStore";
