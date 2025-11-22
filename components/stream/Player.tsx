@@ -6,6 +6,7 @@ import ProgressBar from "./ProgressBar";
 import VolumeControl from "./VolumeControl";
 import FullscreenButton from "./FullScreen";
 import CustomSpinner from "./CustomSpinner";
+import DynamicWatermark from "./DynamicWatermark";
 import { VideoItem } from "../../types";
 import { cn } from "@/lib/utils";
 import "./VideoProtection.css";
@@ -680,12 +681,8 @@ function Player({
           }}
         />
 
-        {/* Watermark Overlay - Deters screen recording and shows ownership */}
-        {videoAvailable && !hasError && (
-          <div className="video-watermark">
-            {title || "Melaverse © Protected Content"}
-          </div>
-        )}
+        {/* Dynamic Watermark - Shows user info or protection message, changes position every 10 seconds */}
+        {videoAvailable && !hasError && <DynamicWatermark />}
 
         {/* Center Play Button - Show when paused and not loading */}
         {!playing && !isLoading && isOnline && (
