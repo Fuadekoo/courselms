@@ -681,6 +681,26 @@ function Player({
           }}
         />
 
+        {/* Static Watermark - Title watermark */}
+        {videoAvailable && !hasError && title && (
+          <div className="video-watermark" style={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            color: "rgba(255, 255, 255, 0.3)",
+            fontSize: "14px",
+            fontWeight: 600,
+            pointerEvents: "none",
+            zIndex: 100,
+            textShadow: "0 1px 3px rgba(0, 0, 0, 0.5)",
+            userSelect: "none",
+            WebkitUserSelect: "none",
+            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+          }}>
+            {title || "Melaverse © Protected Content"}
+          </div>
+        )}
+
         {/* Dynamic Watermark - Shows user info or protection message, changes position every 10 seconds */}
         {videoAvailable && !hasError && <DynamicWatermark />}
 
