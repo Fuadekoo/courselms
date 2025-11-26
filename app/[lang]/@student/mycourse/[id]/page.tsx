@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 import useData from "@/hooks/useData";
 import { useStudentProgressStore } from "@/stores";
+import { useGlobalLoading } from "@/stores/uiStore";
 import {
   getMySingleCourse,
   getMySingleCourseContent,
@@ -25,7 +26,6 @@ import {
   getActivityQuizStatus,
   completeSubActivity,
 } from "@/actions/student/mycourse";
-import Loading from "@/components/loading";
 import Player from "@/components/stream/Player";
 import TraditionalQA from "@/components/TraditionalQA";
 import { useSession } from "next-auth/react";
@@ -573,8 +573,10 @@ function CourseContent({
 
   if (contentLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading />
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-sm text-gray-500 dark:text-gray-400">
+          Loading content...
+        </div>
       </div>
     );
   }
@@ -707,8 +709,8 @@ function CourseContent({
                             case "done":
                               return (
                                 <div className="flex items-center gap-1">
-                                  <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-                                  <span className="text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                                  <CheckCircle2 className="w-4 h-4 text-primary-500" />
+                                  <span className="text-xs font-medium text-primary-600 dark:text-primary-400">
                                     {lang === "en" ? "Completed" : "ተጠናቋል"}
                                   </span>
                                 </div>
@@ -763,7 +765,7 @@ function CourseContent({
       {/* FINAL EXAM BUTTON */}
       <div className="mt-6 mx-4 mb-4">
         <div className="flex items-center justify-between p-4 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-gray-800">
-          <h3 className="text-lg font-semibold text-slate-800 dark:text-slate-100">
+          <h3 className="text-lg font-semibold bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent">
             {lang === "en" ? "Final Exam" : "የመጨረሻ ፈተና"}
           </h3>
           {!finalExamLocked ? (
@@ -771,7 +773,7 @@ function CourseContent({
               onClick={() =>
                 router.push(`/${lang}/mycourse/${courseId}/finalexam`)
               }
-              className="px-4 py-2 rounded-lg font-medium text-white bg-blue-600 hover:bg-blue-700 transition-colors"
+              className="px-4 py-2 rounded-lg font-medium text-white bg-primary-600 hover:bg-primary-700 transition-colors"
             >
               {examStatus === "done"
                 ? lang === "en"
@@ -808,7 +810,7 @@ export default function Page() {
   // Get video query parameter
   const videoParam = searchParams?.get("video");
 
-  const { data, loading } = useData({
+  const { data } = useData({
     func: getMySingleCourse,
     args: [studentId, courseId],
   });
@@ -834,10 +836,11 @@ export default function Page() {
   const {
     currentVideo,
     setCurrentVideo,
-    completedSubActivities,
     markSubActivityComplete,
     setSubActivityProgress,
     setOverallProgress,
+    isSubActivityCompleted,
+    setCurrentCourseId,
   } = useStudentProgressStore();
 
   // Local UI state
@@ -849,6 +852,13 @@ export default function Page() {
   const [forceOpenSectionIndex, setForceOpenSectionIndex] = useState<
     number | null
   >(null);
+
+  // Set current course ID in store
+  useEffect(() => {
+    if (courseId) {
+      setCurrentCourseId(courseId);
+    }
+  }, [courseId, setCurrentCourseId]);
 
   useEffect(() => {
     if (data?.video) {
@@ -1038,24 +1048,43 @@ export default function Page() {
   const isCurrentCompleted =
     !!currentVideo &&
     !!currentVideo.subActivityId &&
-    completedSubActivities.has(currentVideo.subActivityId);
+    isSubActivityCompleted(currentVideo.subActivityId);
+
+  const globalLoading = useGlobalLoading();
 
   return (
     <div className="fixed inset-0 top-16 overflow-hidden">
-      <div
-        className={`h-full overflow-hidden grid bg-gradient-to-br from-gray-50 via-gray-50/50 to-white dark:from-gray-950 dark:via-gray-900/50 dark:to-gray-900 ${
-          loading ? "opacity-50 pointer-events-none" : ""
-        }`}
-      >
-        {loading && (
-          <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/80 dark:bg-gray-900/80 backdrop-blur-sm">
-            <Loading />
-          </div>
-        )}
-        {data && (
+      <div className="h-full overflow-hidden grid bg-gradient-to-br from-gray-50 via-gray-50/50 to-white dark:from-gray-950 dark:via-gray-900/50 dark:to-gray-900 relative">
+        {/* Blurred Background Image */}
+        <div
+          className="absolute inset-0 opacity-30 dark:opacity-20"
+          style={{
+            backgroundImage: `url('/darulkubra.png')`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            filter: "blur(40px) brightness(1.1)",
+            transform: "scale(1.1)",
+          }}
+        />
+        {/* Additional blur layer for depth */}
+        <div
+          className="absolute inset-0 opacity-20 dark:opacity-15"
+          style={{
+            backgroundImage: `url('/darulkubra.png')`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            filter: "blur(60px)",
+            transform: "scale(1.2)",
+          }}
+        />
+        {/* Overlay for better content readability */}
+        <div className="absolute inset-0 bg-white/60 dark:bg-gray-900/70 backdrop-blur-[2px] pointer-events-none" />
+        {!globalLoading && data && (
           <>
             {/* MAIN CONTENT AREA - Scrollable and responsive to right sidebar */}
-            <div className="overflow-hidden sm:overflow-auto lg:pr-[340px] transition-all duration-300 grid grid-rows-[auto_1fr]">
+            <div className="relative z-10 overflow-hidden sm:overflow-auto lg:pr-[340px] transition-all duration-300 grid grid-rows-[auto_1fr]">
               {/* VIDEO PLAYER SECTION */}
               <div className="flex-shrink-0 bg-black dark:bg-black w-full mx-auto lg:max-w-none">
                 {currentVideo && currentVideo.url && (
@@ -1082,7 +1111,7 @@ export default function Page() {
                       className={`px-6 py-3 rounded-lg font-semibold text-white shadow-lg transition-all duration-300 hover:shadow-xl disabled:opacity-50 disabled:cursor-not-allowed ${
                         isCurrentCompleted
                           ? "bg-green-500 hover:bg-green-600"
-                          : "bg-blue-600 hover:bg-blue-700"
+                          : "bg-primary-600 hover:bg-primary-700"
                       }`}
                     >
                       {isCompleting ? (
@@ -1119,37 +1148,37 @@ export default function Page() {
                         <TabsList className="flex space-x-4 bg-transparent p-0 min-w-max h-12 px-4">
                           <TabsTrigger
                             value="content"
-                            className="text-sm font-medium px-4 py-3 bg-transparent border-none rounded-none data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:font-semibold data-[state=inactive]:text-gray-500 transition-all duration-200 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap h-full lg:hidden flex items-center"
+                            className="text-sm font-medium px-4 py-3 bg-transparent border-none rounded-none data-[state=active]:text-primary-600 dark:data-[state=active]:text-primary-400 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-600 data-[state=active]:font-semibold data-[state=inactive]:text-gray-500 transition-all duration-200 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 whitespace-nowrap h-full lg:hidden flex items-center"
                           >
                             {lang === "en" ? "Course Content" : "የትምህርት ይዘት"}
                           </TabsTrigger>
                           <TabsTrigger
                             value="qa"
-                            className="text-sm font-medium px-4 py-3 bg-transparent border-none rounded-none data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:font-semibold data-[state=inactive]:text-gray-500 transition-all duration-200 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap h-full flex items-center"
+                            className="text-sm font-medium px-4 py-3 bg-transparent border-none rounded-none data-[state=active]:text-primary-600 dark:data-[state=active]:text-primary-400 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-600 data-[state=active]:font-semibold data-[state=inactive]:text-gray-500 transition-all duration-200 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 whitespace-nowrap h-full flex items-center"
                           >
                             {lang === "en" ? "Q&A" : "ጥያቄ እና መልስ"}
                           </TabsTrigger>
                           <TabsTrigger
                             value="ai"
-                            className="text-sm font-medium px-4 py-3 bg-transparent border-none rounded-none data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:font-semibold data-[state=inactive]:text-gray-500 transition-all duration-200 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap h-full flex items-center"
+                            className="text-sm font-medium px-4 py-3 bg-transparent border-none rounded-none data-[state=active]:text-primary-600 dark:data-[state=active]:text-primary-400 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-600 data-[state=active]:font-semibold data-[state=inactive]:text-gray-500 transition-all duration-200 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 whitespace-nowrap h-full flex items-center"
                           >
                             {lang === "en" ? "AI Assistant" : "AI ረዳት"}
                           </TabsTrigger>
                           <TabsTrigger
                             value="announcements"
-                            className="text-sm font-medium px-4 py-3 bg-transparent border-none rounded-none data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:font-semibold data-[state=inactive]:text-gray-500 transition-all duration-200 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap h-full flex items-center"
+                            className="text-sm font-medium px-4 py-3 bg-transparent border-none rounded-none data-[state=active]:text-primary-600 dark:data-[state=active]:text-primary-400 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-600 data-[state=active]:font-semibold data-[state=inactive]:text-gray-500 transition-all duration-200 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 whitespace-nowrap h-full flex items-center"
                           >
                             {lang === "en" ? "Announcements" : "ማሳወቂያዎች"}
                           </TabsTrigger>
                           <TabsTrigger
                             value="feedback"
-                            className="text-sm font-medium px-4 py-3 bg-transparent border-none rounded-none data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-red-600 data-[state=active]:font-semibold data-[state=inactive]:text-gray-500 transition-all duration-200 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap h-full flex items-center"
+                            className="text-sm font-medium px-4 py-3 bg-transparent border-none rounded-none data-[state=active]:text-primary-600 dark:data-[state=active]:text-primary-400 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-red-600 data-[state=active]:font-semibold data-[state=inactive]:text-gray-500 transition-all duration-200 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 whitespace-nowrap h-full flex items-center"
                           >
                             {lang === "en" ? "Feedback" : "ግብረመልስ"}
                           </TabsTrigger>
                           <TabsTrigger
                             value="materials"
-                            className="text-sm font-medium px-4 py-3 bg-transparent border-none rounded-none data-[state=active]:text-gray-900 dark:data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-blue-600 data-[state=active]:font-semibold data-[state=inactive]:text-gray-500 transition-all duration-200 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 whitespace-nowrap h-full flex items-center"
+                            className="text-sm font-medium px-4 py-3 bg-transparent border-none rounded-none data-[state=active]:text-primary-600 dark:data-[state=active]:text-primary-400 data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary-600 data-[state=active]:font-semibold data-[state=inactive]:text-gray-500 transition-all duration-200 hover:text-primary-700 dark:hover:text-primary-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 whitespace-nowrap h-full flex items-center"
                           >
                             {lang === "en" ? "Materials" : "ቅረጾች"}
                           </TabsTrigger>
@@ -1280,12 +1309,12 @@ export default function Page() {
 
             {/* SIDEBAR - DESKTOP LAYOUT (Fixed Right) - Udemy-like width */}
             <aside className="hidden lg:block fixed right-0 top-16 bottom-0 w-[340px] z-30">
-              <div className="h-full flex flex-col border-l border-gray-200 dark:border-gray-700/50 bg-white dark:bg-gray-900 shadow-xl">
+              <div className="h-full flex flex-col border-l border-gray-200 dark:border-gray-700/50 bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm shadow-xl">
                 {/* Fixed Header */}
                 <div className="flex-shrink-0 bg-white/95 dark:bg-gray-900/95 backdrop-blur-lg border-b border-gray-200 dark:border-gray-700/50 px-5 py-4 shadow-sm">
                   <div className="flex items-center gap-3">
                     <div className="flex-1 min-w-0">
-                      <h2 className="text-sm font-bold text-gray-900 dark:text-white tracking-tight">
+                      <h2 className="text-sm font-bold bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent tracking-tight">
                         {lang === "en" ? "Course Content" : "የኮርስ ይዘት"}
                       </h2>
                     </div>

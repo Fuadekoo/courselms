@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { isEqual } from "lodash";
+import { useUIStore } from "@/stores/uiStore";
 
 export default function useData<Args extends unknown[], Data>({
   func,
@@ -24,6 +25,8 @@ export default function useData<Args extends unknown[], Data>({
     [loading, setIsPending] = useState(false),
     [error, setError] = useState<unknown>(),
     prevArgsRef = useRef<Args>(undefined),
+    loadingKeyRef = useRef<string | null>(null),
+    setLoadingState = useUIStore((state) => state.setLoadingState),
     memoizedFunc = useCallback(() => {
       if (!isEqual(prevArgsRef.current, args)) {
         prevArgsRef.current = args;
@@ -32,11 +35,22 @@ export default function useData<Args extends unknown[], Data>({
       return func(...args);
     }, [func, ...args]);
 
+  // Generate a unique key for this data fetch
+  useEffect(() => {
+    if (!loadingKeyRef.current) {
+      loadingKeyRef.current = `data-${Date.now()}-${Math.random()}`;
+    }
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
 
     const fetchData = async () => {
       setIsPending(true);
+      // Register loading state globally
+      if (loadingKeyRef.current) {
+        setLoadingState(loadingKeyRef.current, true);
+      }
       setError(null);
       try {
         const result = await memoizedFunc();
@@ -52,6 +66,10 @@ export default function useData<Args extends unknown[], Data>({
       } finally {
         if (isMounted) {
           setIsPending(false);
+          // Unregister loading state when done
+          if (loadingKeyRef.current) {
+            setLoadingState(loadingKeyRef.current, false);
+          }
         }
       }
     };
@@ -61,8 +79,12 @@ export default function useData<Args extends unknown[], Data>({
     return () => {
       isMounted = false;
       clearTimeout(debounceFetchData);
+      // Clean up loading state on unmount
+      if (loadingKeyRef.current) {
+        setLoadingState(loadingKeyRef.current, false);
+      }
     };
-  }, [memoizedFunc, refresh]);
+  }, [memoizedFunc, refresh, setLoadingState]);
 
   return {
     data,

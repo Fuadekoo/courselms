@@ -54,7 +54,7 @@ export default function CertificatesPage() {
       <div className="min-h-screen p-6">
         <div className="max-w-4xl mx-auto">
           <div className="mb-6">
-            <h1 className="text-3xl font-bold text-foreground mb-2">
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent mb-2">
               My Certificates
             </h1>
             <p className="text-muted-foreground">
@@ -73,8 +73,8 @@ export default function CertificatesPage() {
         {/* Header */}
         <div className="mb-6 sm:mb-8">
           <div className="flex items-center gap-3 mb-2">
-            <Award className="w-8 h-8 text-emerald-600" />
-            <h1 className="text-2xl sm:text-3xl font-bold text-foreground">
+            <Award className="w-8 h-8 text-primary-600" />
+            <h1 className="text-2xl sm:text-3xl font-bold bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent">
               My Certificates
             </h1>
           </div>

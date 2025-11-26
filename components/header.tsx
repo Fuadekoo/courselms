@@ -64,12 +64,12 @@ export default function Header({
             }
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            startContent={<Search className="size-4 text-gray-400" />}
+            startContent={<Search className="size-4 text-primary-500" />}
             classNames={{
               base: "w-full",
               input: "text-sm",
               inputWrapper:
-                "border-gray-300 dark:border-gray-700 hover:border-blue-500 focus-within:!border-blue-500 bg-gray-50 dark:bg-gray-800",
+                "border-gray-300 dark:border-gray-700 hover:border-primary-500 focus-within:!border-primary-500 bg-gray-50 dark:bg-gray-800",
             }}
           />
         </form>
@@ -82,7 +82,7 @@ export default function Header({
             variant="light"
             size="sm"
             onPress={() => router.push(`/${lang}/mycourse`)}
-            className="relative text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+            className="relative text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20"
             aria-label="Shopping Cart"
           >
             <ShoppingCart className="size-5" />
@@ -99,7 +99,7 @@ export default function Header({
               variant="light"
               size="sm"
               onPress={() => setTheme(theme === "dark" ? "light" : "dark")}
-              className="text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+              className="text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20"
               aria-label={
                 theme === "dark"
                   ? "Switch to light mode"
@@ -125,7 +125,7 @@ export default function Header({
                 }`
               )
             }
-            className="text-xs font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700"
+            className="text-xs font-medium text-primary-700 dark:text-primary-300 bg-primary-100 dark:bg-primary-900/30 hover:bg-primary-200 dark:hover:bg-primary-800"
           >
             {lang === "en" ? "አማ" : "EN"}
           </Button>

@@ -4,7 +4,7 @@ import useData from "@/hooks/useData";
 import { getMyCoursesWithProgress } from "@/actions/student/mycourse";
 import { getCoursesForLoginCustomer } from "@/lib/data/course";
 import React from "react";
-import Loading from "@/components/loading";
+import { useGlobalLoading } from "@/stores/uiStore";
 import MyCourseCard from "@/components/myCourseCard";
 import CourseCard from "@/components/courseCard";
 import { useParams, useSearchParams } from "next/navigation";
@@ -27,16 +27,23 @@ export default function Page() {
   });
 
   const loading = myCoursesLoading || allCoursesLoading;
+  const globalLoading = useGlobalLoading();
+
+  if (globalLoading) {
+    return null; // Hide content while TopLoadingBar is active
+  }
 
   return (
     <div className="px-4 md:px-6 py-6 space-y-8">
       {/* My Courses Section */}
       <section className="space-y-4">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <h2 className="text-2xl font-bold bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent">
           {lang === "en" ? "My Courses" : "የእኔ ኮርሶች"}
         </h2>
         {myCoursesLoading ? (
-          <Loading />
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            {lang === "en" ? "Loading courses..." : "ኮርሶች በመጫን ላይ..."}
+          </div>
         ) : !myCourses || myCourses.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             {lang === "en"
@@ -54,11 +61,13 @@ export default function Page() {
 
       {/* All Courses Section */}
       <section className="space-y-4">
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">
+        <h2 className="text-2xl font-bold bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent">
           {lang === "en" ? "All Courses" : "ሁሉም ኮርሶች"}
         </h2>
         {loading ? (
-          <Loading />
+          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
+            {lang === "en" ? "Loading courses..." : "ኮርሶች በመጫን ላይ..."}
+          </div>
         ) : !allCourses || allCourses.length <= 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             {lang === "en" ? "No courses available" : "ኮርስ የለም"}

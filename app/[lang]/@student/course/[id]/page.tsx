@@ -14,7 +14,7 @@ import {
 import Payment from "@/components/Payment";
 import useData from "@/hooks/useData";
 import { getCourseForCustomer } from "@/lib/data/course";
-import Loading from "@/components/loading";
+import { useGlobalLoading } from "@/stores/uiStore";
 import NoData from "@/components/noData";
 import CourseAbout from "@/components/courseAbout";
 import CourseMainDescription from "@/components/courseMainDescription";
@@ -31,11 +31,20 @@ export default function Page() {
     searchParams = useSearchParams(),
     { data, loading } = useData({ func: getCourseForCustomer, args: [id] }),
     { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const globalLoading = useGlobalLoading();
+
+  if (globalLoading) {
+    return null; // Hide content while TopLoadingBar is active
+  }
 
   return (
     <div className="h-dvh">
       {loading ? (
-        <Loading />
+        <div className="flex items-center justify-center h-full">
+          <div className="text-center text-gray-500 dark:text-gray-400">
+            {lang === "en" ? "Loading course..." : "ኮርስ በመጫን ላይ..."}
+          </div>
+        </div>
       ) : !data ? (
         <NoData />
       ) : (

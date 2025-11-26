@@ -142,7 +142,7 @@ export default function StudentProfilePage() {
                 <div className="w-8 h-8 rounded-full bg-sky-500 flex items-center justify-center">
                   <span className="text-white font-semibold text-lg">U</span>
                 </div>
-                <h1 className="text-3xl sm:text-4xl font-bold text-gray-900 dark:text-white">
+                <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent">
                   {lang === "en" ? "User Profile" : "የተጠቃሚ መገለጫ"}
                 </h1>
               </div>
@@ -159,7 +159,7 @@ export default function StudentProfilePage() {
         <div className="bg-white dark:bg-gray-900 rounded-lg shadow-sm border border-gray-200 dark:border-gray-800">
           {/* Section Header */}
           <div className="px-6 py-6 border-b border-gray-200 dark:border-gray-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <h2 className="text-xl font-semibold text-gray-900 dark:text-white">
+            <h2 className="text-xl font-semibold bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent">
               {lang === "en" ? "Profile Information" : "የመገለጫ መረጃ"}
             </h2>
             {!isEditing && (
@@ -169,7 +169,7 @@ export default function StudentProfilePage() {
                 color="primary"
                 variant="flat"
                 size="sm"
-                className="bg-sky-50 hover:bg-sky-100 text-sky-600 dark:bg-sky-950/30 dark:text-sky-400"
+                className="bg-primary-50 hover:bg-primary-100 text-primary-600 dark:bg-primary-950/30 dark:text-primary-400"
               >
                 {lang === "en" ? "Edit" : "አርም"}
               </Button>

@@ -308,16 +308,16 @@ export default function Page() {
         </div>
         
         {qi.explanation && (
-          <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+          <div className="bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl p-4">
             <div className="flex items-start gap-2">
-              <div className="p-1 bg-blue-100 dark:bg-blue-800/50 rounded">
-                <AlertCircle className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+              <div className="p-1 bg-primary-100 dark:bg-primary-800/50 rounded">
+                <AlertCircle className="w-4 h-4 text-primary-600 dark:text-primary-400" />
               </div>
               <div>
-                <p className="font-medium text-blue-800 dark:text-blue-200 mb-1 text-sm">
+                <p className="font-medium text-primary-800 dark:text-primary-200 mb-1 text-sm">
                   {lang === "en" ? "Explanation" : "ማብራሪያ"}
                 </p>
-                <p className="text-blue-700 dark:text-blue-300 text-sm leading-relaxed break-words overflow-wrap-anywhere">
+                <p className="text-primary-700 dark:text-primary-300 text-sm leading-relaxed break-words overflow-wrap-anywhere">
                   {qi.explanation}
                 </p>
               </div>
@@ -407,9 +407,9 @@ export default function Page() {
             <div className="flex items-center gap-4">
               {/* Timer */}
               {examStartTime && !submitted && (
-                <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
-                  <Clock className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                  <span className="font-mono text-sm font-medium text-blue-700 dark:text-blue-300">
+                <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 dark:bg-primary-900/30 rounded-lg">
+                  <Clock className="w-4 h-4 text-primary-600 dark:text-primary-400" />
+                  <span className="font-mono text-sm font-medium text-primary-700 dark:text-primary-300">
                     {formatTime(timeSpent)}
                   </span>
                 </div>
@@ -449,7 +449,7 @@ export default function Page() {
                 {/* Question Header */}
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-3">
-                    <div className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full text-sm font-medium">
+                    <div className="px-3 py-1 bg-blue-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 rounded-full text-sm font-medium">
                       {lang === "en" ? "Question" : "ጥያቄ"} {current + 1}
                     </div>
                     <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -493,14 +493,14 @@ export default function Page() {
                   </p>
                   
                   {showHints && q.explanation && (
-                    <div className="mt-4 p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div className="mt-4 p-4 bg-primary-50 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-lg">
                       <div className="flex items-start gap-2">
-                        <Zap className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                        <Zap className="w-4 h-4 text-primary-600 dark:text-primary-400 mt-0.5 flex-shrink-0" />
                         <div>
-                          <p className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-1">
+                          <p className="text-sm font-medium text-primary-800 dark:text-primary-200 mb-1">
                             {lang === "en" ? "Hint" : "ማሳታ"}
                           </p>
-                          <p className="text-sm text-blue-700 dark:text-blue-300 break-words overflow-wrap-anywhere">
+                          <p className="text-sm text-primary-700 dark:text-primary-300 break-words overflow-wrap-anywhere">
                             {q.explanation}
                           </p>
                         </div>
@@ -520,14 +520,14 @@ export default function Page() {
                           disabled={submitted || status === "done"}
                           className={`group w-full text-left p-3 sm:p-4 rounded-lg sm:rounded-xl border-2 transition-all duration-200 transform hover:scale-[1.02] ${
                             active
-                              ? "border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-lg"
+                              ? "border-primary-500 bg-primary-50 dark:bg-primary-900/20 shadow-lg"
                               : "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 hover:border-slate-300 dark:hover:border-slate-500 hover:shadow-md"
                           }`}
                         >
                           <div className="flex items-center gap-3">
                             <div className={`flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${
                               active
-                                ? "border-blue-500 bg-blue-500"
+                                ? "border-primary-500 bg-primary-500"
                                 : "border-slate-300 dark:border-slate-500 group-hover:border-slate-400"
                             }`}>
                               {active && (
@@ -603,7 +603,7 @@ export default function Page() {
                             onClick={() => goto(questionIdx)}
                             className={`w-8 h-8 rounded-lg text-xs font-medium transition-all ${
                               isActive
-                                ? "bg-blue-500 text-white shadow-lg scale-110"
+                                ? "bg-primary-500 text-white shadow-lg scale-110"
                                 : isAnswered
                                 ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 hover:bg-green-200"
                                 : isFlagged
@@ -620,7 +620,7 @@ export default function Page() {
                     {current < displayQuestions.length - 1 ? (
                       <button
                         onClick={() => goto(Math.min(displayQuestions.length - 1, current + 1))}
-                        className="flex items-center gap-2 px-6 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white font-medium shadow-md hover:shadow-lg transition-all transform hover:scale-105"
+                        className="flex items-center gap-2 px-6 py-2 rounded-lg bg-primary-500 hover:bg-primary-600 text-white font-medium shadow-md hover:shadow-lg transition-all transform hover:scale-105"
                       >
                         <span>{lang === "en" ? "Next" : "ከዚህ በሐዋላ"}</span>
                         <ChevronRight className="w-4 h-4" />
@@ -650,7 +650,7 @@ export default function Page() {
                       onClick={() => setReviewMode("paged")}
                       className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                         reviewMode === "paged"
-                          ? "bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm"
+                          ? "bg-white dark:bg-slate-600 text-primary-600 dark:text-primary-400 shadow-sm"
                           : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
                       }`}
                     >
@@ -660,7 +660,7 @@ export default function Page() {
                       onClick={() => setReviewMode("all")}
                       className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
                         reviewMode === "all"
-                          ? "bg-white dark:bg-slate-600 text-blue-600 dark:text-blue-400 shadow-sm"
+                          ? "bg-white dark:bg-slate-600 text-primary-600 dark:text-primary-400 shadow-sm"
                           : "text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-gray-100"
                       }`}
                     >
@@ -684,7 +684,7 @@ export default function Page() {
                       <button
                         onClick={() => goto(Math.min(displayQuestions.length - 1, current + 1))}
                         disabled={current >= displayQuestions.length - 1}
-                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-500 hover:bg-blue-600 text-white transition-colors disabled:opacity-40"
+                        className="flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-500 hover:bg-primary-600 text-white transition-colors disabled:opacity-40"
                       >
                         <span>{lang === "en" ? "Next" : "ከዚህ በሐዋላ"}</span>
                         <ChevronRight className="w-4 h-4" />
@@ -710,8 +710,8 @@ export default function Page() {
             {/* Exam Statistics */}
             <div className="bg-white dark:bg-gray-800 rounded-xl lg:rounded-2xl shadow-lg border border-slate-200 dark:border-gray-700 p-4 sm:p-6">
               <div className="flex items-center gap-3 mb-4">
-                <div className="p-2 bg-blue-100 dark:bg-blue-900/30 rounded-lg">
-                  <BarChart3 className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                <div className="p-2 bg-blue-100 dark:bg-primary-900/30 rounded-lg">
+                  <BarChart3 className="w-5 h-5 text-primary-600 dark:text-primary-400" />
                 </div>
                 <h3 className="font-semibold text-gray-900 dark:text-white">
                   {lang === "en" ? "Progress" : "አስካክት"}
@@ -750,7 +750,7 @@ export default function Page() {
                     <span className="text-gray-600 dark:text-gray-300">
                       {lang === "en" ? "Time Elapsed" : "የተጠቀጠ ጊዜ"}
                     </span>
-                    <span className="font-mono font-medium text-blue-600 dark:text-blue-400">
+                    <span className="font-mono font-medium text-primary-600 dark:text-primary-400">
                       {formatTime(timeSpent)}
                     </span>
                   </div>
@@ -786,7 +786,7 @@ export default function Page() {
                       onClick={() => goto(i)}
                       className={`relative h-8 sm:h-10 rounded-md sm:rounded-lg border-2 text-xs font-medium transition-all hover:scale-105 ${
                         currentPage
-                          ? "border-blue-500 bg-blue-500 text-white shadow-lg"
+                          ? "border-primary-500 bg-primary-500 text-white shadow-lg"
                           : submitted
                           ? isCorrect
                             ? "border-green-500 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300"
@@ -848,7 +848,7 @@ export default function Page() {
                       if (firstUnanswered !== -1) goto(firstUnanswered);
                     }}
                     disabled={allAnswered}
-                    className="w-full flex items-center gap-2 px-3 py-2 text-sm bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors disabled:opacity-50"
+                    className="w-full flex items-center gap-2 px-3 py-2 text-sm bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 rounded-lg hover:bg-blue-100 dark:hover:bg-primary-900/30 transition-colors disabled:opacity-50"
                   >
                     <Target className="w-4 h-4" />
                     <span>{lang === "en" ? "Next Unanswered" : "ከዚህ የላለተማለ"}</span>
@@ -913,7 +913,7 @@ export default function Page() {
                         cert.result === "excellent"
                           ? "bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300"
                           : cert.result === "veryGood"
-                          ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+                          ? "bg-blue-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300"
                           : cert.result === "good"
                           ? "bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300"
                           : "bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300"
@@ -974,7 +974,7 @@ export default function Page() {
                     setReviewMode("all");
                     setShowCongrats(false);
                   }}
-                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors font-medium"
+                  className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 hover:bg-blue-100 dark:hover:bg-primary-900/30 transition-colors font-medium"
                 >
                   <Eye className="w-4 h-4" />
                   <span>{lang === "en" ? "Review Answers" : "ምላሾች መመልክት"}</span>
