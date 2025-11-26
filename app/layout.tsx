@@ -7,6 +7,7 @@ import { SessionProvider } from "next-auth/react";
 import { auth } from "@/lib/auth";
 import { UIProviders } from "@/components/heroUIProvider";
 import WatermarkSync from "@/components/WatermarkSync";
+import TopLoadingBar from "@/components/TopLoadingBar";
 // import DevToolsProtection from "@/components/DevToolsProtection";
 
 const geistSans = localFont({
@@ -64,6 +65,8 @@ export default async function RootLayout({
               enableSystem={false}
               disableTransitionOnChange={false}
             >
+              {/* Top Loading Bar - Appears above header during route transitions */}
+              <TopLoadingBar />
               {/* <DevToolsProtection /> */}
               <div className="relative min-h-screen bg-gradient-to-br from-neutral-50 via-brand-50/30 to-neutral-100 dark:from-neutral-950 dark:via-brand-950/50 dark:to-neutral-900">
                 {/* Background Pattern */}
