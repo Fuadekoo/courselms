@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 // Ensure needed hooks are imported
-import React, { useEffect, useMemo, useState, useCallback } from "react";
+import React, { useEffect, useMemo, useCallback } from "react";
 import useAction from "@/hooks/useAction";
 import useData from "@/hooks/useData";
 import { useParams, useRouter } from "next/navigation";
@@ -68,12 +68,10 @@ export default function Page() {
     setCurrent,
     setSelected,
     setAnswers,
-    addAnswer,
     setSubmitted,
     setReviewMode,
     setShowCongrats,
     setExamStartTime,
-    setTimeSpent,
     incrementTimeSpent,
     setShowHints,
     toggleFlaggedQuestion,
