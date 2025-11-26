@@ -9,10 +9,10 @@ import {
 } from "next/navigation";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
-import Image from "next/image";
 import { Moon, Sun, X } from "lucide-react";
 import { Button, Tooltip } from "@heroui/react";
 import { useState, useEffect } from "react";
+import Logo from "./Logo";
 
 export default function SideBar({
   isSide,
@@ -86,24 +86,12 @@ export default function SideBar({
                 isCollapsed && "md:justify-center"
               )}
             >
-              <div className="relative group">
-                <div className="relative bg-blue-600 dark:bg-blue-500 rounded-lg p-2">
-                  <Image
-                    src="/darulkubra.svg"
-                    alt="Darul Kubra Logo"
-                    width={24}
-                    height={24}
-                    className="size-6 transition-transform duration-300 group-hover:scale-110 filter brightness-0 invert"
-                  />
+              {isCollapsed ? (
+                <div className="flex items-center justify-center">
+                  <Logo />
                 </div>
-              </div>
-              {!isCollapsed && (
-                <Link
-                  href="/"
-                  className="text-sm font-semibold text-gray-900 dark:text-gray-100"
-                >
-                  {lang === "en" ? "DARUL KUBRA" : "ዳሩል ኩብራ"}
-                </Link>
+              ) : (
+                <Logo />
               )}
             </div>
 

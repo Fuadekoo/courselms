@@ -7,7 +7,6 @@ import User from "./user";
 import { Button, Input } from "@heroui/react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import Image from "next/image";
 import { getUserName } from "@/actions/user/header";
 import Logo from "./Logo";
 import { useTheme } from "next-themes";
@@ -50,21 +49,7 @@ export default function Header({
       <div className="relative flex h-16 items-center justify-between px-4 md:px-6 gap-4">
         {/* Left Side: Logo */}
         <div className="flex items-center gap-4">
-          {/* Logo */}
-          <Link href={`/${lang}/`} className="flex items-center gap-2">
-            <div className="bg-blue-600 rounded-lg p-1.5">
-              <Image
-                src="/darulkubra.svg"
-                alt="Darulkubra Logo"
-                width={20}
-                height={20}
-                className="size-5 filter brightness-0 invert"
-              />
-            </div>
-            <span className="text-lg font-semibold text-blue-600 dark:text-blue-400">
-              {lang === "en" ? "Darulkubra" : "ዳሩልኩብራ"}
-            </span>
-          </Link>
+          <Logo />
         </div>
 
         {/* Center: Search Bar */}
