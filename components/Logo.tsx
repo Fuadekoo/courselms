@@ -23,7 +23,6 @@ export default function Logo() {
 
   return (
     <a
-      href={`/${lang}/`}
       onClick={handleLogoClick}
       className="w-fit flex gap-2 px-1 md:px-4 py-1 cursor-pointer"
     >
