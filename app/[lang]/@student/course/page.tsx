@@ -13,7 +13,7 @@ export default function Page() {
   const params = useParams<{ lang: string }>();
   const lang = params?.lang ?? "en";
   const searchParams = useSearchParams();
-  const { data, loading } = useData({
+  const { data } = useData({
     func: getCoursesForLoginCustomer,
     args: [],
   });
@@ -30,11 +30,7 @@ export default function Page() {
         <h2 className="text-2xl font-bold bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent">
           {lang === "en" ? "Available Courses" : "ያሉ ኮርሶች"}
         </h2>
-        {loading ? (
-          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-            {lang === "en" ? "Loading courses..." : "ኮርሶች በመጫን ላይ..."}
-          </div>
-        ) : !data || data.length <= 0 ? (
+        {!data || data.length <= 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             {lang === "en" ? "No courses available" : "ኮርስ የለም"}
           </div>

@@ -16,17 +16,16 @@ export default function Page() {
   const lang = params?.lang ?? "en";
   const searchParams = useSearchParams();
 
-  const { data: myCourses, loading: myCoursesLoading } = useData({
+  const { data: myCourses } = useData({
     func: getMyCoursesWithProgress,
     args: [],
   });
 
-  const { data: allCourses, loading: allCoursesLoading } = useData({
+  const { data: allCourses } = useData({
     func: getCoursesForLoginCustomer,
     args: [],
   });
 
-  const loading = myCoursesLoading || allCoursesLoading;
   const globalLoading = useGlobalLoading();
 
   if (globalLoading) {
@@ -40,11 +39,7 @@ export default function Page() {
         <h2 className="text-2xl font-bold bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent">
           {lang === "en" ? "My Courses" : "የእኔ ኮርሶች"}
         </h2>
-        {myCoursesLoading ? (
-          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-            {lang === "en" ? "Loading courses..." : "ኮርሶች በመጫን ላይ..."}
-          </div>
-        ) : !myCourses || myCourses.length === 0 ? (
+        {!myCourses || myCourses.length === 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             {lang === "en"
               ? "You haven't purchased any courses yet"
@@ -64,11 +59,7 @@ export default function Page() {
         <h2 className="text-2xl font-bold bg-gradient-to-r from-primary-500 to-primary-600 bg-clip-text text-transparent">
           {lang === "en" ? "All Courses" : "ሁሉም ኮርሶች"}
         </h2>
-        {loading ? (
-          <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-            {lang === "en" ? "Loading courses..." : "ኮርሶች በመጫን ላይ..."}
-          </div>
-        ) : !allCourses || allCourses.length <= 0 ? (
+        {!allCourses || allCourses.length <= 0 ? (
           <div className="text-center py-12 text-gray-500 dark:text-gray-400">
             {lang === "en" ? "No courses available" : "ኮርስ የለም"}
           </div>
