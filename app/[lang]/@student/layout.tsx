@@ -8,7 +8,7 @@ const studentNav = [
     url: "dashboard",
     icon: <LayoutDashboard className="size-5" />,
   },
-  // { label: "Course", url: "course", icon: <Library className="size-5" /> },
+  { label: "Course", url: "course", icon: <Library className="size-5" /> },
   {
     label: "mycourse",
     url: "mycourse",
@@ -22,5 +22,7 @@ const studentNav = [
 ];
 
 export default function Layout({ children }: { children: React.ReactNode }) {
-  return <UserLayout list={studentNav}>{children}</UserLayout>;
+  return (
+    <UserLayout list={studentNav}>{children}</UserLayout>
+  );
 }
