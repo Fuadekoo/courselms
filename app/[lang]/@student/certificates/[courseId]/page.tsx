@@ -1,25 +1,23 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useRef, useState } from "react";
 import {
   Trophy,
   Printer,
   ChevronLeft,
   ChevronRight,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
+  ArrowLeft,
 } from "lucide-react";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { useEffect } from "react";
 import QRCode from "qrcode";
 import Image from "next/image";
-import { Button, Card, CardBody } from "@heroui/react";
+import { Button } from "@heroui/react";
 import Loading from "@/components/loading";
-import { verifyCertificate } from "@/actions/student/mycourse";
+import { getCertificateDetails } from "@/actions/student/mycourse";
 import useData from "@/hooks/useData";
 
 type CertificateData = {
@@ -37,12 +35,10 @@ function EnglishCertification({
   data,
   lang,
   courseId,
-  userId,
 }: {
   data: CertificateData;
   lang: string;
   courseId: string;
-  userId: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [qrCodeData, setQrCodeData] = useState("");
@@ -50,10 +46,10 @@ function EnglishCertification({
   const issuedStr = issued.toLocaleDateString();
   const result = String(data.result || "").toLowerCase();
 
-  // Use full URL from data, or construct it if not provided
+  // Use full URL from data (server returns full URL with userId)
   const qrPath =
     data.qrcode ||
-    `https://e-learning.darelkubra.com/${lang}/verify/${courseId}/${userId}`;
+    `https://e-learning.darelkubra.com/${lang}/verify/${courseId}`;
 
   useEffect(() => {
     QRCode.toDataURL(qrPath, { width: 120 }).then(setQrCodeData);
@@ -193,12 +189,10 @@ function AmharicCertification({
   data,
   lang,
   courseId,
-  userId,
 }: {
   data: CertificateData;
   lang: string;
   courseId: string;
-  userId: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [qrCodeData, setQrCodeData] = useState("");
@@ -207,10 +201,10 @@ function AmharicCertification({
   const issuedStr = issued.toLocaleDateString();
   const result = String(data.result || "").toLowerCase();
 
-  // Use full URL from data, or construct it if not provided
+  // Use full URL from data (server returns full URL with userId)
   const qrPath =
     data.qrcode ||
-    `https://e-learning.darelkubra.com/${lang}/verify/${courseId}/${userId}`;
+    `https://e-learning.darelkubra.com/${lang}/verify/${courseId}`;
 
   useEffect(() => {
     async function generateQr() {
@@ -351,26 +345,24 @@ function AmharicCertification({
   );
 }
 
-export default function VerifyCertificatePage() {
-  const params = useParams<{
-    lang: string;
-    courseId: string;
-    userId: string;
-  }>();
+export default function CertificateDetailPage() {
+  const router = useRouter();
+  const params = useParams<{ lang: string; courseId: string }>();
   const lang = params?.lang || "en";
   const courseId = params?.courseId || "";
-  const userId = params?.userId || "";
   const certRef = useRef<HTMLDivElement>(null);
   const scrollWrapperRef = useRef<HTMLDivElement>(null);
 
   const {
-    data: verificationData,
+    data: certData,
     loading,
     error,
   } = useData({
-    func: verifyCertificate,
-    args: [courseId, userId],
+    func: getCertificateDetails,
+    args: [courseId],
   });
+
+  const cert = (certData || {}) as CertificateData;
 
   const [activeIdx, setActiveIdx] = useState(0);
   const labels = ["English", "Amharic"];
@@ -381,7 +373,7 @@ export default function VerifyCertificatePage() {
 
   const handleDownload = async () => {
     const node = certRef.current;
-    if (!node || !verificationData?.certificateData) return;
+    if (!node) return;
 
     setIsDownloading(true);
 
@@ -556,70 +548,28 @@ export default function VerifyCertificatePage() {
     );
   }
 
-  if (error) {
+  if (
+    error ||
+    !certData?.status ||
+    certData.result === "nottaken" ||
+    certData.result === "error"
+  ) {
     return (
       <div className="h-full bg-background text-foreground flex items-center justify-center p-6 overflow-auto">
-        <Card className="max-w-md w-full">
-          <CardBody className="text-center p-6">
-            <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Verification Error</h2>
-            <p className="text-slate-600 dark:text-slate-300">
-              An error occurred while verifying the certificate. Please try
-              again.
-            </p>
-          </CardBody>
-        </Card>
+        <div className="max-w-md w-full border border-slate-200 dark:border-slate-700 rounded-2xl p-6 text-center">
+          <h2 className="text-xl font-semibold mb-1">
+            Certificate Unavailable
+          </h2>
+          <p className="text-slate-600 dark:text-slate-300 mb-4">
+            Please complete the final exam first.
+          </p>
+          <Button onClick={() => router.back()} variant="flat">
+            Go Back
+          </Button>
+        </div>
       </div>
     );
   }
-
-  // Show verification status messages
-  if (!verificationData?.status) {
-    return (
-      <div className="h-full bg-background text-foreground flex items-center justify-center p-6 overflow-auto min-h-screen">
-        <Card className="max-w-md w-full">
-          <CardBody className="text-center p-6">
-            {!verificationData?.enrolled ? (
-              <>
-                <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                <h2 className="text-xl font-semibold mb-2">
-                  Certificate Not Verified
-                </h2>
-                <p className="text-slate-600 dark:text-slate-300 mb-4">
-                  {verificationData?.message ||
-                    "User is not enrolled in this course or the order is not paid."}
-                </p>
-              </>
-            ) : !verificationData?.finalExamCompleted ? (
-              <>
-                <AlertCircle className="w-16 h-16 text-amber-500 mx-auto mb-4" />
-                <h2 className="text-xl font-semibold mb-2">
-                  Final Exam Not Completed
-                </h2>
-                <p className="text-slate-600 dark:text-slate-300 mb-4">
-                  {verificationData?.message ||
-                    "The final exam has not been completed yet."}
-                </p>
-              </>
-            ) : (
-              <>
-                <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
-                <h2 className="text-xl font-semibold mb-2">
-                  Certificate Not Available
-                </h2>
-                <p className="text-slate-600 dark:text-slate-300 mb-4">
-                  {verificationData?.message ||
-                    "Certificate is not available for this course."}
-                </p>
-              </>
-            )}
-          </CardBody>
-        </Card>
-      </div>
-    );
-  }
-
-  const cert = verificationData.certificateData!;
 
   return (
     <div
@@ -718,27 +668,18 @@ export default function VerifyCertificatePage() {
       `}</style>
       <div className="w-full min-h-dvh flex flex-col justify-start items-center p-3 sm:p-4">
         <div className="w-full max-w-none min-w-0 flex flex-col">
-          {/* Verification Status Banner */}
-          <div className="mb-4 print:hidden">
-            <Card className="bg-emerald-50 dark:bg-emerald-950 border border-emerald-200 dark:border-emerald-800">
-              <CardBody className="p-4">
-                <div className="flex items-center gap-3">
-                  <CheckCircle className="w-6 h-6 text-emerald-600 dark:text-emerald-400" />
-                  <div>
-                    <h3 className="font-semibold text-emerald-900 dark:text-emerald-100">
-                      Certificate Verified
-                    </h3>
-                    <p className="text-sm text-emerald-700 dark:text-emerald-300">
-                      This certificate is authentic and verified.
-                    </p>
-                  </div>
-                </div>
-              </CardBody>
-            </Card>
-          </div>
-
           {/* Navigation */}
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 print:hidden gap-3">
+            {/* Back Button */}
+            <Button
+              onClick={() => router.back()}
+              variant="flat"
+              startContent={<ArrowLeft className="w-4 h-4" />}
+              className="w-full sm:w-auto"
+            >
+              Back
+            </Button>
+
             {/* Download button */}
             <Button
               onClick={handleDownload}
@@ -810,14 +751,12 @@ export default function VerifyCertificatePage() {
                   data={cert}
                   lang={lang}
                   courseId={courseId}
-                  userId={userId}
                 />
               ) : (
                 <AmharicCertification
                   data={cert}
                   lang={lang}
                   courseId={courseId}
-                  userId={userId}
                 />
               )}
             </div>

@@ -264,7 +264,7 @@ import prisma from "@/lib/db";
       // Assign different channels to different courses, or null if channel already used
       const channelIndex = i % channels.length;
       let channelId = channels[channelIndex]?.id || null;
-      
+
       // Check if channel is already used
       if (channelId) {
         const existingCourseWithChannel = await prisma.course.findFirst({
@@ -274,7 +274,7 @@ import prisma from "@/lib/db";
           channelId = null; // Set to null if channel is already used
         }
       }
-      
+
       const course = await prisma.course.create({
         data: {
           titleEn: courseData.titleEn,
@@ -345,6 +345,12 @@ import prisma from "@/lib/db";
       });
       createdCourses.push(course);
     }
+
+    // Find Quran Memorization course (index 3 in the courses array)
+    const quranMemorizationCourse =
+      createdCourses.find(
+        (c) => c.titleEn === "Quran Memorization - Surah Al-Fatiha to Al-Ma'un"
+      ) || createdCourses[3];
 
     // Use the first course for activities (keeping existing activity structure)
     const course = createdCourses[0];
@@ -539,6 +545,458 @@ import prisma from "@/lib/db";
       });
     }
 
+    // ========== QURAN MEMORIZATION COURSE - QUIZZES AND FINAL EXAM ==========
+
+    // Create activities with quizzes for Quran Memorization course
+    const hifzActivity1 = await prisma.activity.create({
+      data: {
+        titleEn: "Surah Al-Fatiha Memorization",
+        titleAm: "ሱራቱ አልፋቲሃ ሂፍዝ",
+        courseId: quranMemorizationCourse.id,
+        order: 1,
+        subActivity: {
+          create: [
+            {
+              titleEn: "Introduction to Surah Al-Fatiha",
+              titleAm: "ሱራቱ አልፋቲሃ መግቢያ",
+              order: 1,
+              video: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+              thumbnail: "/thumbnails/fatiha-intro.jpg",
+            },
+            {
+              titleEn: "Verse by Verse Memorization - Part 1",
+              titleAm: "አንድ ለአንድ ሂፍዝ - ክፍል 1",
+              order: 2,
+              video: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+              thumbnail: "/thumbnails/fatiha-part1.jpg",
+            },
+            {
+              titleEn: "Verse by Verse Memorization - Part 2",
+              titleAm: "አንድ ለአንድ ሂፍዝ - ክፍል 2",
+              order: 3,
+              video: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+              thumbnail: "/thumbnails/fatiha-part2.jpg",
+            },
+          ],
+        },
+        question: {
+          create: [
+            {
+              question:
+                "How many verses are in Surah Al-Fatiha? (ሱራቱ አልፋቲሃ ስንት አያት አላት?)",
+              answerExplanation:
+                "Surah Al-Fatiha consists of 7 verses and is the opening chapter of the Quran.",
+              questionOptions: {
+                create: [
+                  { option: "5 verses" },
+                  { option: "6 verses" },
+                  { option: "7 verses" },
+                  { option: "8 verses" },
+                ],
+              },
+            },
+            {
+              question:
+                "What is the meaning of 'Al-Fatiha'? ('አልፋቲሃ' ማለት ምንድን ነው?)",
+              answerExplanation:
+                "Al-Fatiha means 'The Opening' - it opens the Quran.",
+              questionOptions: {
+                create: [
+                  { option: "The Opening" },
+                  { option: "The Light" },
+                  { option: "The Guidance" },
+                  { option: "The Mercy" },
+                ],
+              },
+            },
+            {
+              question:
+                "Which verse of Al-Fatiha asks for guidance? (የአልፋቲሃ የትኛው አያት ለመምራት ይጠይቃል?)",
+              answerExplanation:
+                "Verse 6 (Ihdina as-sirata al-mustaqim) asks Allah for guidance to the straight path.",
+              questionOptions: {
+                create: [
+                  { option: "Verse 5" },
+                  { option: "Verse 6" },
+                  { option: "Verse 7" },
+                  { option: "Verse 4" },
+                ],
+              },
+            },
+          ],
+        },
+      },
+      include: { question: { include: { questionOptions: true } } },
+    });
+
+    // Set correct answers for Activity 1 Quiz
+    const hifzQ1 = hifzActivity1.question[0];
+    const hifzQ1Correct = hifzQ1.questionOptions.find(
+      (o) => o.option === "7 verses"
+    );
+    if (hifzQ1Correct) {
+      await prisma.questionAnswer.create({
+        data: { questionId: hifzQ1.id, answerId: hifzQ1Correct.id },
+      });
+    }
+
+    const hifzQ2 = hifzActivity1.question[1];
+    const hifzQ2Correct = hifzQ2.questionOptions.find(
+      (o) => o.option === "The Opening"
+    );
+    if (hifzQ2Correct) {
+      await prisma.questionAnswer.create({
+        data: { questionId: hifzQ2.id, answerId: hifzQ2Correct.id },
+      });
+    }
+
+    const hifzQ3 = hifzActivity1.question[2];
+    const hifzQ3Correct = hifzQ3.questionOptions.find(
+      (o) => o.option === "Verse 6"
+    );
+    if (hifzQ3Correct) {
+      await prisma.questionAnswer.create({
+        data: { questionId: hifzQ3.id, answerId: hifzQ3Correct.id },
+      });
+    }
+
+    // Create Activity 2 with Quiz
+    const hifzActivity2 = await prisma.activity.create({
+      data: {
+        titleEn: "Surah Al-Ikhlas Memorization",
+        titleAm: "ሱራቱ አልኢኽላስ ሂፍዝ",
+        courseId: quranMemorizationCourse.id,
+        order: 2,
+        subActivity: {
+          create: [
+            {
+              titleEn: "Introduction to Surah Al-Ikhlas",
+              titleAm: "ሱራቱ አልኢኽላስ መግቢያ",
+              order: 1,
+              video: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+              thumbnail: "/thumbnails/ikhlas-intro.jpg",
+            },
+            {
+              titleEn: "Complete Memorization of Al-Ikhlas",
+              titleAm: "አልኢኽላስን ሙሉ ሂፍዝ",
+              order: 2,
+              video: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+              thumbnail: "/thumbnails/ikhlas-complete.jpg",
+            },
+          ],
+        },
+        question: {
+          create: [
+            {
+              question:
+                "How many verses are in Surah Al-Ikhlas? (ሱራቱ አልኢኽላስ ስንት አያት አላት?)",
+              answerExplanation:
+                "Surah Al-Ikhlas has 4 verses and is equivalent to one-third of the Quran.",
+              questionOptions: {
+                create: [
+                  { option: "3 verses" },
+                  { option: "4 verses" },
+                  { option: "5 verses" },
+                  { option: "6 verses" },
+                ],
+              },
+            },
+            {
+              question:
+                "What is the main theme of Surah Al-Ikhlas? (የአልኢኽላስ ዋና ርዕስ ምንድን ነው?)",
+              answerExplanation:
+                "Surah Al-Ikhlas emphasizes the Oneness and Unity of Allah (Tawheed).",
+              questionOptions: {
+                create: [
+                  { option: "The Oneness of Allah" },
+                  { option: "Prayer" },
+                  { option: "Charity" },
+                  { option: "Patience" },
+                ],
+              },
+            },
+          ],
+        },
+      },
+      include: { question: { include: { questionOptions: true } } },
+    });
+
+    // Set correct answers for Activity 2 Quiz
+    const hifzA2Q1 = hifzActivity2.question[0];
+    const hifzA2Q1Correct = hifzA2Q1.questionOptions.find(
+      (o) => o.option === "4 verses"
+    );
+    if (hifzA2Q1Correct) {
+      await prisma.questionAnswer.create({
+        data: { questionId: hifzA2Q1.id, answerId: hifzA2Q1Correct.id },
+      });
+    }
+
+    const hifzA2Q2 = hifzActivity2.question[1];
+    const hifzA2Q2Correct = hifzA2Q2.questionOptions.find(
+      (o) => o.option === "The Oneness of Allah"
+    );
+    if (hifzA2Q2Correct) {
+      await prisma.questionAnswer.create({
+        data: { questionId: hifzA2Q2.id, answerId: hifzA2Q2Correct.id },
+      });
+    }
+
+    // Create Final Exam for Quran Memorization Course
+    const hifzFinalExam = await prisma.activity.create({
+      data: {
+        titleEn: "Final Exam - Quran Memorization",
+        titleAm: "መጨረሻ ፈተና - የቁርአን ሂፍዝ",
+        courseId: quranMemorizationCourse.id,
+        order: 99,
+        question: {
+          create: [
+            {
+              question:
+                "What is the first verse of Surah Al-Fatiha? (የሱራቱ አልፋቲሃ የመጀመሪያ አያት ምንድን ነው?)",
+              answerExplanation:
+                "The first verse is 'Bismillah ir-Rahman ir-Rahim' (In the name of Allah, the Most Gracious, the Most Merciful).",
+              questionOptions: {
+                create: [
+                  { option: "Alhamdulillahi Rabbil Alameen" },
+                  { option: "Bismillah ir-Rahman ir-Rahim" },
+                  { option: "Ihdina as-sirata al-mustaqim" },
+                  { option: "Maliki yawmi ad-deen" },
+                ],
+              },
+            },
+            {
+              question:
+                "How many Surahs are covered in this memorization course? (በዚህ የሂፍዝ ኮርስ ስንት ሱራቶች ይሸፍናሉ?)",
+              answerExplanation:
+                "This course covers the first 7 Surahs: Al-Fatiha, Al-Ikhlas, Al-Falaq, An-Nas, Al-Kafirun, An-Nasr, and Al-Ma'un.",
+              questionOptions: {
+                create: [
+                  { option: "5 Surahs" },
+                  { option: "6 Surahs" },
+                  { option: "7 Surahs" },
+                  { option: "8 Surahs" },
+                ],
+              },
+            },
+            {
+              question:
+                "What is the importance of memorizing Quran? (የቁርአን ሂፍዝ ጠቀሜታ ምንድን ነው?)",
+              answerExplanation:
+                "Memorizing Quran brings great rewards, spiritual benefits, and helps in daily prayers and worship.",
+              questionOptions: {
+                create: [
+                  { option: "It is optional and not important" },
+                  { option: "It brings great rewards and spiritual benefits" },
+                  { option: "It is only for scholars" },
+                  { option: "It has no benefits" },
+                ],
+              },
+            },
+            {
+              question:
+                "Which Surah is known as 'The Purity' or 'Sincerity'? (የትኛው ሱራት 'ንጹህነት' ወይም 'ንጹህ እምነት' ተብሎ ይጠራል?)",
+              answerExplanation:
+                "Surah Al-Ikhlas is also known as 'The Purity' or 'Sincerity' and emphasizes Tawheed.",
+              questionOptions: {
+                create: [
+                  { option: "Al-Fatiha" },
+                  { option: "Al-Ikhlas" },
+                  { option: "Al-Falaq" },
+                  { option: "An-Nas" },
+                ],
+              },
+            },
+            {
+              question:
+                "What is the best time to memorize Quran? (የቁርአን ሂፍዝ ምርጥ ጊዜ ምንድን ነው?)",
+              answerExplanation:
+                "Early morning after Fajr prayer is considered the best time for memorization as the mind is fresh.",
+              questionOptions: {
+                create: [
+                  { option: "Late night" },
+                  { option: "Early morning after Fajr" },
+                  { option: "Afternoon" },
+                  { option: "Any time is the same" },
+                ],
+              },
+            },
+            {
+              question:
+                "How should one revise memorized Surahs? (የተማሩ ሱራቶችን እንዴት መገምገም አለብን?)",
+              answerExplanation:
+                "Regular revision is essential - recite memorized Surahs in daily prayers and review them consistently.",
+              questionOptions: {
+                create: [
+                  { option: "Never revise, just memorize new ones" },
+                  {
+                    option: "Revise regularly in prayers and daily recitation",
+                  },
+                  { option: "Revise only once a month" },
+                  { option: "Revision is not necessary" },
+                ],
+              },
+            },
+          ],
+        },
+      },
+      include: { question: { include: { questionOptions: true } } },
+    });
+
+    // Set correct answers for Final Exam
+    const finalQ1 = hifzFinalExam.question[0];
+    const finalQ1Correct = finalQ1.questionOptions.find(
+      (o) => o.option === "Bismillah ir-Rahman ir-Rahim"
+    );
+    if (finalQ1Correct) {
+      await prisma.questionAnswer.create({
+        data: { questionId: finalQ1.id, answerId: finalQ1Correct.id },
+      });
+    }
+
+    const finalQ2 = hifzFinalExam.question[1];
+    const finalQ2Correct = finalQ2.questionOptions.find(
+      (o) => o.option === "7 Surahs"
+    );
+    if (finalQ2Correct) {
+      await prisma.questionAnswer.create({
+        data: { questionId: finalQ2.id, answerId: finalQ2Correct.id },
+      });
+    }
+
+    const finalQ3 = hifzFinalExam.question[2];
+    const finalQ3Correct = finalQ3.questionOptions.find(
+      (o) => o.option === "It brings great rewards and spiritual benefits"
+    );
+    if (finalQ3Correct) {
+      await prisma.questionAnswer.create({
+        data: { questionId: finalQ3.id, answerId: finalQ3Correct.id },
+      });
+    }
+
+    const finalQ4 = hifzFinalExam.question[3];
+    const finalQ4Correct = finalQ4.questionOptions.find(
+      (o) => o.option === "Al-Ikhlas"
+    );
+    if (finalQ4Correct) {
+      await prisma.questionAnswer.create({
+        data: { questionId: finalQ4.id, answerId: finalQ4Correct.id },
+      });
+    }
+
+    const finalQ5 = hifzFinalExam.question[4];
+    const finalQ5Correct = finalQ5.questionOptions.find(
+      (o) => o.option === "Early morning after Fajr"
+    );
+    if (finalQ5Correct) {
+      await prisma.questionAnswer.create({
+        data: { questionId: finalQ5.id, answerId: finalQ5Correct.id },
+      });
+    }
+
+    const finalQ6 = hifzFinalExam.question[5];
+    const finalQ6Correct = finalQ6.questionOptions.find(
+      (o) => o.option === "Revise regularly in prayers and daily recitation"
+    );
+    if (finalQ6Correct) {
+      await prisma.questionAnswer.create({
+        data: { questionId: finalQ6.id, answerId: finalQ6Correct.id },
+      });
+    }
+
+    // Update Quran Memorization course with additional information
+    await prisma.course.update({
+      where: { id: quranMemorizationCourse.id },
+      data: {
+        aboutEn: `Comprehensive Quran Memorization course covering the first 7 Surahs: Al-Fatiha, Al-Ikhlas, Al-Falaq, An-Nas, Al-Kafirun, An-Nasr, and Al-Ma'un. This course includes:
+        
+- Step-by-step memorization techniques
+- Proper pronunciation and Tajweed rules
+- Understanding the meaning of each Surah
+- Regular quizzes to test your progress
+- Final exam to certify your memorization
+- Tips for long-term retention
+- Revision strategies
+
+Perfect for beginners who want to start their Hifz journey with the most commonly recited Surahs.`,
+        aboutAm: `የመጀመሪያ 7 ሱራቶችን የሚሸፍን የቁርአን ሂፍዝ ሙሉ ኮርስ: አልፋቲሃ፣ አልኢኽላስ፣ አልፋለቅ፣ አንናስ፣ አልካፊሩን፣ አንናስር፣ እና አልማዑን። ይህ ኮርስ ያካትታል:
+
+- አንድ ለአንድ የሂፍዝ ቴክኒኮች
+- ትክክለኛ ንባብ እና የተጅዊድ ህጎች
+- የእያንዳንዱ ሱራት ትርጉም ማስተዋል
+- የግምገማ ፈተናዎች
+- የመጨረሻ ፈተና ለማረጋገጥ
+- ለረጅም ጊዜ ለመቆየት ምክሮች
+- የግምገማ ስትራቴጂዎች
+
+ለጀማሪዎች በጣም ተደጋጋሚ ሱራቶችን በመጀመር የሂፍዝ ጉዞዎን ለመጀመር ተስማሚ።`,
+        requirement: {
+          deleteMany: {},
+          createMany: {
+            data: [
+              {
+                requirementEn:
+                  "Basic knowledge of Arabic letters and pronunciation",
+                requirementAm: "የአረብኛ ፊደላት እና ንባብ መሰረታዊ እውቀት",
+              },
+              {
+                requirementEn: "Ability to read Quranic text (even if slowly)",
+                requirementAm: "የቁርአን ጽሑፍን ማንበብ ችሎታ (ዝምታ ቢሆንም)",
+              },
+              {
+                requirementEn:
+                  "Dedication to daily practice (minimum 30 minutes)",
+                requirementAm: "ወደ ዕለታዊ ልምምድ ቁርጠኝነት (ዝቅተኛ 30 ደቂቃ)",
+              },
+              {
+                requirementEn:
+                  "Commitment to complete the course and take the final exam",
+                requirementAm: "ኮርሱን ለማጠናቀቅ እና የመጨረሻ ፈተና ለመውሰድ ቁርጠኝነት",
+              },
+              {
+                requirementEn: "Regular revision of memorized Surahs",
+                requirementAm: "የተማሩ ሱራቶችን መደበኛ ግምገማ",
+              },
+            ],
+          },
+        },
+        courseFor: {
+          deleteMany: {},
+          createMany: {
+            data: [
+              {
+                courseForEn:
+                  "Beginners starting their Quran memorization journey",
+                courseForAm: "የቁርአን ሂፍዝ ጉዞዎን የሚጀምሩ ጀማሪዎች",
+              },
+              {
+                courseForEn:
+                  "Muslims who want to memorize commonly recited Surahs for prayers",
+                courseForAm: "ለጸሎት ተደጋጋሚ ሱራቶችን ለመማር የሚፈልጉ ሙስሊሞች",
+              },
+              {
+                courseForEn:
+                  "Parents teaching their children Quran memorization",
+                courseForAm: "ልጆቻቸውን የቁርአን ሂፍዝ የሚያስተምሩ ወላጆች",
+              },
+              {
+                courseForEn: "Students preparing for Quran competitions",
+                courseForAm: "ለየቁርአን ውድድር የሚዘጋጁ ተማሪዎች",
+              },
+              {
+                courseForEn:
+                  "Anyone seeking spiritual growth through Quran memorization",
+                courseForAm: "በቁርአን ሂፍዝ በኩል መንፈሳዊ እድገትን የሚፈልጉ ሁሉ",
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    console.log(
+      "✅ Quran Memorization Course with Quizzes and Final Exam Created Successfully!"
+    );
     console.log("SEED SUCCESS");
   } catch (error) {
     console.log("SEED ERROR :: ", error);
