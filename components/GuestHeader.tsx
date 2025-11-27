@@ -69,7 +69,6 @@ export default function GuestHeader() {
     if (document.documentElement.lang !== nextLang) {
       document.documentElement.lang = nextLang;
     }
-    // Navigate to the same page under the new lang (browser will reload)
     window.location.href = `/${nextLang}/${(pathname ?? "")
       .split("/")
       .slice(2)
@@ -79,7 +78,14 @@ export default function GuestHeader() {
   return (
     <>
       {/* Header/Navbar */}
-      <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <header
+        className="sticky top-0 z-40 w-full border-b backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-colors"
+        style={{
+          background:
+            "linear-gradient(90deg, rgba(15,23,42,0.85) 0%, rgba(30,58,138,0.85) 50%, rgba(15,23,42,0.85) 100%)",
+        }}
+        data-lang={lang}
+      >
         <div className="container flex h-16 items-center justify-between px-4 mx-auto max-w-7xl">
           {/* Left: Menu Toggle (Mobile) + Logo */}
           <div className="flex items-center gap-3">
@@ -105,14 +111,21 @@ export default function GuestHeader() {
                 <Link
                   key={item.url}
                   href={`/${lang}/${item.url}`}
-                  className={`text-sm font-medium transition-colors hover:text-primary relative py-2 ${
-                    isActive ? "text-primary" : "text-foreground/60"
+                  aria-label={item.label}
+                  className={`relative text-sm font-semibold tracking-wide transition-colors group ${
+                    isActive
+                      ? "text-primary"
+                      : "text-foreground/60 hover:text-primary"
                   }`}
                 >
-                  {item.label}
-                  {isActive && (
-                    <span className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary rounded-full" />
-                  )}
+                  <span className="relative z-10">{item.label}</span>
+                  <span
+                    className={`absolute left-0 -bottom-1 h-[3px] rounded-full bg-primary transition-all duration-300 ${
+                      isActive
+                        ? "w-full shadow-[0_0_8px_rgba(59,130,246,0.7)]"
+                        : "w-0 group-hover:w-full"
+                    }`}
+                  />
                 </Link>
               );
             })}
@@ -125,26 +138,35 @@ export default function GuestHeader() {
               isIconOnly
               variant="light"
               size="sm"
+              aria-label="Toggle theme"
               onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-              className="hover:bg-default-100"
+              className="hover:bg-default-100 relative overflow-hidden"
             >
+              <span className="absolute inset-0 opacity-0 hover:opacity-10 bg-gradient-to-br from-primary/40 to-transparent transition-opacity" />
               {theme === "dark" ? (
-                <Sun className="h-5 w-5" />
+                <Sun className="h-5 w-5 transition-transform duration-300 rotate-0" />
               ) : (
-                <Moon className="h-5 w-5" />
+                <Moon className="h-5 w-5 transition-transform duration-300 rotate-0" />
               )}
             </Button>
 
             {/* Language Switcher */}
-            <Link href={targetHref} onClick={onLangClick}>
+            <Link
+              href={targetHref}
+              onClick={onLangClick}
+              aria-label="Switch language"
+            >
               <Button
                 isIconOnly
                 color="primary"
                 variant="flat"
                 size="sm"
-                className="font-semibold"
+                className="font-semibold relative overflow-visible group"
               >
-                {lang == "en" ? "አማ" : "En"}
+                <span className="absolute -inset-2 rounded-full bg-primary/20 opacity-0 group-hover:opacity-100 blur-sm transition-opacity" />
+                <span className="flex items-center justify-center w-6">
+                  {lang == "en" ? "አማ" : "En"}
+                </span>
               </Button>
             </Link>
 
