@@ -7,7 +7,7 @@ export type QualityLevel = "auto" | "HD" | "720p" | "360p" | "144p";
 
 interface QualityControlProps {
   currentQuality: QualityLevel;
-  availableLevels: QualityLevel[];
+  availableLevels?: QualityLevel[]; // make optional to avoid undefined map errors
   onQualityChange: (quality: QualityLevel) => void;
   networkSpeed?: number; // in Mbps
   className?: string;
@@ -37,6 +37,10 @@ export default function QualityControl({
   className,
 }: QualityControlProps) {
   const [isOpen, setIsOpen] = useState(false);
+  // Fallback to a safe default if levels are not provided
+  const safeLevels: QualityLevel[] = availableLevels && availableLevels.length > 0
+    ? availableLevels
+    : ["auto", "HD", "720p", "360p", "144p"];
 
   // Auto-detect network speed and suggest quality
   // This is handled by the HLS player component itself
@@ -73,7 +77,7 @@ export default function QualityControl({
             onClick={() => setIsOpen(false)}
           />
           <div className="absolute bottom-full right-0 mb-2 z-50 bg-black/95 rounded-lg shadow-lg min-w-[150px] overflow-hidden">
-            {availableLevels.map((level) => (
+            {safeLevels.map((level) => (
               <button
                 key={level}
                 onClick={() => {
