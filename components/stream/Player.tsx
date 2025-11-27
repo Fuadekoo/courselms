@@ -13,6 +13,7 @@ import { VideoItem } from "../../types";
 import { cn } from "@/lib/utils";
 import "./VideoProtection.css";
 import Hls from "hls.js";
+import type { QualityLevel } from "./QualityControl";
 
 interface PlayerProps {
   src: string;
@@ -58,7 +59,9 @@ function Player({
   const [videoAvailable, setVideoAvailable] = useState(!!src);
   const [hasStartedPlaying, setHasStartedPlaying] = useState(false); // Track if video has ever started
   const [secureVideoUrl, setSecureVideoUrl] = useState<string>("");
-  const [currentQuality, setCurrentQuality] = useState<string>("auto");
+  const [currentQuality, setCurrentQuality] = useState<QualityLevel>(
+    "auto" as QualityLevel
+  );
   const [showSettings, setShowSettings] = useState(false);
   const [settingsView, setSettingsView] = useState<
     "menu" | "quality" | "speed"
@@ -282,24 +285,25 @@ function Player({
 
   // If qualities are provided and NOT HLS, use the selected quality URL
   if (qualities.length > 0 && !isHlsSource) {
-    if (currentQuality === "auto") {
+    const cq = toQualityValue(currentQuality);
+    if (cq === "auto") {
       // Use the default src/secureVideoUrl for auto
       videoSrc = secureVideoUrl || src;
     } else {
-      const selectedQuality = qualities.find((q) => q.value === currentQuality);
+      const selectedQuality = qualities.find((q) => q.value === cq);
       if (selectedQuality) {
         if (type === "url") {
           // For URL type, use the quality URL directly
           videoSrc = selectedQuality.url;
         } else if (type === "local") {
           // For local videos, use the secure URL from qualityUrls cache
-          if (qualityUrls[currentQuality]) {
-            videoSrc = qualityUrls[currentQuality];
+          if (qualityUrls[cq]) {
+            videoSrc = qualityUrls[cq];
           } else {
             // Fallback: try to generate secure URL on the fly
             generateSecureUrl(selectedQuality.url).then((url) => {
               if (url) {
-                setQualityUrls((prev) => ({ ...prev, [currentQuality]: url }));
+                setQualityUrls((prev) => ({ ...prev, [cq]: url }));
                 videoSrc = url;
               }
             });
@@ -471,18 +475,15 @@ function Player({
         setCurrentHlsLevel(hls.currentLevel);
 
         // If user selected a specific quality, set it (otherwise use auto/adaptive)
-        if (currentQuality !== "auto" && hls.levels.length > 0) {
+        const cq = toQualityValue(currentQuality);
+        if (cq !== "auto" && hls.levels.length > 0) {
           const levelIndex = hls.levels.findIndex((level) => {
             const height = level.height || 0;
-            if (currentQuality === "1080p" && height >= 1080) return true;
-            if (currentQuality === "720p" && height >= 720 && height < 1080)
-              return true;
-            if (currentQuality === "480p" && height >= 480 && height < 720)
-              return true;
-            if (currentQuality === "360p" && height >= 360 && height < 480)
-              return true;
-            if (currentQuality === "270p" && height >= 270 && height < 360)
-              return true;
+            if (cq === "1080p" && height >= 1080) return true;
+            if (cq === "720p" && height >= 720 && height < 1080) return true;
+            if (cq === "480p" && height >= 480 && height < 720) return true;
+            if (cq === "360p" && height >= 360 && height < 480) return true;
+            if (cq === "270p" && height >= 270 && height < 360) return true;
             return false;
           });
 
@@ -783,26 +784,27 @@ function Player({
     if (video) video.playbackRate = newSpeed;
   };
 
-  const handleQualityChange = async (quality: string) => {
+  const handleQualityChange = async (quality: QualityLevel) => {
     const video = videoRef.current;
     if (!video) return;
 
     // Handle HLS quality switching
     if (isHlsSource && hlsRef.current) {
-      if (quality === "auto") {
+      const q = toQualityValue(quality);
+      if (q === "auto") {
         // Enable adaptive bitrate streaming
         hlsRef.current.currentLevel = -1;
         setCurrentHlsLevel(-1);
-        setCurrentQuality("auto");
+        setCurrentQuality("auto" as QualityLevel);
       } else {
         // Find matching HLS level
         const levelIndex = hlsRef.current.levels.findIndex((level) => {
           const height = level.height || 0;
-          if (quality === "1080p" && height >= 1080) return true;
-          if (quality === "720p" && height >= 720 && height < 1080) return true;
-          if (quality === "480p" && height >= 480 && height < 720) return true;
-          if (quality === "360p" && height >= 360 && height < 480) return true;
-          if (quality === "270p" && height >= 270 && height < 360) return true;
+          if (q === "1080p" && height >= 1080) return true;
+          if (q === "720p" && height >= 720 && height < 1080) return true;
+          if (q === "480p" && height >= 480 && height < 720) return true;
+          if (q === "360p" && height >= 360 && height < 480) return true;
+          if (q === "270p" && height >= 270 && height < 360) return true;
           return false;
         });
 
@@ -814,28 +816,26 @@ function Player({
           // Fallback to auto if level not found
           hlsRef.current.currentLevel = -1;
           setCurrentHlsLevel(-1);
-          setCurrentQuality("auto");
+          setCurrentQuality("auto" as QualityLevel);
         }
       }
       return;
     }
 
     // Handle non-HLS quality switching
-    // If switching to a quality that needs secure URL generation
-    if (type === "local" && quality !== "auto") {
-      const selectedQuality = qualities.find((q) => q.value === quality);
-      if (selectedQuality && !qualityUrls[quality]) {
+    const q = toQualityValue(quality);
+    if (type === "local" && q !== "auto") {
+      const selectedQuality = qualities.find((qq) => qq.value === q);
+      if (selectedQuality && !qualityUrls[q]) {
         // Generate secure URL for this quality
         const secureUrl = await generateSecureUrl(selectedQuality.url);
         if (secureUrl) {
-          setQualityUrls((prev) => ({ ...prev, [quality]: secureUrl }));
+          setQualityUrls((prev) => ({ ...prev, [q]: secureUrl }));
         }
       }
     }
 
-    // Update quality - this will trigger currentSrc to update via the computed value
-    // The video source will be updated by the useEffect that watches currentSrc
-    // The playback state will be saved and restored by that same useEffect
+    // Update quality
     setCurrentQuality(quality);
     setIsLoading(true);
   };

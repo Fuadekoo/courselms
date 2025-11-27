@@ -9,6 +9,8 @@ import { UIProviders } from "@/components/heroUIProvider";
 import WatermarkSync from "@/components/WatermarkSync";
 import TopLoadingBar from "@/components/TopLoadingBar";
 // import DevToolsProtection from "@/components/DevToolsProtection";
+import { cookies } from "next/headers";
+import LanguageGate from "@/components/i18n/LanguageGate";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -51,10 +53,12 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await auth();
+  const cookieStore = await cookies(); // await the dynamic API
+  const lang = cookieStore.get("local_lang")?.value || "en";
 
   return (
     <SessionProvider session={session}>
-      <html lang="en" suppressHydrationWarning className="scroll-smooth">
+      <html lang={lang} suppressHydrationWarning className="scroll-smooth">
         <body
           className={`${geistSans.variable} ${geistMono.variable} font-sans antialiased bg-background text-foreground transition-colors duration-300`}
         >
@@ -114,6 +118,8 @@ export default async function RootLayout({
               </div>
             </ThemeProvider>
           </UIProviders>
+          {/* Ensure language is set on first visit */}
+          <LanguageGate />
         </body>
       </html>
     </SessionProvider>

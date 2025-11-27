@@ -52,6 +52,30 @@ export default function GuestHeader() {
     [lang]
   );
 
+  // Build target href exactly like your UI snippet
+  const targetHref = `/${lang == "en" ? "am" : "en"}/${(pathname ?? "")
+    .split("/")
+    .slice(2)
+    .join("/")}`;
+
+  // Persist cookie + sync html lang, then navigate to targetHref
+  const onLangClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    const nextLang: "en" | "am" = lang === "en" ? "am" : "en";
+    const expires = new Date(Date.now() + 365 * 864e5).toUTCString();
+    document.cookie = `local_lang=${encodeURIComponent(
+      nextLang
+    )}; expires=${expires}; path=/; SameSite=Lax`;
+    if (document.documentElement.lang !== nextLang) {
+      document.documentElement.lang = nextLang;
+    }
+    // Navigate to the same page under the new lang (browser will reload)
+    window.location.href = `/${nextLang}/${(pathname ?? "")
+      .split("/")
+      .slice(2)
+      .join("/")}`;
+  };
+
   return (
     <>
       {/* Header/Navbar */}
@@ -112,12 +136,7 @@ export default function GuestHeader() {
             </Button>
 
             {/* Language Switcher */}
-            <Link
-              href={`/${lang == "en" ? "am" : "en"}/${(pathname ?? "")
-                .split("/")
-                .slice(2)
-                .join("/")}`}
-            >
+            <Link href={targetHref} onClick={onLangClick}>
               <Button
                 isIconOnly
                 color="primary"
