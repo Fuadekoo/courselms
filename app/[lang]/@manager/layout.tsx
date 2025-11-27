@@ -14,6 +14,8 @@ import {
   ShieldEllipsis,
   User,
   UserPen,
+  Bell,
+  Percent,
 } from "lucide-react";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import useData from "@/hooks/useData";
@@ -79,6 +81,16 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           label: "Course Materials",
           url: "courseMaterials",
           icon: <BookOpen className="size-5" />,
+        },
+        {
+          label: "Public Announcements",
+          url: "publicAnnouncment",
+          icon: <Bell className="size-5" />,
+        },
+        {
+          label: "Periodic Discounts",
+          url: "periodicDiscount",
+          icon: <Percent className="size-5" />,
         },
         // { label: "Student", url: "student" },
         // { label: "Ustaz", url: "ustaz" },

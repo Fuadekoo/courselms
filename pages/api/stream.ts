@@ -39,7 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       res.setHeader('Content-Type', contentType);
       res.setHeader('Cache-Control', 'public, max-age=3600');
       res.send(fileBuffer);
-    } catch (fileError) {
+    } catch {
       console.error('File not found:', filePath);
       return res.status(404).json({ error: 'File not found' });
     }

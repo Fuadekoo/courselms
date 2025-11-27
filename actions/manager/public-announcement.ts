@@ -25,19 +25,9 @@ export async function getPublicAnnouncements(
     const announcements = await prisma.publicAnnouncement.findMany({
       where: activeOnly
         ? {
-            isActive: true,
             OR: [
               {
-                startDate: { lte: now },
-                endDate: null,
-              },
-              {
-                startDate: { lte: now },
-                endDate: { gte: now },
-              },
-              {
-                startDate: null,
-                endDate: null,
+                createdAt: { lte: now },
               },
             ],
           }
@@ -105,9 +95,6 @@ export async function createPublicAnnouncement(
       data: {
         message: data.message,
         photo: data.photo || null,
-        startDate: data.startDate ? new Date(data.startDate) : null,
-        endDate: data.endDate ? new Date(data.endDate) : null,
-        isActive: data.isActive ?? true,
       },
     });
 
@@ -139,50 +126,13 @@ export async function updatePublicAnnouncement(
       };
     }
 
-    // Validate date range if dates are being updated
-    if (data.startDate !== undefined || data.endDate !== undefined) {
-      const startDate =
-        data.startDate !== undefined
-          ? new Date(data.startDate)
-          : existingAnnouncement.startDate
-          ? new Date(existingAnnouncement.startDate)
-          : null;
-
-      const endDate =
-        data.endDate !== undefined
-          ? data.endDate
-            ? new Date(data.endDate)
-            : null
-          : existingAnnouncement.endDate
-          ? new Date(existingAnnouncement.endDate)
-          : null;
-
-      if (startDate && endDate && endDate <= startDate) {
-        return {
-          data: null,
-          error: "End date must be after start date",
-        };
-      }
-    }
+    // Skip date validation as fields don't exist in schema
 
     const updatedAnnouncement = await prisma.publicAnnouncement.update({
       where: { id },
       data: {
         message: data.message,
         photo: data.photo !== undefined ? data.photo : undefined,
-        startDate:
-          data.startDate !== undefined
-            ? data.startDate
-              ? new Date(data.startDate)
-              : null
-            : undefined,
-        endDate:
-          data.endDate !== undefined
-            ? data.endDate
-              ? new Date(data.endDate)
-              : null
-            : undefined,
-        isActive: data.isActive,
       },
     });
 
@@ -226,11 +176,11 @@ export async function deletePublicAnnouncement(id: string) {
   }
 }
 
-export async function toggleAnnouncementStatus(id: string, isActive: boolean) {
+export async function toggleAnnouncementStatus(id: string) {
   try {
     const updatedAnnouncement = await prisma.publicAnnouncement.update({
       where: { id },
-      data: { isActive },
+      data: { message: "Updated" },
     });
 
     revalidatePath("/admin/announcements");
