@@ -58,13 +58,13 @@ export const courseSchema = z.object({
       })
     )
     .optional(),
-  price: z.coerce.number({ message: "" }).gt(0, "price must be greater than 0"),
+  price: z.coerce.number({ message: "" }).gte(0, "price must be 0 or greater"),
   dolarPrice: z.coerce
     .number({ message: "" })
-    .gt(0, "dollar price must be greater than 0"),
+    .gte(0, "dollar price must be 0 or greater"),
   birrPrice: z.coerce
     .number({ message: "" })
-    .gt(0, "birr price must be greater than 0"),
+    .gte(0, "birr price must be 0 or greater"),
   level: z.enum(["beginner", "intermediate", "advanced"], { message: "" }),
   language: z.string({ message: "" }).nonempty("language is required"),
   duration: z
@@ -78,13 +78,13 @@ export const courseSchema = z.object({
   }),
   instructorRate: z.coerce
     .number({ message: "" })
-    .gt(0, "instructor rate must be greater than 0"),
+    .gte(0, "instructor rate must be 0 or greater"),
   sellerRate: z.coerce
     .number({ message: "" })
-    .gt(0, "seller rate must be greater than 0"),
+    .gte(0, "seller rate must be 0 or greater"),
   affiliateRate: z.coerce
     .number({ message: "" })
-    .gt(0, "affiliate rate must be greater than 0"),
+    .gte(0, "affiliate rate must be 0 or greater"),
   requirement: z.array(
     z.object({
       requirementEn: z

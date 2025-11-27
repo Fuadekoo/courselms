@@ -61,9 +61,6 @@ export default function Page() {
     setVideoPreviewUrl,
     setIsDataLoaded,
     setFinalExamQuestions,
-    addFinalExamQuestion,
-    removeFinalExamQuestion,
-    updateFinalExamQuestion,
     reset: resetStore,
   } = useCourseRegistrationStore();
   
@@ -82,9 +79,9 @@ export default function Page() {
         instructorId: "",
         thumbnail: "",
         video: "",
-        price: 0,
-        dolarPrice: 0,
-        birrPrice: 0,
+        price: 0, // Free course
+        dolarPrice: 0, // Free course
+        birrPrice: 0, // Free course
         level: "beginner",
         duration: "01:09",
         language: "Amharic",
@@ -526,7 +523,7 @@ export default function Page() {
     },
     {
       label: lang === "en" ? "Pricing" : "ዋጋ",
-      completed: !!(watch("dolarPrice") && watch("birrPrice")),
+      completed: watch("dolarPrice") !== null && watch("dolarPrice") !== undefined && watch("birrPrice") !== null && watch("birrPrice") !== undefined,
     },
     {
       label: lang === "en" ? "Media" : "ሚዲያ",
@@ -1048,8 +1045,6 @@ export default function Page() {
                   setValue("finalExamQuestions", updated, {
                     shouldValidate: false,
                   });
-                  // Also update store
-                  addFinalExamQuestion(questionReference);
                 }
               }}
               removeFromFinalExam={(activityIndex, questionIndex) => {
@@ -1064,15 +1059,6 @@ export default function Page() {
                 setValue("finalExamQuestions", updated, {
                   shouldValidate: false,
                 });
-                // Find and remove from store
-                const indexToRemove = finalExamQuestions.findIndex(
-                  (q) =>
-                    q.sourceActivityIndex === activityIndex &&
-                    q.sourceQuestionIndex === questionIndex
-                );
-                if (indexToRemove >= 0) {
-                  removeFinalExamQuestion(indexToRemove);
-                }
               }}
               finalExamQuestions={finalExamQuestions}
             />
@@ -1152,7 +1138,6 @@ export default function Page() {
                   onAdd={(question) => {
                     const updated = [...finalExamQuestions, question];
                     setFinalExamQuestions(updated);
-                    addFinalExamQuestion(question);
                     setValue("finalExamQuestions", updated, {
                       shouldValidate: false,
                     });
@@ -1161,7 +1146,6 @@ export default function Page() {
                     const updated = [...finalExamQuestions];
                     updated[index] = question;
                     setFinalExamQuestions(updated);
-                    updateFinalExamQuestion(index, question);
                     setValue("finalExamQuestions", updated, {
                       shouldValidate: false,
                     });
@@ -1171,7 +1155,6 @@ export default function Page() {
                       (_, i) => i !== index
                     );
                     setFinalExamQuestions(updated);
-                    removeFinalExamQuestion(index);
                     setValue("finalExamQuestions", updated, {
                       shouldValidate: false,
                     });
@@ -1266,8 +1249,8 @@ export default function Page() {
                         !watch("titleEn") ||
                         !watch("titleAm") ||
                         !watch("instructorId") ||
-                        !watch("dolarPrice") ||
-                        !watch("birrPrice")
+                        watch("dolarPrice") === null || watch("dolarPrice") === undefined ||
+                        watch("birrPrice") === null || watch("birrPrice") === undefined
                       }
                       onPress={() => {
                         // Check if form is incomplete and scroll to first missing field
@@ -1288,8 +1271,8 @@ export default function Page() {
                         const isIncomplete = !titleEn || titleEn.trim() === '' ||
                                            !titleAm || titleAm.trim() === '' ||
                                            !instructorId || instructorId.trim() === '' ||
-                                           !dolarPrice || dolarPrice <= 0 ||
-                                           !birrPrice || birrPrice <= 0;
+                                           dolarPrice === null || dolarPrice === undefined ||
+                                           birrPrice === null || birrPrice === undefined;
                         
                         console.log("🔍 Is Form Incomplete:", isIncomplete);
                         
@@ -1447,8 +1430,8 @@ export default function Page() {
                             const isIncomplete = !titleEn || titleEn.trim() === '' ||
                                                !titleAm || titleAm.trim() === '' ||
                                                !instructorId || instructorId.trim() === '' ||
-                                               !dolarPrice || dolarPrice <= 0 ||
-                                               !birrPrice || birrPrice <= 0;
+                                               dolarPrice === null || dolarPrice === undefined ||
+                                               birrPrice === null || birrPrice === undefined;
                             
                             if (isIncomplete) {
                               return lang === "en" ? "Complete Required Fields" : "የሚያስፈልጉ መስኮች ይሙሉ";

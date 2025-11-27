@@ -34,6 +34,9 @@ export default function Page() {
     { isOpen, onOpenChange } = useDisclosure();
   const router = useRouter();
 
+  // Check if course is free
+  const isFree = data && data.birrPrice === 0 && data.dolarPrice === 0;
+
   const loginRedirect = () => {
     // Redirect to login page with course ID and affiliate code
     const affiliateCode = searchParams?.get("code") || "";
@@ -63,8 +66,18 @@ export default function Page() {
             <CourseAbout data={lang == "en" ? data.aboutEn : data.aboutAm} />
             <CourseMainDescription
               btn={
-                <Button onPress={loginRedirect} variant="solid" color="primary">
-                  {lang == "en" ? "Continue Learning" : "መማርዎን ይቀጥሉ"}
+                <Button
+                  onPress={isFree ? onOpenChange : loginRedirect}
+                  variant="solid"
+                  color={isFree ? "success" : "primary"}
+                >
+                  {isFree
+                    ? lang == "en"
+                      ? "Start Free Course"
+                      : "ነፃ ኮርስ ይጀምሩ"
+                    : lang == "en"
+                    ? "Continue Learning"
+                    : "መማርዎን ይቀጥሉ"}
                 </Button>
               }
               data={[
@@ -81,7 +94,9 @@ export default function Page() {
                 {
                   icon: <Clock className="" />,
                   label: lang == "en" ? "Duration" : "ቆይታ",
-                  value: data.duration || (lang == "en" ? "Not specified" : "አልተገለጸም"),
+                  value:
+                    data.duration ||
+                    (lang == "en" ? "Not specified" : "አልተገለጸም"),
                 },
                 {
                   icon: <Logs className="" />,

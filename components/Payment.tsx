@@ -130,6 +130,13 @@ export default function Payment({
       if (result.status && result.phoneNumber) {
         setUserPhoneNumber(result.phoneNumber);
         setValue("phoneNumber", result.phoneNumber);
+        
+        // Check if course is free (all prices are 0)
+        const isFree = birrPrice === 0 && dolarPrice === 0;
+        if (isFree) {
+          // Directly enroll user in free course
+          await handleFreeEnrollment();
+        }
       } else {
         setAuthError(
           lang === "en"
@@ -146,6 +153,39 @@ export default function Payment({
       );
     } finally {
       setIsLoadingUser(false);
+    }
+  };
+
+  const handleFreeEnrollment = async () => {
+    try {
+      // Create a free enrollment by calling the payment verification API with a mock transaction
+      const response = await fetch('/api/update-order-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseId: id,
+          phoneNumber: userPhoneNumber,
+          affiliateCode: affiliateCode || undefined,
+          amount: 0,
+          currency: 'FREE',
+          status: 'success',
+          tx_ref: `free_${Date.now()}_${id}`
+        })
+      });
+      
+      if (response.ok) {
+        onOpenChange(); // Close modal
+        router.push(`/${lang}/mycourse/${id}`);
+      } else {
+        throw new Error('Failed to enroll in free course');
+      }
+    } catch (error) {
+      console.error('Error enrolling in free course:', error);
+      setAuthError(
+        lang === "en"
+          ? "Failed to enroll in free course"
+          : "በነፃ ኮርስ ውስጥ መመዝገብ አልተሳካም"
+      );
     }
   };
 
@@ -187,22 +227,69 @@ export default function Payment({
 
   const isPending = chapaPending || stripePending;
 
+  // Check if course is free
+  const isFree = price === 0 && birrPrice === 0 && dolarPrice === 0;
+
   return (
     <>
-      {/* Payment Method Selector */}
-      <PaymentMethodSelector
-        isOpen={showMethodSelector}
-        onOpenChange={() => {
-          setShowMethodSelector(false);
-          onOpenChange();
-        }}
-        onChapaSelect={handleChapaSelect}
-        onStripeSelect={handleStripeSelect}
-        title={title}
-        price={price}
-        birrPrice={birrPrice}
-        dolarPrice={dolarPrice}
-      />
+      {/* Free Course Enrollment Modal */}
+      {isFree && (
+        <Modal
+          isOpen={isOpen}
+          onClose={onOpenChange}
+          placement="top-center"
+        >
+          <ModalContent>
+            <ModalHeader>
+              {lang === "en" ? "Free Course" : "ነፃ ኮርስ"}
+            </ModalHeader>
+            <ModalBody>
+              <p className="text-center text-lg font-semibold text-green-600">
+                {lang === "en" ? "This course is free!" : "ይህ ኮርስ ነፃ ነው!"}
+              </p>
+              <p className="text-center">
+                {lang === "en" 
+                  ? "Click below to start learning immediately."
+                  : "ወዲያውኑ መማር ለመጀመር ከታች ይጫኑ።"}
+              </p>
+            </ModalBody>
+            <ModalFooter>
+              <Button color="danger" variant="light" onPress={onOpenChange}>
+                {lang === "en" ? "Cancel" : "ተወው"}
+              </Button>
+              <Button
+                color="success"
+                onPress={() => {
+                  if (userPhoneNumber) {
+                    handleFreeEnrollment();
+                  } else {
+                    router.push(`/${lang}/login`);
+                  }
+                }}
+              >
+                {lang === "en" ? "Start Learning" : "መማር ይጀምሩ"}
+              </Button>
+            </ModalFooter>
+          </ModalContent>
+        </Modal>
+      )}
+
+      {/* Payment Method Selector - Only show for paid courses */}
+      {!isFree && (
+        <PaymentMethodSelector
+          isOpen={showMethodSelector}
+          onOpenChange={() => {
+            setShowMethodSelector(false);
+            onOpenChange();
+          }}
+          onChapaSelect={handleChapaSelect}
+          onStripeSelect={handleStripeSelect}
+          title={title}
+          price={price}
+          birrPrice={birrPrice}
+          dolarPrice={dolarPrice}
+        />
+      )}
 
       {/* Auth Error Message */}
       {authError && (
