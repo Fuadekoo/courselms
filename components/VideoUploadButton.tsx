@@ -70,7 +70,11 @@ function VideoUploadButton({
   };
 
   const handleFileSelect = async (file: File) => {
-    if (file.type.startsWith("video/")) {
+    // Allow video files and HLS manifest files (.m3u8)
+    const isVideo = file.type.startsWith("video/");
+    const isHlsManifest = file.name.endsWith(".m3u8") || file.type === "application/vnd.apple.mpegurl" || file.type === "application/x-mpegURL";
+    
+    if (isVideo || isHlsManifest) {
       // Reset states for new upload
       setUploadProgress(0);
       setCurrentChunk(0);
@@ -81,7 +85,7 @@ function VideoUploadButton({
       await handleChunkedUpload(file);
     } else {
       alert(
-        lang === "en" ? "Please select a video file" : "እባክዎ የቪዲዮ ፋይል ይምረጡ"
+        lang === "en" ? "Please select a video file or HLS manifest (.m3u8)" : "እባክዎ የቪዲዮ ፋይል ወይም HLS manifest (.m3u8) ይምረጡ"
       );
     }
   };
@@ -115,7 +119,7 @@ function VideoUploadButton({
       <input
         ref={fileInputRef}
         type="file"
-        accept="video/*"
+        accept="video/*,.m3u8,application/vnd.apple.mpegurl,application/x-mpegURL"
         onChange={(e) => {
           const file = e.target.files?.[0];
           if (file) {
@@ -244,7 +248,7 @@ function VideoUploadButton({
             <div className="flex flex-col items-center space-y-3">
               <div className="flex items-center space-x-2 text-xs text-gray-500">
                 <span className="px-2 py-1 bg-gray-100 rounded">
-                  {lang === "en" ? "MP4, AVI, MOV" : "MP4፣ AVI፣ MOV"}
+                  {lang === "en" ? "MP4, AVI, MOV, M3U8" : "MP4፣ AVI፣ MOV፣ M3U8"}
                 </span>
                 <span>•</span>
                 <span>{lang === "en" ? "Max 100MB" : "ከ100MB በታች"}</span>

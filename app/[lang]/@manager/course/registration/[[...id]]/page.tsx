@@ -315,7 +315,8 @@ export default function Page() {
             body: formData,
           });
         }
-        data.video = uuidName.replace(/\.[^/.]+$/, "") + ".mp4";
+        // Preserve original file extension (important for HLS .m3u8 files)
+        data.video = uuidName;
         console.log("✅ Video processed:", data.video);
       } else {
         console.log("📹 No new video file selected, keeping existing video");

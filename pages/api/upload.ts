@@ -3,6 +3,7 @@ import { NextApiRequest, NextApiResponse } from "next";
 import fs from "fs";
 import path from "path";
 import formidable from "formidable";
+import { queueHlsConversion } from "@/lib/hls-converter";
 
 const UPLOAD_DIR = path.join(process.cwd(), "fuad");
 const COURSE_DIR = path.join(UPLOAD_DIR, "course");
@@ -15,10 +16,10 @@ export const config = {
 };
 function parseForm(req: NextApiRequest): Promise<{ fields: any; files: any }> {
   return new Promise((resolve, reject) => {
-    const form = formidable({ 
+    const form = formidable({
       multiples: false,
       maxTotalFileSize: 2000 * 1024 * 1024, // 2GB total limit
-      maxFileSize: 2000 * 1024 * 1024 // 2GB per file limit
+      maxFileSize: 2000 * 1024 * 1024, // 2GB per file limit
     });
     form.parse(req, (err: any, fields: any, files: any) => {
       if (err) reject(err);
@@ -115,15 +116,16 @@ export default async function handler(
     });
     // If last chunk, join all
     if (parseInt(chunkIndex) + 1 === parseInt(totalChunks)) {
-      // Always rename final file to .mp4
+      // Preserve original file extension (support HLS .m3u8 and other formats)
+      const fileExtension = filename.split(".").pop() || "mp4";
       const baseName = filename.replace(/\.[^/.]+$/, "");
-      const videoPath = path.join(COURSE_DIR, `${baseName}.mp4`);
-      console.log("Joining chunks to:", videoPath); // <-- Add this log
+      const videoPath = path.join(COURSE_DIR, `${baseName}.${fileExtension}`);
+      console.log("Joining chunks to:", videoPath);
       const finalWriteStream = fs.createWriteStream(videoPath);
       try {
         for (let i = 0; i < parseInt(totalChunks); i++) {
           const chunkFilePath = path.join(chunkFolder, `chunk_${i}`);
-          console.log("Reading chunk:", chunkFilePath); // <-- Add this log
+          console.log("Reading chunk:", chunkFilePath);
           if (!fs.existsSync(chunkFilePath)) {
             console.error("Missing chunk file:", chunkFilePath);
             continue;
@@ -141,14 +143,46 @@ export default async function handler(
         });
         // Clean up temp chunks
         fs.rmSync(chunkFolder, { recursive: true, force: true });
-        console.log("Deleted chunk folder:", chunkFolder); // <-- Add this log
+        console.log("Deleted chunk folder:", chunkFolder);
+
+        // If uploaded file is MP4, queue it for HLS conversion in background
+        if (fileExtension.toLowerCase() === "mp4") {
+          try {
+            const jobId = await queueHlsConversion(videoPath, baseName);
+            console.log(`[Upload] Queued HLS conversion job: ${jobId}`);
+
+            // Return immediately with job ID and original filename
+            // The conversion will happen in the background
+            res.status(200).json({
+              success: true,
+              filename: `${baseName}.${fileExtension}`, // Keep original for now
+              jobId: jobId,
+              converting: true,
+              message: "Video uploaded. HLS conversion in progress...",
+            });
+            return;
+          } catch (conversionError: any) {
+            console.error("Error queueing HLS conversion:", conversionError);
+            // If queueing fails, return original file
+            res.status(200).json({
+              success: true,
+              filename: `${baseName}.${fileExtension}`,
+              converting: false,
+              error:
+                conversionError.message || "Failed to queue HLS conversion",
+            });
+            return;
+          }
+        }
       } catch (err) {
         console.error("Error joining chunks:", err);
         res.status(500).json({ error: "Error joining chunks", details: err });
         return;
       }
-      // Respond with .mp4 filename
-      res.status(200).json({ success: true, filename: `${baseName}.mp4` });
+      // Respond with preserved extension filename
+      res
+        .status(200)
+        .json({ success: true, filename: `${baseName}.${fileExtension}` });
       return;
     }
     res.status(200).json({ success: true, filename }); // Return the uuid filename

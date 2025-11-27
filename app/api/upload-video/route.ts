@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { queueHlsConversion } from "@/lib/hls-converter";
 
 const UPLOAD_DIR = path.join(process.cwd(), "fuad");
 const COURSE_DIR = path.join(UPLOAD_DIR, "course");
@@ -44,8 +45,10 @@ export async function POST(req: NextRequest) {
     fs.writeFileSync(chunkPath, chunkBuffer);
 
     if (parseInt(chunkIndex) + 1 === parseInt(totalChunks)) {
+      // Preserve original file extension (support HLS .m3u8 and other formats)
+      const fileExtension = finalFilename.split('.').pop() || 'mp4';
       const baseName = finalFilename.replace(/\.[^/.]+$/, "");
-      const videoPath = path.join(COURSE_DIR, `${baseName}.mp4`);
+      const videoPath = path.join(COURSE_DIR, `${baseName}.${fileExtension}`);
       
       try {
         const chunks = [];
@@ -60,7 +63,34 @@ export async function POST(req: NextRequest) {
         fs.writeFileSync(videoPath, finalBuffer);
         fs.rmSync(chunkFolder, { recursive: true, force: true });
         
-        return NextResponse.json({ success: true, filename: `${baseName}.mp4` });
+        // If uploaded file is MP4, queue it for HLS conversion in background
+        if (fileExtension.toLowerCase() === 'mp4') {
+          try {
+            const jobId = await queueHlsConversion(videoPath, baseName);
+            console.log(`[Upload] Queued HLS conversion job: ${jobId}`);
+            
+            // Return immediately with job ID and original filename
+            // The conversion will happen in the background
+            return NextResponse.json({ 
+              success: true, 
+              filename: `${baseName}.${fileExtension}`, // Keep original for now
+              jobId: jobId,
+              converting: true,
+              message: "Video uploaded. HLS conversion in progress..."
+            });
+          } catch (conversionError: any) {
+            console.error("Error queueing HLS conversion:", conversionError);
+            // If queueing fails, return original file
+            return NextResponse.json({ 
+              success: true, 
+              filename: `${baseName}.${fileExtension}`,
+              converting: false,
+              error: conversionError.message || "Failed to queue HLS conversion"
+            });
+          }
+        }
+        
+        return NextResponse.json({ success: true, filename: `${baseName}.${fileExtension}` });
       } catch (err) {
         console.error("Error joining chunks:", err);
         return NextResponse.json(

@@ -7,7 +7,8 @@
     "dev": "next dev ",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "check:ffmpeg": "node scripts/check-ffmpeg.cjs"
   },
   "dependencies": {
     "@aws-sdk/client-sns": "^3.906.0",
@@ -35,6 +36,7 @@
     "formidable": "^3.5.4",
     "framer-motion": "^11.18.1",
     "grammy": "^1.33.0",
+    "hls.js": "^1.6.15",
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
     "jspdf": "^3.0.2",

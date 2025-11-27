@@ -1,22 +1,28 @@
 "use client";
 import React, { useRef, useState, useEffect, memo } from "react";
-import { Play, Pause } from "lucide-react";
+import { Play, Pause, Settings } from "lucide-react";
 import Playlist from "./Playlist";
 import ProgressBar from "./ProgressBar";
 import VolumeControl from "./VolumeControl";
 import FullscreenButton from "./FullScreen";
 import CustomSpinner from "./CustomSpinner";
 import DynamicWatermark from "./DynamicWatermark";
+import SettingsMenu from "./SettingsMenu";
+import QualitySelector, { QualityOption } from "./QualitySelector";
+import SpeedSelector from "./SpeedSelector";
+import QualityControl from "./QualityControl";
 import { VideoItem } from "../../types";
 import { cn } from "@/lib/utils";
 import "./VideoProtection.css";
+import Hls from "hls.js";
 
 interface PlayerProps {
   src: string;
-  type?: "url" | "local";
+  type?: "url" | "local" | "hls";
   playlist?: VideoItem[];
   title?: string;
   poster?: string; // Thumbnail image URL
+  qualities?: QualityOption[]; // Quality options for the video (for non-HLS)
   onVideoPlay?: () => void;
   onVideoPause?: () => void;
   onVideoEnd?: () => void;
@@ -29,6 +35,7 @@ function Player({
   playlist = [],
   title,
   poster,
+  qualities = [],
   onVideoPlay,
   onVideoPause,
   onVideoEnd,
@@ -53,31 +60,139 @@ function Player({
   const [videoAvailable, setVideoAvailable] = useState(!!src);
   const [hasStartedPlaying, setHasStartedPlaying] = useState(false); // Track if video has ever started
   const [secureVideoUrl, setSecureVideoUrl] = useState<string>("");
+  const [currentQuality, setCurrentQuality] = useState<string>("auto");
+  const [showSettings, setShowSettings] = useState(false);
+  const [settingsView, setSettingsView] = useState<
+    "menu" | "quality" | "speed"
+  >("menu");
+  const [qualityUrls, setQualityUrls] = useState<Record<string, string>>({});
+  const [hlsLevels, setHlsLevels] = useState<
+    Array<{ width?: number; height?: number; bitrate?: number; name?: string }>
+  >([]);
+  const [currentHlsLevel, setCurrentHlsLevel] = useState<number>(-1);
+  const [isHls, setIsHls] = useState(false);
+  const [networkSpeedMbps, setNetworkSpeedMbps] = useState<number | undefined>(undefined);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tokenRefreshInterval = useRef<NodeJS.Timeout | null>(null);
-  
-  // Generate secure token for video
-  const generateSecureUrl = async (filePath: string) => {
-    try {
-      const response = await fetch('/api/video-token', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file: filePath }),
-      });
-      
-      if (!response.ok) {
-        console.error('Failed to generate video token');
+  const hlsRef = useRef<Hls | null>(null);
+
+  // Check if HLS master playlist exists for a video file
+  const checkForHlsMasterPlaylist = React.useCallback(
+    async (filePath: string): Promise<string | null> => {
+      try {
+        // Support paths with directories. Extract filename without extension and optional directory.
+        const pathParts = filePath.split("/");
+        const fileName = pathParts.pop() || filePath;
+        const dir = pathParts.join("/");
+        const nameOnly = fileName.replace(/\.[^/.]+$/, "");
+
+        // Construct HLS master playlist path: {dir/}{nameOnly}/{nameOnly}.m3u8
+        const hlsMasterPath = dir
+          ? `${dir}/${nameOnly}/${nameOnly}.m3u8`
+          : `${nameOnly}/${nameOnly}.m3u8`;
+
+        // Check if master playlist exists by trying to get a token for it
+        const response = await fetch("/api/video-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ file: hlsMasterPath }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          console.log(`[Player] HLS master playlist found: ${hlsMasterPath}`);
+          return data.url;
+        }
+
+        return null;
+      } catch {
+        // If check fails, return null (will use original file)
         return null;
       }
-      
-      const data = await response.json();
-      return data.url;
-    } catch (error) {
-      console.error('Error generating secure URL:', error);
-      return null;
+    },
+    []
+  );
+
+  // Generate secure token for video
+  const generateSecureUrl = React.useCallback(
+    async (filePath: string, preferHls: boolean = true) => {
+      try {
+        // First, check if HLS master playlist exists (if preferHls is true)
+        if (
+          preferHls &&
+          !filePath.endsWith(".m3u8")
+        ) {
+          const hlsUrl = await checkForHlsMasterPlaylist(filePath);
+          if (hlsUrl) {
+            return hlsUrl;
+          }
+        }
+
+        // Fallback to original file
+        const response = await fetch("/api/video-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ file: filePath }),
+        });
+
+        if (!response.ok) {
+          console.error("Failed to generate video token");
+          return null;
+        }
+
+        const data = await response.json();
+        return data.url;
+      } catch (err) {
+        console.error("Error generating secure URL:", err);
+        return null;
+      }
+    },
+    [checkForHlsMasterPlaylist]
+  );
+
+  // Generate secure URLs for all qualities when they change
+  useEffect(() => {
+    if (qualities.length > 0 && type === "local") {
+      const generateAllQualityUrls = async () => {
+        const urls: Record<string, string> = {};
+
+        // Generate secure URL for main src (auto quality)
+        const mainUrl = await generateSecureUrl(src);
+        if (mainUrl) {
+          urls["auto"] = mainUrl;
+        }
+
+        // Generate secure URLs for each quality
+        for (const quality of qualities) {
+          if (quality.url) {
+            const secureUrl = await generateSecureUrl(quality.url);
+            if (secureUrl) {
+              urls[quality.value] = secureUrl;
+            }
+          }
+        }
+
+        setQualityUrls(urls);
+      };
+
+      generateAllQualityUrls();
+
+      // Refresh all quality URLs every 4 minutes
+      if (tokenRefreshInterval.current) {
+        clearInterval(tokenRefreshInterval.current);
+      }
+      tokenRefreshInterval.current = setInterval(() => {
+        generateAllQualityUrls();
+      }, 4 * 60 * 1000); // 4 minutes
     }
-  };
-  
+
+    return () => {
+      if (tokenRefreshInterval.current) {
+        clearInterval(tokenRefreshInterval.current);
+      }
+    };
+  }, [qualities, src, type, generateSecureUrl]);
+
   // Reset video availability when src changes and get secure URL
   useEffect(() => {
     if (src) {
@@ -85,18 +200,24 @@ function Player({
       setHasError(false);
       setIsLoading(true);
       setHasStartedPlaying(false);
-      
+
       // Generate secure URL for local videos
       if (type === "local") {
-        generateSecureUrl(src).then((url) => {
-          if (url) {
-            setSecureVideoUrl(url);
-          } else {
-            setHasError(true);
-            setIsLoading(false);
-          }
-        });
-        
+        // If we have quality URLs cached, use them
+        if (Object.keys(qualityUrls).length > 0 && qualityUrls["auto"]) {
+          setSecureVideoUrl(qualityUrls["auto"]);
+        } else {
+          // Check for HLS master playlist first, then fallback to original file
+          generateSecureUrl(src, true).then((url) => {
+            if (url) {
+              setSecureVideoUrl(url);
+            } else {
+              setHasError(true);
+              setIsLoading(false);
+            }
+          });
+        }
+
         // Refresh token every 4 minutes (before 5-minute expiry)
         if (tokenRefreshInterval.current) {
           clearInterval(tokenRefreshInterval.current);
@@ -106,9 +227,9 @@ function Player({
             if (url && videoRef.current) {
               const wasPlaying = !videoRef.current.paused;
               const currentTime = videoRef.current.currentTime;
-              
+
               setSecureVideoUrl(url);
-              
+
               // Restore playback state after URL change
               if (wasPlaying) {
                 videoRef.current.currentTime = currentTime;
@@ -120,7 +241,9 @@ function Player({
       } else {
         // For URL or blob types, use directly
         if (type === "url" && !src.startsWith("blob:")) {
-          setSecureVideoUrl(`/api/remote-stream?url=${encodeURIComponent(src)}`);
+          setSecureVideoUrl(
+            `/api/remote-stream?url=${encodeURIComponent(src)}`
+          );
         } else {
           setSecureVideoUrl(src);
         }
@@ -130,16 +253,69 @@ function Player({
       setHasError(true);
       setIsLoading(false);
     }
-    
+
     return () => {
       if (tokenRefreshInterval.current) {
         clearInterval(tokenRefreshInterval.current);
       }
     };
-  }, [src, type]);
+  }, [src, type, qualityUrls, generateSecureUrl]);
 
-  // Compute the video source based on type
+  // Compute the video source based on type and quality
   let videoSrc = secureVideoUrl || src;
+
+  // Detect if source is HLS (synchronously, before using it)
+  const sourceUrl = secureVideoUrl || src;
+  const isHlsSource =
+    type === "hls" ||
+    sourceUrl?.endsWith(".m3u8") ||
+    sourceUrl?.includes(".m3u8") ||
+    (sourceUrl?.includes("/") && sourceUrl?.includes(".m3u8")); // Handle paths like "folder/video.m3u8"
+
+  // Update isHls state if it changed
+  useEffect(() => {
+    setIsHls(isHlsSource);
+    console.log("[Player] HLS Detection:", {
+      isHlsSource,
+      sourceUrl: secureVideoUrl || src,
+      type,
+      hlsLevels: hlsLevels.length,
+    });
+  }, [isHlsSource, secureVideoUrl, src, type, hlsLevels.length]);
+
+  // If qualities are provided and NOT HLS, use the selected quality URL
+  if (qualities.length > 0 && !isHlsSource) {
+    if (currentQuality === "auto") {
+      // Use the default src/secureVideoUrl for auto
+      videoSrc = secureVideoUrl || src;
+    } else {
+      const selectedQuality = qualities.find((q) => q.value === currentQuality);
+      if (selectedQuality) {
+        if (type === "url") {
+          // For URL type, use the quality URL directly
+          videoSrc = selectedQuality.url;
+        } else if (type === "local") {
+          // For local videos, use the secure URL from qualityUrls cache
+          if (qualityUrls[currentQuality]) {
+            videoSrc = qualityUrls[currentQuality];
+          } else {
+            // Fallback: try to generate secure URL on the fly
+            generateSecureUrl(selectedQuality.url).then((url) => {
+              if (url) {
+                setQualityUrls((prev) => ({ ...prev, [currentQuality]: url }));
+                videoSrc = url;
+              }
+            });
+            // Use the quality URL directly as fallback
+            videoSrc = selectedQuality.url;
+          }
+        } else {
+          // For blob or other types
+          videoSrc = selectedQuality.url;
+        }
+      }
+    }
+  }
 
   // For blob URLs (uploaded files), use src directly
 
@@ -223,6 +399,198 @@ function Player({
     };
   }, [isMobile, isFullscreen]);
 
+  // Track previous source to detect quality changes
+  const prevSrcRef = useRef<string>("");
+  const savedStateRef = useRef<{ time: number; playing: boolean } | null>(null);
+
+  // Initialize HLS.js for HLS sources
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !currentSrc || !isHlsSource) {
+      // If not HLS, make sure video src is set (handled by non-HLS useEffect)
+      return;
+    }
+
+    console.log("Initializing HLS for:", currentSrc);
+
+    // Check if HLS is supported
+    if (Hls.isSupported()) {
+      // Clean up existing HLS instance
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+        hlsRef.current = null;
+      }
+
+      // Remove src from video element - HLS.js will handle it
+      if (video.src) {
+        video.removeAttribute("src");
+        video.load(); // Reload to clear any existing source
+      }
+
+      // Create new HLS instance with adaptive bitrate settings
+      const hls = new Hls({
+        enableWorker: true,
+        lowLatencyMode: false,
+        backBufferLength: 90,
+        maxBufferLength: 30,
+        maxMaxBufferLength: 60,
+        maxBufferSize: 60 * 1000 * 1000, // 60MB
+        maxBufferHole: 0.5,
+        highBufferWatchdogPeriod: 2,
+        nudgeOffset: 0.1,
+        nudgeMaxRetry: 3,
+        fragLoadingTimeOut: 20000,
+        maxLoadingDelay: 4,
+        minAutoBitrate: 0,
+        maxStarvationDelay: 4,
+        abrEwmaDefaultEstimate: 500000,
+        abrBandWidthFactor: 0.95,
+        abrBandWidthUpFactor: 0.7,
+        abrMaxWithRealBitrate: false,
+        abrEwmaSlowLive: 3.0,
+        abrEwmaFastLive: 9.0,
+        abrEwmaSlowVoD: 3.0,
+        abrEwmaFastVoD: 9.0,
+        startLevel: -1, // Auto-select starting level (adaptive)
+      });
+
+      hlsRef.current = hls;
+
+      // Load the source
+      hls.loadSource(currentSrc);
+      hls.attachMedia(video);
+
+      // Handle HLS events
+      hls.on(Hls.Events.MANIFEST_PARSED, () => {
+        console.log("HLS manifest parsed successfully");
+        setIsLoading(false);
+        setVideoAvailable(true);
+        setHasError(false);
+
+        // Get available levels
+        const levels = hls.levels;
+        console.log("[Player] HLS Levels loaded:", levels.length, levels);
+        setHlsLevels(levels);
+        setCurrentHlsLevel(hls.currentLevel);
+
+        // If user selected a specific quality, set it (otherwise use auto/adaptive)
+        if (currentQuality !== "auto" && hls.levels.length > 0) {
+          const levelIndex = hls.levels.findIndex((level) => {
+            const height = level.height || 0;
+            if (currentQuality === "1080p" && height >= 1080) return true;
+            if (currentQuality === "720p" && height >= 720 && height < 1080)
+              return true;
+            if (currentQuality === "480p" && height >= 480 && height < 720)
+              return true;
+            if (currentQuality === "360p" && height >= 360 && height < 480)
+              return true;
+            if (currentQuality === "270p" && height >= 270 && height < 360)
+              return true;
+            return false;
+          });
+
+          if (levelIndex !== -1) {
+            hls.currentLevel = levelIndex;
+            setCurrentHlsLevel(levelIndex);
+          } else {
+            // If exact match not found, use auto (adaptive)
+            hls.currentLevel = -1;
+            setCurrentHlsLevel(-1);
+          }
+        } else {
+          // Use adaptive bitrate (auto)
+          hls.currentLevel = -1;
+          setCurrentHlsLevel(-1);
+        }
+      });
+
+      hls.on(Hls.Events.LEVEL_SWITCHED, (_event, data) => {
+        setCurrentHlsLevel(data.level);
+        const bw: number | undefined = (hls as any)?.bandwidthEstimate;
+        if (bw && typeof bw === "number") {
+          setNetworkSpeedMbps(bw / 1_000_000);
+        }
+      });
+
+      hls.on(Hls.Events.ERROR, (event, data) => {
+        console.error("HLS Error:", data);
+        if (data.fatal) {
+          switch (data.type) {
+            case Hls.ErrorTypes.NETWORK_ERROR:
+              console.error("HLS Network Error - attempting recovery:", data);
+              hls.startLoad();
+              break;
+            case Hls.ErrorTypes.MEDIA_ERROR:
+              console.error("HLS Media Error - attempting recovery:", data);
+              hls.recoverMediaError();
+              break;
+            default:
+              console.error("HLS Fatal Error - cannot recover:", data);
+              hls.destroy();
+              setHasError(true);
+              setIsLoading(false);
+              break;
+          }
+        } else {
+          console.warn("HLS Non-fatal error:", data);
+        }
+      });
+
+      // Cleanup on unmount or source change
+      return () => {
+        if (hlsRef.current) {
+          hlsRef.current.destroy();
+          hlsRef.current = null;
+        }
+      };
+    } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
+      // Native HLS support (Safari)
+      video.src = currentSrc;
+      setIsHls(true);
+    } else {
+      console.error("HLS is not supported in this browser");
+      setHasError(true);
+      setIsLoading(false);
+    }
+  }, [currentSrc, isHlsSource, currentQuality]);
+
+  // Update video source when currentSrc changes (for non-HLS)
+  useEffect(() => {
+    if (isHlsSource) return; // Skip for HLS (handled above)
+
+    const video = videoRef.current;
+    if (!video || !currentSrc) return;
+
+    // Only update if the source actually changed
+    if (video.src !== currentSrc && currentSrc !== prevSrcRef.current) {
+      // Save current state before switching
+      const wasPlaying = !video.paused;
+      const savedTime = video.currentTime;
+      savedStateRef.current = { time: savedTime, playing: wasPlaying };
+
+      prevSrcRef.current = currentSrc;
+      video.src = currentSrc;
+      video.load();
+
+      // Restore playback state after loading
+      const handleCanPlayAfterLoad = () => {
+        const savedState = savedStateRef.current;
+        if (savedState) {
+          if (savedState.time > 0 && video.duration) {
+            video.currentTime = Math.min(savedState.time, video.duration);
+          }
+          if (savedState.playing) {
+            video.play().catch(() => {});
+          }
+          savedStateRef.current = null; // Clear saved state
+        }
+        video.removeEventListener("canplay", handleCanPlayAfterLoad);
+      };
+
+      video.addEventListener("canplay", handleCanPlayAfterLoad, { once: true });
+    }
+  }, [currentSrc, isHlsSource]);
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -243,7 +611,10 @@ function Player({
       setHasStartedPlaying(true); // Mark that video has started playing
       onVideoPlay?.(); // Call onVideoPlay when video actually starts playing
     };
-    const handleError = () => setIsLoading(false);
+    const handleError = () => {
+      setIsLoading(false);
+      setHasError(true);
+    };
     const handleEnded = () => {
       onVideoEnd?.(); // Call onVideoEnd when video finishes
     };
@@ -277,7 +648,7 @@ function Player({
       video.removeEventListener("error", handleError);
       video.removeEventListener("ended", handleEnded);
     };
-  }, [currentSrc]);
+  }, [currentSrc, onVideoPlay, onVideoEnd, onVideoProgress]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -415,6 +786,63 @@ function Player({
     if (video) video.playbackRate = newSpeed;
   };
 
+  const handleQualityChange = async (quality: string) => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Handle HLS quality switching
+    if (isHlsSource && hlsRef.current) {
+      if (quality === "auto") {
+        // Enable adaptive bitrate streaming
+        hlsRef.current.currentLevel = -1;
+        setCurrentHlsLevel(-1);
+        setCurrentQuality("auto");
+      } else {
+        // Find matching HLS level
+        const levelIndex = hlsRef.current.levels.findIndex((level) => {
+          const height = level.height || 0;
+          if (quality === "1080p" && height >= 1080) return true;
+          if (quality === "720p" && height >= 720 && height < 1080) return true;
+          if (quality === "480p" && height >= 480 && height < 720) return true;
+          if (quality === "360p" && height >= 360 && height < 480) return true;
+          if (quality === "270p" && height >= 270 && height < 360) return true;
+          return false;
+        });
+
+        if (levelIndex !== -1) {
+          hlsRef.current.currentLevel = levelIndex;
+          setCurrentHlsLevel(levelIndex);
+          setCurrentQuality(quality);
+        } else {
+          // Fallback to auto if level not found
+          hlsRef.current.currentLevel = -1;
+          setCurrentHlsLevel(-1);
+          setCurrentQuality("auto");
+        }
+      }
+      return;
+    }
+
+    // Handle non-HLS quality switching
+    // If switching to a quality that needs secure URL generation
+    if (type === "local" && quality !== "auto") {
+      const selectedQuality = qualities.find((q) => q.value === quality);
+      if (selectedQuality && !qualityUrls[quality]) {
+        // Generate secure URL for this quality
+        const secureUrl = await generateSecureUrl(selectedQuality.url);
+        if (secureUrl) {
+          setQualityUrls((prev) => ({ ...prev, [quality]: secureUrl }));
+        }
+      }
+    }
+
+    // Update quality - this will trigger currentSrc to update via the computed value
+    // The video source will be updated by the useEffect that watches currentSrc
+    // The playback state will be saved and restored by that same useEffect
+    setCurrentQuality(quality);
+    setIsLoading(true);
+  };
+
   const handleVolumeChange = (v: number) => setVolume(v);
   const handleMuteToggle = () => setMuted((m) => !m);
 
@@ -435,6 +863,25 @@ function Player({
     return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
   };
 
+  // Close settings when clicking outside
+  useEffect(() => {
+    if (!showSettings) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        !target.closest(".video-player") ||
+        target.closest('button[title="Settings"]')
+      ) {
+        setShowSettings(false);
+        setSettingsView("menu");
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [showSettings]);
+
   return (
     <div
       ref={containerRef}
@@ -450,7 +897,7 @@ function Player({
         onContextMenu={(e) => e.preventDefault()} // Disable right-click on container
         onKeyDown={(e) => {
           // Prevent download shortcuts (Ctrl+S, Cmd+S, etc.)
-          if ((e.ctrlKey || e.metaKey) && (e.key === 's' || e.key === 'S')) {
+          if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) {
             e.preventDefault();
           }
         }}
@@ -503,7 +950,7 @@ function Player({
                 {title}
               </div>
             )}
-            
+
             {/* Center Loading Spinner - Large blue glowing circle */}
             <div
               style={{
@@ -535,7 +982,7 @@ function Player({
             </div>
           </div>
         )}
-        
+
         {/* Thumbnail Overlay - Shows until video starts playing */}
         {poster && !hasStartedPlaying && (
           <div
@@ -586,13 +1033,15 @@ function Player({
               }}
               onMouseEnter={(e) => {
                 if (!isMobile) {
-                  e.currentTarget.style.transform = "translate(-50%, -50%) scale(1.1)";
+                  e.currentTarget.style.transform =
+                    "translate(-50%, -50%) scale(1.1)";
                   e.currentTarget.style.background = "rgba(59, 130, 246, 1)";
                 }
               }}
               onMouseLeave={(e) => {
                 if (!isMobile) {
-                  e.currentTarget.style.transform = "translate(-50%, -50%) scale(1)";
+                  e.currentTarget.style.transform =
+                    "translate(-50%, -50%) scale(1)";
                   e.currentTarget.style.background = "rgba(59, 130, 246, 0.95)";
                 }
               }}
@@ -606,10 +1055,10 @@ function Player({
             </div>
           </div>
         )}
-        
+
         <video
           ref={videoRef}
-          src={currentSrc}
+          src={isHlsSource ? undefined : currentSrc} // Don't set src for HLS - HLS.js handles it
           poster={poster} // Add poster attribute for native fallback
           playsInline
           preload="metadata"
@@ -683,20 +1132,24 @@ function Player({
 
         {/* Static Watermark - Title watermark */}
         {videoAvailable && !hasError && title && (
-          <div className="video-watermark" style={{
-            position: "absolute",
-            top: "10px",
-            right: "10px",
-            color: "rgba(255, 255, 255, 0.3)",
-            fontSize: "14px",
-            fontWeight: 600,
-            pointerEvents: "none",
-            zIndex: 100,
-            textShadow: "0 1px 3px rgba(0, 0, 0, 0.5)",
-            userSelect: "none",
-            WebkitUserSelect: "none",
-            fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-          }}>
+          <div
+            className="video-watermark"
+            style={{
+              position: "absolute",
+              top: "10px",
+              right: "10px",
+              color: "rgba(255, 255, 255, 0.3)",
+              fontSize: "14px",
+              fontWeight: 600,
+              pointerEvents: "none",
+              zIndex: 100,
+              textShadow: "0 1px 3px rgba(0, 0, 0, 0.5)",
+              userSelect: "none",
+              WebkitUserSelect: "none",
+              fontFamily:
+                "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            }}
+          >
             {title || "Melaverse © Protected Content"}
           </div>
         )}
@@ -797,7 +1250,7 @@ function Player({
         )}
 
         {/* --- MOBILE CONTROLS --- */}
-        {isMobile && (showControls || (!videoAvailable || hasError || !src)) && (
+        {isMobile && (showControls || !videoAvailable || hasError || !src) && (
           <div
             style={{
               position: "absolute",
@@ -875,6 +1328,19 @@ function Player({
               onClick={handleFullscreen}
               isFullscreen={isFullscreen}
             />
+
+            {/* Quality Control (Mobile) */}
+            <div style={{ marginLeft: 8 }}>
+              <QualityControl
+                isHls={isHlsSource}
+                hlsLevels={hlsLevels}
+                currentHlsLevel={currentHlsLevel}
+                nonHlsQualities={qualities.map((q) => ({ label: q.label, value: q.value }))}
+                currentQuality={currentQuality}
+                onQualityChange={handleQualityChange}
+                networkSpeedMbps={networkSpeedMbps}
+              />
+            </div>
           </div>
         )}
 
@@ -886,8 +1352,12 @@ function Player({
               left: 0,
               right: 0,
               bottom: 0,
-              opacity: (showControls || (!videoAvailable || hasError || !src)) ? 1 : 0,
-              pointerEvents: (showControls || (!videoAvailable || hasError || !src)) ? "auto" : "none",
+              opacity:
+                showControls || !videoAvailable || hasError || !src ? 1 : 0,
+              pointerEvents:
+                showControls || !videoAvailable || hasError || !src
+                  ? "auto"
+                  : "none",
               transition: "opacity 0.3s",
               background: "rgba(30, 58, 138, 0.95)", // Dark blue background like in image
               padding: "8px 16px",
@@ -950,25 +1420,16 @@ function Player({
               onMuteToggle={handleMuteToggle}
             />
 
-            {/* Speed Control */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                changeSpeed(speed >= 2 ? 1 : speed + 0.25);
-              }}
-              style={{
-                background: "rgba(59, 130, 246, 0.6)",
-                border: "none",
-                color: "#fff",
-                fontSize: 14,
-                cursor: "pointer",
-                padding: "4px 8px",
-                borderRadius: 4,
-              }}
-              title="Change Speed"
-            >
-              {speed}x
-            </button>
+            {/* Quality Control */}
+            <QualityControl
+              isHls={isHlsSource}
+              hlsLevels={hlsLevels}
+              currentHlsLevel={currentHlsLevel}
+              nonHlsQualities={qualities.map((q) => ({ label: q.label, value: q.value }))}
+              currentQuality={currentQuality}
+              onQualityChange={handleQualityChange}
+              networkSpeedMbps={networkSpeedMbps}
+            />
 
             {/* Fullscreen Button */}
             <FullscreenButton
@@ -977,6 +1438,8 @@ function Player({
             />
           </div>
         )}
+
+        {/* Settings overlay removed: using inline QualityControl */}
       </div>
       {playlist.length > 0 && (
         <div style={{ width: "100%", maxWidth: 640, marginTop: 16 }}>

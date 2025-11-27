@@ -21,8 +21,12 @@ function SubActivityVideoUpload({
   const inputId = `video-upload-${Math.random().toString(36).substr(2, 9)}`;
 
   const handleFileSelect = async (file: File) => {
-    if (!file.type.startsWith("video/")) {
-      alert(lang === "en" ? "Please select a video file" : "እባክዎ የቪዲዮ ፋይል ይምረጡ");
+    // Allow video files and HLS manifest files (.m3u8)
+    const isVideo = file.type.startsWith("video/");
+    const isHlsManifest = file.name.endsWith(".m3u8") || file.type === "application/vnd.apple.mpegurl" || file.type === "application/x-mpegURL";
+    
+    if (!isVideo && !isHlsManifest) {
+      alert(lang === "en" ? "Please select a video file or HLS manifest (.m3u8)" : "እባክዎ የቪዲዮ ፋይል ወይም HLS manifest (.m3u8) ይምረጡ");
       return;
     }
 
@@ -30,6 +34,7 @@ function SubActivityVideoUpload({
     setUploadProgress(0);
 
     try {
+      // Preserve original extension (important for HLS .m3u8 files)
       const ext = file.name.split(".").pop() || "mp4";
       const filename = `${Date.now()}-${Math.floor(Math.random() * 100000)}.${ext}`;
       const chunkSize = 512 * 1024;
@@ -54,7 +59,8 @@ function SubActivityVideoUpload({
         setUploadProgress(Math.round(((i + 1) / total) * 100));
       }
 
-      onVideoSelect(filename.replace(/\.[^/.]+$/, "") + ".mp4");
+      // Preserve the original extension (don't force .mp4)
+      onVideoSelect(filename);
     } catch {
       alert(lang === "en" ? "Upload failed" : "መስቀል አልተሳካም");
     } finally {
@@ -98,7 +104,7 @@ function SubActivityVideoUpload({
             </p>
             <input
               type="file"
-              accept="video/*"
+              accept="video/*,.m3u8,application/vnd.apple.mpegurl,application/x-mpegURL"
               onChange={(e) => {
                 const file = e.target.files?.[0];
                 if (file) {
