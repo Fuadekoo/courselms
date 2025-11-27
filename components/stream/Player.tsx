@@ -1,15 +1,13 @@
 "use client";
 import React, { useRef, useState, useEffect, memo } from "react";
-import { Play, Pause, Settings } from "lucide-react";
+import { Play, Pause } from "lucide-react";
 import Playlist from "./Playlist";
 import ProgressBar from "./ProgressBar";
 import VolumeControl from "./VolumeControl";
 import FullscreenButton from "./FullScreen";
 import CustomSpinner from "./CustomSpinner";
 import DynamicWatermark from "./DynamicWatermark";
-import SettingsMenu from "./SettingsMenu";
-import QualitySelector, { QualityOption } from "./QualitySelector";
-import SpeedSelector from "./SpeedSelector";
+import { QualityOption } from "./QualitySelector";
 import QualityControl from "./QualityControl";
 import { VideoItem } from "../../types";
 import { cn } from "@/lib/utils";
@@ -71,7 +69,9 @@ function Player({
   >([]);
   const [currentHlsLevel, setCurrentHlsLevel] = useState<number>(-1);
   const [isHls, setIsHls] = useState(false);
-  const [networkSpeedMbps, setNetworkSpeedMbps] = useState<number | undefined>(undefined);
+  const [networkSpeedMbps, setNetworkSpeedMbps] = useState<number | undefined>(
+    undefined
+  );
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tokenRefreshInterval = useRef<NodeJS.Timeout | null>(null);
   const hlsRef = useRef<Hls | null>(null);
@@ -118,10 +118,7 @@ function Player({
     async (filePath: string, preferHls: boolean = true) => {
       try {
         // First, check if HLS master playlist exists (if preferHls is true)
-        if (
-          preferHls &&
-          !filePath.endsWith(".m3u8")
-        ) {
+        if (preferHls && !filePath.endsWith(".m3u8")) {
           const hlsUrl = await checkForHlsMasterPlaylist(filePath);
           if (hlsUrl) {
             return hlsUrl;
@@ -1335,7 +1332,10 @@ function Player({
                 isHls={isHlsSource}
                 hlsLevels={hlsLevels}
                 currentHlsLevel={currentHlsLevel}
-                nonHlsQualities={qualities.map((q) => ({ label: q.label, value: q.value }))}
+                nonHlsQualities={qualities.map((q) => ({
+                  label: q.label,
+                  value: q.value,
+                }))}
                 currentQuality={currentQuality}
                 onQualityChange={handleQualityChange}
                 networkSpeedMbps={networkSpeedMbps}
@@ -1425,7 +1425,10 @@ function Player({
               isHls={isHlsSource}
               hlsLevels={hlsLevels}
               currentHlsLevel={currentHlsLevel}
-              nonHlsQualities={qualities.map((q) => ({ label: q.label, value: q.value }))}
+              nonHlsQualities={qualities.map((q) => ({
+                label: q.label,
+                value: q.value,
+              }))}
               currentQuality={currentQuality}
               onQualityChange={handleQualityChange}
               networkSpeedMbps={networkSpeedMbps}

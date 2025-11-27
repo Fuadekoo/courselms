@@ -1,9 +1,9 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Settings, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-export type QualityLevel = "auto" | "HD" | "720p" | "360p" | "144p";
+export type QualityLevel = "auto" | "HD" | "360p" | "144p";
 
 interface QualityControlProps {
   currentQuality: QualityLevel;
@@ -16,7 +16,6 @@ interface QualityControlProps {
 const qualityLabels: Record<QualityLevel, string> = {
   auto: "Auto",
   HD: "HD (1080p)",
-  "720p": "720p",
   "360p": "360p",
   "144p": "144p",
 };
@@ -24,7 +23,6 @@ const qualityLabels: Record<QualityLevel, string> = {
 const qualityBitrates: Record<QualityLevel, number> = {
   auto: 0, // Will be determined automatically
   HD: 5000, // 5 Mbps
-  "720p": 2500, // 2.5 Mbps
   "360p": 800, // 800 kbps
   "144p": 250, // 250 kbps
 };
@@ -37,10 +35,20 @@ export default function QualityControl({
   className,
 }: QualityControlProps) {
   const [isOpen, setIsOpen] = useState(false);
-  // Fallback to a safe default if levels are not provided
-  const safeLevels: QualityLevel[] = availableLevels && availableLevels.length > 0
-    ? availableLevels
-    : ["auto", "HD", "720p", "360p", "144p"];
+  // Ensure only allowed levels are shown and keep Auto first
+  const allowed: QualityLevel[] = ["auto", "HD", "360p", "144p"];
+  const safeLevels: QualityLevel[] = useMemo(() => {
+    const set = new Set<QualityLevel>(allowed);
+    const provided = (availableLevels ?? []).filter((q): q is QualityLevel => set.has(q));
+    const levels = provided.length > 0 ? provided : allowed;
+    const uniq: QualityLevel[] = [];
+    const pushUniq = (q: QualityLevel) => {
+      if (!uniq.includes(q)) uniq.push(q);
+    };
+    pushUniq("auto");
+    levels.forEach((q) => pushUniq(q));
+    return uniq;
+  }, [availableLevels]);
 
   // Auto-detect network speed and suggest quality
   // This is handled by the HLS player component itself
@@ -52,11 +60,24 @@ export default function QualityControl({
     }
   }, [networkSpeed, currentQuality]);
 
+  // Close the menu with Escape for better UX
+  useEffect(() => {
+    if (!isOpen) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setIsOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [isOpen]);
+
   return (
     <div className={cn("relative", className)}>
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className="flex items-center gap-2 px-3 py-1.5 rounded-md bg-black/60 hover:bg-black/80 text-white text-sm transition-colors"
+        aria-haspopup="menu"
+        aria-expanded={isOpen}
         aria-label="Quality settings"
       >
         <Settings className="w-4 h-4" />
@@ -76,10 +97,11 @@ export default function QualityControl({
             className="fixed inset-0 z-40"
             onClick={() => setIsOpen(false)}
           />
-          <div className="absolute bottom-full right-0 mb-2 z-50 bg-black/95 rounded-lg shadow-lg min-w-[150px] overflow-hidden">
+          <div role="menu" className="absolute bottom-full right-0 mb-2 z-50 bg-black/95 rounded-lg shadow-lg min-w-[160px] overflow-hidden">
             {safeLevels.map((level) => (
               <button
                 key={level}
+                type="button"
                 onClick={() => {
                   onQualityChange(level);
                   setIsOpen(false);
@@ -88,6 +110,8 @@ export default function QualityControl({
                   "w-full px-4 py-2 text-left text-sm text-white hover:bg-white/10 transition-colors flex items-center justify-between",
                   currentQuality === level && "bg-white/20"
                 )}
+                role="menuitemradio"
+                aria-checked={currentQuality === level}
               >
                 <span>{qualityLabels[level]}</span>
                 {currentQuality === level && <Check className="w-4 h-4" />}

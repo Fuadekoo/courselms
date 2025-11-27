@@ -211,7 +211,7 @@ async function processHlsConversion(jobId: string): Promise<void> {
     }
 
     // FFmpeg command to convert MP4 to adaptive HLS with multiple quality levels
-    // Creates adaptive bitrate streaming with 3 quality levels: 1080p (5Mbps), 720p (3Mbps), 480p (1Mbps)
+    // Creates adaptive bitrate streaming with 3 quality levels: 1080p (5Mbps), 360p (800kbps), 144p (250kbps)
     // Using HLS variant streams for proper adaptive bitrate streaming
     const variantPlaylistPattern = path.join(
       job.outputDir,
@@ -219,16 +219,16 @@ async function processHlsConversion(jobId: string): Promise<void> {
     );
     const ffmpegCommand =
       `"${ffmpegPath}" -i "${job.videoPath}" ` +
-      `-c:v libx264 -c:a aac -hls_time 10 -hls_playlist_type vod ` +
-      // Stream 0: 1080p @ 5Mbps
-      `-map 0:v:0 -map 0:a:0 -c:v:0 libx264 -b:v:0 5000k -maxrate:v:0 5000k -bufsize:v:0 10000k -s:v:0 1920x1080 -c:a:0 aac -b:a:0 192k ` +
-      // Stream 1: 720p @ 3Mbps
-      `-map 0:v:0 -map 0:a:0 -c:v:1 libx264 -b:v:1 3000k -maxrate:v:1 3000k -bufsize:v:1 6000k -s:v:1 1280x720 -c:a:1 aac -b:a:1 128k ` +
-      // Stream 2: 480p @ 1Mbps
-      `-map 0:v:0 -map 0:a:0 -c:v:2 libx264 -b:v:2 1000k -maxrate:v:2 1000k -bufsize:v:2 2000k -s:v:2 854x480 -c:a:2 aac -b:a:2 96k ` +
+      `-c:v libx264 -c:a aac -hls_time 4 -hls_playlist_type vod ` +
+      // Stream 0: 1080p (HD) @ ~5Mbps
+      `-map 0:v:0 -map 0:a:0 -c:v:0 libx264 -b:v:0 5000k -maxrate:v:0 5350k -bufsize:v:0 10000k -s:v:0 1920x1080 -g:v:0 48 -x264-params:v:0 keyint=48:min-keyint=48:scenecut=0 -c:a:0 aac -b:a:0 128k ` +
+      // Stream 1: 360p @ ~800kbps
+      `-map 0:v:0 -map 0:a:0 -c:v:1 libx264 -b:v:1 800k -maxrate:v:1 900k -bufsize:v:1 1600k -s:v:1 640x360 -g:v:1 48 -x264-params:v:1 keyint=48:min-keyint=48:scenecut=0 -c:a:1 aac -b:a:1 96k ` +
+      // Stream 2: 144p @ ~250kbps
+      `-map 0:v:0 -map 0:a:0 -c:v:2 libx264 -b:v:2 250k -maxrate:v:2 300k -bufsize:v:2 600k -s:v:2 256x144 -g:v:2 48 -x264-params:v:2 keyint=48:min-keyint=48:scenecut=0 -c:a:2 aac -b:a:2 64k ` +
       `-var_stream_map "v:0,a:0 v:1,a:1 v:2,a:2" ` +
       `-master_pl_name "${path.basename(job.manifestPath)}" ` +
-      `-hls_segment_filename "${job.outputDir}/${job.baseName}_%v_%03d.ts" ` +
+      `-hls_segment_filename "${job.outputDir}/${job.baseName}_%v_%04d.ts" ` +
       `-hls_flags independent_segments+program_date_time ` +
       `-f hls "${variantPlaylistPattern}"`;
 
