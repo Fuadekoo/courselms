@@ -13,6 +13,7 @@ import { VideoItem } from "../../types";
 import { cn } from "@/lib/utils";
 import "./VideoProtection.css";
 import Hls from "hls.js";
+import type { QualityLevel } from "./QualityControl";
 
 interface PlayerProps {
   src: string;
@@ -58,7 +59,9 @@ function Player({
   const [videoAvailable, setVideoAvailable] = useState(!!src);
   const [hasStartedPlaying, setHasStartedPlaying] = useState(false); // Track if video has ever started
   const [secureVideoUrl, setSecureVideoUrl] = useState<string>("");
-  const [currentQuality, setCurrentQuality] = useState<string>("auto");
+  const [currentQuality, setCurrentQuality] = useState<QualityLevel>(
+    "auto" as QualityLevel
+  );
   const [showSettings, setShowSettings] = useState(false);
   const [settingsView, setSettingsView] = useState<
     "menu" | "quality" | "speed"
@@ -282,24 +285,25 @@ function Player({
 
   // If qualities are provided and NOT HLS, use the selected quality URL
   if (qualities.length > 0 && !isHlsSource) {
-    if (currentQuality === "auto") {
+    const cq = toQualityValue(currentQuality);
+    if (cq === "auto") {
       // Use the default src/secureVideoUrl for auto
       videoSrc = secureVideoUrl || src;
     } else {
-      const selectedQuality = qualities.find((q) => q.value === currentQuality);
+      const selectedQuality = qualities.find((q) => q.value === cq);
       if (selectedQuality) {
         if (type === "url") {
           // For URL type, use the quality URL directly
           videoSrc = selectedQuality.url;
         } else if (type === "local") {
           // For local videos, use the secure URL from qualityUrls cache
-          if (qualityUrls[currentQuality]) {
-            videoSrc = qualityUrls[currentQuality];
+          if (qualityUrls[cq]) {
+            videoSrc = qualityUrls[cq];
           } else {
             // Fallback: try to generate secure URL on the fly
             generateSecureUrl(selectedQuality.url).then((url) => {
               if (url) {
-                setQualityUrls((prev) => ({ ...prev, [currentQuality]: url }));
+                setQualityUrls((prev) => ({ ...prev, [cq]: url }));
                 videoSrc = url;
               }
             });
@@ -471,18 +475,15 @@ function Player({
         setCurrentHlsLevel(hls.currentLevel);
 
         // If user selected a specific quality, set it (otherwise use auto/adaptive)
-        if (currentQuality !== "auto" && hls.levels.length > 0) {
+        const cq = toQualityValue(currentQuality);
+        if (cq !== "auto" && hls.levels.length > 0) {
           const levelIndex = hls.levels.findIndex((level) => {
             const height = level.height || 0;
-            if (currentQuality === "1080p" && height >= 1080) return true;
-            if (currentQuality === "720p" && height >= 720 && height < 1080)
-              return true;
-            if (currentQuality === "480p" && height >= 480 && height < 720)
-              return true;
-            if (currentQuality === "360p" && height >= 360 && height < 480)
-              return true;
-            if (currentQuality === "270p" && height >= 270 && height < 360)
-              return true;
+            if (cq === "1080p" && height >= 1080) return true;
+            if (cq === "720p" && height >= 720 && height < 1080) return true;
+            if (cq === "480p" && height >= 480 && height < 720) return true;
+            if (cq === "360p" && height >= 360 && height < 480) return true;
+            if (cq === "270p" && height >= 270 && height < 360) return true;
             return false;
           });
 
@@ -767,660 +768,521 @@ function Player({
     };
   }, [isMobile, isLandscape, isIOS]);
 
-  const togglePlay = () => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (video.paused) {
-      video.play();
-    } else {
-      video.pause();
-    }
-  };
+  // Helper to safely compare/index with QualityLevel
+  const toQualityValue = (q: QualityLevel) => String(q);
 
-  const changeSpeed = (newSpeed: number) => {
-    setSpeed(newSpeed);
-    const video = videoRef.current;
-    if (video) video.playbackRate = newSpeed;
-  };
-
-  const handleQualityChange = async (quality: string) => {
-    const video = videoRef.current;
-    if (!video) return;
-
-    // Handle HLS quality switching
-    if (isHlsSource && hlsRef.current) {
-      if (quality === "auto") {
-        // Enable adaptive bitrate streaming
-        hlsRef.current.currentLevel = -1;
-        setCurrentHlsLevel(-1);
-        setCurrentQuality("auto");
-      } else {
-        // Find matching HLS level
-        const levelIndex = hlsRef.current.levels.findIndex((level) => {
-          const height = level.height || 0;
-          if (quality === "1080p" && height >= 1080) return true;
-          if (quality === "720p" && height >= 720 && height < 1080) return true;
-          if (quality === "480p" && height >= 480 && height < 720) return true;
-          if (quality === "360p" && height >= 360 && height < 480) return true;
-          if (quality === "270p" && height >= 270 && height < 360) return true;
-          return false;
-        });
-
-        if (levelIndex !== -1) {
-          hlsRef.current.currentLevel = levelIndex;
-          setCurrentHlsLevel(levelIndex);
-          setCurrentQuality(quality);
-        } else {
-          // Fallback to auto if level not found
-          hlsRef.current.currentLevel = -1;
-          setCurrentHlsLevel(-1);
-          setCurrentQuality("auto");
-        }
-      }
-      return;
-    }
-
-    // Handle non-HLS quality switching
-    // If switching to a quality that needs secure URL generation
-    if (type === "local" && quality !== "auto") {
-      const selectedQuality = qualities.find((q) => q.value === quality);
-      if (selectedQuality && !qualityUrls[quality]) {
-        // Generate secure URL for this quality
-        const secureUrl = await generateSecureUrl(selectedQuality.url);
-        if (secureUrl) {
-          setQualityUrls((prev) => ({ ...prev, [quality]: secureUrl }));
-        }
-      }
-    }
-
-    // Update quality - this will trigger currentSrc to update via the computed value
-    // The video source will be updated by the useEffect that watches currentSrc
-    // The playback state will be saved and restored by that same useEffect
-    setCurrentQuality(quality);
-    setIsLoading(true);
-  };
-
-  const handleVolumeChange = (v: number) => setVolume(v);
-  const handleMuteToggle = () => setMuted((m) => !m);
-
-  const handleSeek = (time: number) => {
-    const video = videoRef.current;
-    if (video) video.currentTime = time;
-    setCurrentTime(time);
-  };
-
-  const handleSelect = (idx: number) => {
-    setCurrentVideoIndex(idx);
-    setPlaying(false);
-  };
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
-  };
-
-  // Close settings when clicking outside
+  // Keyboard shortcuts (play/pause, mute, fullscreen, seek)
   useEffect(() => {
-    if (!showSettings) return;
+    const onKey = (e: KeyboardEvent) => {
+      const video = videoRef.current;
+      if (!video) return;
+      // Avoid interfering with form fields
+      const tag = (e.target as HTMLElement)?.tagName;
+      if (["INPUT", "TEXTAREA", "SELECT"].includes(tag)) return;
 
-    const handleClickOutside = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      if (
-        !target.closest(".video-player") ||
-        target.closest('button[title="Settings"]')
-      ) {
-        setShowSettings(false);
-        setSettingsView("menu");
+      switch (e.key) {
+        case " ":
+          e.preventDefault();
+          video.paused ? video.play() : video.pause();
+          break;
+        case "f":
+        case "F":
+          e.preventDefault();
+          handleFullscreen();
+          break;
+        case "m":
+        case "M":
+          e.preventDefault();
+          setMuted((m) => !m);
+          break;
+        case "ArrowRight":
+          e.preventDefault();
+          video.currentTime = Math.min(video.currentTime + 5, video.duration);
+          break;
+        case "ArrowLeft":
+          e.preventDefault();
+          video.currentTime = Math.max(video.currentTime - 5, 0);
+          break;
+        case "0":
+          video.currentTime = 0;
+          break;
+        case "1":
+        case "2":
+        case "3":
+        case "4":
+        case "5":
+        case "6":
+        case "7":
+        case "8":
+        case "9":
+          // Jump to 0%..90%
+          const pct = parseInt(e.key, 10) * 0.1;
+          if (video.duration) {
+            video.currentTime = video.duration * pct;
+          }
+          break;
       }
     };
-
-    document.addEventListener("click", handleClickOutside);
-    return () => document.removeEventListener("click", handleClickOutside);
-  }, [showSettings]);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [handleFullscreen]);
 
   return (
     <div
       ref={containerRef}
-      className="video-player"
+      className="video-player relative"
       style={{
         height: isFullscreen && isMobile && isLandscape ? "100vh" : "auto",
         width: isFullscreen && isMobile && isLandscape ? "100vw" : "100%",
       }}
     >
+      {/* Ambient backdrop gradient */}
       <div
-        onMouseEnter={() => !isMobile && setShowControls(true)}
-        onMouseLeave={() => !isMobile && setShowControls(false)}
-        onContextMenu={(e) => e.preventDefault()} // Disable right-click on container
-        onKeyDown={(e) => {
-          // Prevent download shortcuts (Ctrl+S, Cmd+S, etc.)
-          if ((e.ctrlKey || e.metaKey) && (e.key === "s" || e.key === "S")) {
-            e.preventDefault();
-          }
-        }}
-        className={cn(
-          "relative max-md:w-full",
-          isFullscreen ? "md:w-full" : "md:w-[70%]"
-        )}
+        aria-hidden
         style={{
-          height: isFullscreen && isMobile && isLandscape ? "100vh" : "auto",
-          width: isFullscreen && isMobile && isLandscape ? "100vw" : "100%",
-          position: "relative", // Critical for iOS
-          overflow: "hidden",
-          backgroundColor: "#000",
-          minHeight: isMobile ? "200px" : "400px", // Smaller min height on mobile
-          aspectRatio: "16/9",
-          userSelect: "none", // Disable text/element selection
-          WebkitUserSelect: "none",
-          MozUserSelect: "none",
+          position: "absolute",
+          inset: 0,
+          background:
+            "radial-gradient(circle at 50% 50%, rgba(30,58,138,0.5), rgba(0,0,0,0.85))",
+          opacity: playing ? 0.15 : 0.35,
+          transition: "opacity 600ms ease",
+          pointerEvents: "none",
+          zIndex: 0,
         }}
-      >
-        {/* Placeholder UI when video is not available or not loaded yet */}
-        {(!videoAvailable || hasError || !src) && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              backgroundColor: "#000",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              zIndex: 10,
-              pointerEvents: "none",
-            }}
-          >
-            {/* Title in top-left */}
-            {title && (
-              <div
-                style={{
-                  position: "absolute",
-                  top: "20px",
-                  left: "20px",
-                  color: "#fff",
-                  fontSize: "18px",
-                  fontWeight: 500,
-                  zIndex: 11,
-                  maxWidth: "80%",
-                  textShadow: "0 2px 4px rgba(0,0,0,0.5)",
-                }}
-              >
-                {title}
-              </div>
-            )}
+      />
 
-            {/* Center Loading Spinner - Large blue glowing circle */}
+      {/* Error/Loading overlay */}
+      <div
+        style={{
+          position: "absolute",
+          inset: 0,
+          background:
+            "linear-gradient(160deg, rgba(15,23,42,0.9) 0%, rgba(30,58,138,0.6) 40%, rgba(0,0,0,0.4) 100%)",
+          opacity: !videoAvailable || hasError || !src ? 1 : 0,
+          transition: "opacity 400ms ease",
+          pointerEvents: "none",
+          zIndex: 1,
+        }}
+      />
+
+      {/* Placeholder UI when video is not available or not loaded yet */}
+      {(!videoAvailable || hasError || !src) && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            backgroundColor: "#000",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10,
+            pointerEvents: "none",
+          }}
+        >
+          {/* Title in top-left */}
+          {title && (
             <div
               style={{
                 position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
+                top: "20px",
+                left: "20px",
+                color: "#fff",
+                fontSize: "18px",
+                fontWeight: 500,
                 zIndex: 11,
+                maxWidth: "80%",
+                textShadow: "0 2px 4px rgba(0,0,0,0.5)",
+              }}
+            >
+              {title}
+            </div>
+          )}
+
+          {/* Center Loading Spinner - Large blue glowing circle */}
+          <div
+            style={{
+              position: "absolute",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              zIndex: 11,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <div
+              style={{
+                width: "100px",
+                height: "100px",
+                borderRadius: "50%",
+                background: "rgba(59, 130, 246, 0.15)",
+                boxShadow:
+                  "0 0 30px rgba(59, 130, 246, 0.8), 0 0 60px rgba(59, 130, 246, 0.5), inset 0 0 15px rgba(59, 130, 246, 0.4)",
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
               }}
             >
-              <div
-                style={{
-                  width: "100px",
-                  height: "100px",
-                  borderRadius: "50%",
-                  background: "rgba(59, 130, 246, 0.15)",
-                  boxShadow:
-                    "0 0 30px rgba(59, 130, 246, 0.8), 0 0 60px rgba(59, 130, 246, 0.5), inset 0 0 15px rgba(59, 130, 246, 0.4)",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}
-              >
-                <CustomSpinner size={40} color="rgba(147, 197, 253, 1)" />
-              </div>
+              <CustomSpinner size={40} color="rgba(147, 197, 253, 1)" />
             </div>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Thumbnail Overlay - Shows until video starts playing */}
-        {poster && !hasStartedPlaying && (
+      {/* Thumbnail Overlay - Shows until video starts playing */}
+      {poster && !hasStartedPlaying && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 2,
+            cursor: "pointer",
+            borderRadius: isFullscreen && isMobile && isLandscape ? 0 : 8,
+            overflow: "hidden",
+            backgroundColor: "#000",
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            togglePlay();
+          }}
+        >
+          <img
+            src={poster}
+            alt="Video thumbnail"
+            style={{
+              width: "100%",
+              height: "100%",
+              objectFit: "contain", // Show full image without cropping
+              display: "block",
+              backgroundColor: "#000",
+            }}
+          />
+          {/* Play Button Overlay - Responsive size */}
           <div
             style={{
               position: "absolute",
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              zIndex: 2,
-              cursor: "pointer",
-              borderRadius: isFullscreen && isMobile && isLandscape ? 0 : 8,
-              overflow: "hidden",
-              backgroundColor: "#000",
+              top: "50%",
+              left: "50%",
+              transform: "translate(-50%, -50%)",
+              width: isMobile ? "60px" : "80px", // Smaller on mobile
+              height: isMobile ? "60px" : "80px",
+              borderRadius: "50%",
+              background: "rgba(59, 130, 246, 0.95)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 4px 20px rgba(0, 0, 0, 0.4)",
+              transition: "all 0.3s ease",
             }}
+            onMouseEnter={(e) => {
+              if (!isMobile) {
+                e.currentTarget.style.transform =
+                  "translate(-50%, -50%) scale(1.1)";
+                e.currentTarget.style.background = "rgba(59, 130, 246, 1)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!isMobile) {
+                e.currentTarget.style.transform =
+                  "translate(-50%, -50%) scale(1)";
+                e.currentTarget.style.background = "rgba(59, 130, 246, 0.95)";
+              }
+            }}
+          >
+            <Play
+              size={isMobile ? 28 : 40} // Smaller icon on mobile
+              color="white"
+              fill="white"
+              style={{ marginLeft: "3px" }}
+            />
+          </div>
+        </div>
+      )}
+
+      <video
+        ref={videoRef}
+        src={isHlsSource ? undefined : currentSrc} // Don't set src for HLS - HLS.js handles it
+        poster={poster} // Add poster attribute for native fallback
+        playsInline
+        preload="metadata"
+        webkit-playsinline="true"
+        x-webkit-airplay="allow"
+        width="100%"
+        height="auto"
+        controlsList="nodownload nofullscreen noremoteplayback" // Disable download button
+        disablePictureInPicture // Disable PiP
+        disableRemotePlayback // Disable casting
+        onContextMenu={(e) => e.preventDefault()} // Disable right-click
+        style={{
+          borderRadius: isFullscreen && isMobile && isLandscape ? 0 : 8,
+          width: "100%",
+          height: isFullscreen && isMobile && isLandscape ? "100vh" : "auto",
+          objectFit:
+            isFullscreen && isMobile && isLandscape ? "cover" : "contain",
+          display: videoAvailable && !hasError ? "block" : "none",
+          position: "relative",
+          zIndex: 1,
+          WebkitTapHighlightColor: "transparent",
+          touchAction: "manipulation",
+          pointerEvents: "auto", // Enable interaction but with protections
+          userSelect: "none", // Disable text selection
+          WebkitUserSelect: "none", // Safari
+          MozUserSelect: "none", // Firefox
+          boxShadow:
+            playing && !hasError
+              ? "0 0 24px rgba(59,130,246,0.35)"
+              : "0 0 12px rgba(59,130,246,0.25)",
+          transition: "box-shadow 400ms ease",
+        }}
+        onPlay={(e) => {
+          e.stopPropagation();
+          setPlaying(true);
+          setHasStartedPlaying(true); // Hide thumbnail when playing starts
+          onVideoPlay?.();
+        }}
+        onPause={(e) => {
+          e.stopPropagation();
+          setPlaying(false);
+          onVideoPause?.();
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          if (isMobile) setShowControls((v) => !v);
+        }}
+        onTouchStart={(e) => {
+          // For iOS: show controls on touch
+          if (isMobile) {
+            e.stopPropagation();
+            setShowControls((v) => !v);
+          }
+        }}
+        onError={(e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
+          console.error("Video load error:", e);
+          setIsLoading(false);
+          setHasError(true);
+          setVideoAvailable(false);
+        }}
+        onLoadedData={() => {
+          setVideoAvailable(true);
+          setIsLoading(false);
+          setHasError(false);
+        }}
+        onCanPlay={() => {
+          setVideoAvailable(true);
+          setIsLoading(false);
+          setHasError(false);
+        }}
+        onLoadedMetadata={() => {
+          setVideoAvailable(true);
+          setIsLoading(false);
+        }}
+      />
+
+      {/* Static Watermark - Title watermark */}
+      {videoAvailable && !hasError && title && (
+        <div
+          className="video-watermark"
+          style={{
+            position: "absolute",
+            top: "10px",
+            right: "10px",
+            color: "rgba(255, 255, 255, 0.3)",
+            fontSize: "14px",
+            fontWeight: 600,
+            pointerEvents: "none",
+            zIndex: 100,
+            textShadow: "0 1px 3px rgba(0, 0, 0, 0.5)",
+            userSelect: "none",
+            WebkitUserSelect: "none",
+            fontFamily:
+              "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+          }}
+        >
+          {title || "Melaverse © Protected Content"}
+        </div>
+      )}
+
+      {/* Dynamic Watermark - Shows user info or protection message, changes position every 10 seconds */}
+      {videoAvailable && !hasError && <DynamicWatermark />}
+
+      {/* Center Play Button - Show when paused and not loading */}
+      {!playing && !isLoading && isOnline && (
+        <div
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            zIndex: 100,
+            pointerEvents: "none",
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          <button
             onClick={(e) => {
               e.stopPropagation();
               togglePlay();
             }}
-          >
-            <img
-              src={poster}
-              alt="Video thumbnail"
-              style={{
-                width: "100%",
-                height: "100%",
-                objectFit: "contain", // Show full image without cropping
-                display: "block",
-                backgroundColor: "#000",
-              }}
-            />
-            {/* Play Button Overlay - Responsive size */}
-            <div
-              style={{
-                position: "absolute",
-                top: "50%",
-                left: "50%",
-                transform: "translate(-50%, -50%)",
-                width: isMobile ? "60px" : "80px", // Smaller on mobile
-                height: isMobile ? "60px" : "80px",
-                borderRadius: "50%",
-                background: "rgba(59, 130, 246, 0.95)",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 4px 20px rgba(0, 0, 0, 0.4)",
-                transition: "all 0.3s ease",
-              }}
-              onMouseEnter={(e) => {
-                if (!isMobile) {
-                  e.currentTarget.style.transform =
-                    "translate(-50%, -50%) scale(1.1)";
-                  e.currentTarget.style.background = "rgba(59, 130, 246, 1)";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isMobile) {
-                  e.currentTarget.style.transform =
-                    "translate(-50%, -50%) scale(1)";
-                  e.currentTarget.style.background = "rgba(59, 130, 246, 0.95)";
-                }
-              }}
-            >
-              <Play
-                size={isMobile ? 28 : 40} // Smaller icon on mobile
-                color="white"
-                fill="white"
-                style={{ marginLeft: "3px" }}
-              />
-            </div>
-          </div>
-        )}
-
-        <video
-          ref={videoRef}
-          src={isHlsSource ? undefined : currentSrc} // Don't set src for HLS - HLS.js handles it
-          poster={poster} // Add poster attribute for native fallback
-          playsInline
-          preload="metadata"
-          webkit-playsinline="true"
-          x-webkit-airplay="allow"
-          width="100%"
-          height="auto"
-          controlsList="nodownload nofullscreen noremoteplayback" // Disable download button
-          disablePictureInPicture // Disable PiP
-          disableRemotePlayback // Disable casting
-          onContextMenu={(e) => e.preventDefault()} // Disable right-click
-          style={{
-            borderRadius: isFullscreen && isMobile && isLandscape ? 0 : 8,
-            width: "100%",
-            height: isFullscreen && isMobile && isLandscape ? "100vh" : "auto",
-            objectFit:
-              isFullscreen && isMobile && isLandscape ? "cover" : "contain",
-            display: videoAvailable && !hasError ? "block" : "none",
-            position: "relative",
-            zIndex: 1,
-            WebkitTapHighlightColor: "transparent",
-            touchAction: "manipulation",
-            pointerEvents: "auto", // Enable interaction but with protections
-            userSelect: "none", // Disable text selection
-            WebkitUserSelect: "none", // Safari
-            MozUserSelect: "none", // Firefox
-          }}
-          onPlay={(e) => {
-            e.stopPropagation();
-            setPlaying(true);
-            setHasStartedPlaying(true); // Hide thumbnail when playing starts
-            onVideoPlay?.();
-          }}
-          onPause={(e) => {
-            e.stopPropagation();
-            setPlaying(false);
-            onVideoPause?.();
-          }}
-          onClick={(e) => {
-            e.stopPropagation();
-            if (isMobile) setShowControls((v) => !v);
-          }}
-          onTouchStart={(e) => {
-            // For iOS: show controls on touch
-            if (isMobile) {
-              e.stopPropagation();
-              setShowControls((v) => !v);
-            }
-          }}
-          onError={(e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
-            console.error("Video load error:", e);
-            setIsLoading(false);
-            setHasError(true);
-            setVideoAvailable(false);
-          }}
-          onLoadedData={() => {
-            setVideoAvailable(true);
-            setIsLoading(false);
-            setHasError(false);
-          }}
-          onCanPlay={() => {
-            setVideoAvailable(true);
-            setIsLoading(false);
-            setHasError(false);
-          }}
-          onLoadedMetadata={() => {
-            setVideoAvailable(true);
-            setIsLoading(false);
-          }}
-        />
-
-        {/* Static Watermark - Title watermark */}
-        {videoAvailable && !hasError && title && (
-          <div
-            className="video-watermark"
             style={{
-              position: "absolute",
-              top: "10px",
-              right: "10px",
-              color: "rgba(255, 255, 255, 0.3)",
-              fontSize: "14px",
-              fontWeight: 600,
-              pointerEvents: "none",
-              zIndex: 100,
-              textShadow: "0 1px 3px rgba(0, 0, 0, 0.5)",
-              userSelect: "none",
-              WebkitUserSelect: "none",
-              fontFamily:
-                "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
-            }}
-          >
-            {title || "Melaverse © Protected Content"}
-          </div>
-        )}
-
-        {/* Dynamic Watermark - Shows user info or protection message, changes position every 10 seconds */}
-        {videoAvailable && !hasError && <DynamicWatermark />}
-
-        {/* Center Play Button - Show when paused and not loading */}
-        {!playing && !isLoading && isOnline && (
-          <div
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              zIndex: 100,
-              pointerEvents: "none",
-              WebkitTapHighlightColor: "transparent",
-            }}
-          >
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                togglePlay();
-              }}
-              style={{
-                pointerEvents: "auto",
-                background: "rgba(59, 130, 246, 0.9)", // Regular blue
-                border: "none",
-                color: "#fff",
-                fontSize: 32,
-                borderRadius: "50%",
-                width: 80,
-                height: 80,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                cursor: "pointer",
-                boxShadow:
-                  "0 4px 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.3)",
-                transition: "all 0.3s ease",
-                WebkitTapHighlightColor: "transparent", // Fix iPhone touch
-                touchAction: "manipulation", // Fix iPhone touch
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.transform = "scale(1.1)";
-                e.currentTarget.style.boxShadow =
-                  "0 6px 25px rgba(59, 130, 246, 1), 0 0 40px rgba(59, 130, 246, 0.5)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.transform = "scale(1)";
-                e.currentTarget.style.boxShadow =
-                  "0 4px 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.3)";
-              }}
-              aria-label="Play"
-            >
-              <Play size={32} />
-            </button>
-          </div>
-        )}
-
-        {/* Loading Spinner Overlay - Only show when video is available but buffering */}
-        {(isLoading || !isOnline) && videoAvailable && !hasError && src && (
-          <div
-            style={{
-              position: "absolute",
-              top: "50%",
-              left: "50%",
-              transform: "translate(-50%, -50%)",
-              zIndex: 100,
+              pointerEvents: "auto",
+              background: "rgba(59, 130, 246, 0.9)", // Regular blue
+              border: "none",
+              color: "#fff",
+              fontSize: 32,
+              borderRadius: "50%",
+              width: 80,
+              height: 80,
               display: "flex",
-              flexDirection: "column",
               alignItems: "center",
               justifyContent: "center",
-              backgroundColor: "rgba(59, 130, 246, 0.9)", // Regular blue background
-              borderRadius: "50%",
-              width: "80px",
-              height: "80px",
-              pointerEvents: "none",
+              cursor: "pointer",
               boxShadow:
                 "0 4px 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.3)",
+              transition: "all 0.3s ease",
+              WebkitTapHighlightColor: "transparent", // Fix iPhone touch
+              touchAction: "manipulation", // Fix iPhone touch
             }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.transform = "scale(1.1)";
+              e.currentTarget.style.boxShadow =
+                "0 6px 25px rgba(59, 130, 246, 1), 0 0 40px rgba(59, 130, 246, 0.5)";
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.transform = "scale(1)";
+              e.currentTarget.style.boxShadow =
+                "0 4px 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.3)";
+            }}
+            aria-label="Play"
           >
-            <CustomSpinner size={32} color="#fff" />
-            {!isOnline && (
-              <span
-                style={{
-                  color: "#fff",
-                  fontSize: "12px",
-                  marginTop: "8px",
-                  textAlign: "center",
-                }}
-              >
-                No Network
-              </span>
-            )}
-          </div>
-        )}
+            <Play size={32} />
+          </button>
+        </div>
+      )}
 
-        {/* --- MOBILE CONTROLS --- */}
-        {isMobile && (showControls || !videoAvailable || hasError || !src) && (
-          <div
-            style={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              bottom: 0,
-              background: "rgba(30, 58, 138, 0.95)", // Dark blue background like in image
-              padding: "8px 16px",
-              borderBottomLeftRadius: 8,
-              borderBottomRightRadius: 8,
-              display: "flex",
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 12,
-              zIndex: 100,
-              WebkitTapHighlightColor: "transparent",
-            }}
-          >
-            {/* Play/Pause Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                togglePlay();
-              }}
-              title={playing ? "Pause" : "Play"}
+      {/* Loading Spinner Overlay - Only show when video is available but buffering */}
+      {(isLoading || !isOnline) && videoAvailable && !hasError && src && (
+        <div
+          style={{
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
+            zIndex: 100,
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            backgroundColor: "rgba(59, 130, 246, 0.9)", // Regular blue background
+            borderRadius: "50%",
+            width: "80px",
+            height: "80px",
+            pointerEvents: "none",
+            boxShadow:
+              "0 4px 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.3)",
+          }}
+        >
+          <CustomSpinner size={32} color="#fff" />
+          {!isOnline && (
+            <span
               style={{
-                background: "rgba(59, 130, 246, 0.8)", // Glassy blue background
-                border: "none",
                 color: "#fff",
-                fontSize: 20,
-                borderRadius: "50%",
-                width: 40,
-                height: 40,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.3)",
-                WebkitTapHighlightColor: "transparent", // Fix iPhone touch
-                touchAction: "manipulation", // Fix iPhone touch
-                minHeight: "44px", // iOS minimum touch target
-                minWidth: "44px", // iOS minimum touch target
+                fontSize: "12px",
+                marginTop: "8px",
+                textAlign: "center",
               }}
             >
-              {playing ? <Pause /> : <Play />}
-            </button>
-
-            {/* Progress Bar */}
-            <div
-              style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}
-            >
-              <ProgressBar
-                currentTime={currentTime}
-                duration={duration}
-                onSeek={handleSeek}
-                buffered={buffered}
-              />
-            </div>
-
-            {/* Time Display */}
-            <span style={{ color: "#fff", fontSize: 14, minWidth: 50 }}>
-              -{formatTime(duration - currentTime)}
+              No Network
             </span>
+          )}
+        </div>
+      )}
 
-            {/* Volume Control */}
-            <VolumeControl
-              volume={volume}
-              muted={muted}
-              onVolumeChange={handleVolumeChange}
-              onMuteToggle={handleMuteToggle}
-            />
-
-            {/* Fullscreen Button */}
-            <FullscreenButton
-              onClick={handleFullscreen}
-              isFullscreen={isFullscreen}
-            />
-
-            {/* Quality Control (Mobile) */}
-            <div style={{ marginLeft: 8 }}>
-              <QualityControl
-                isHls={isHlsSource}
-                hlsLevels={hlsLevels}
-                currentHlsLevel={currentHlsLevel}
-                nonHlsQualities={qualities.map((q) => ({
-                  label: q.label,
-                  value: q.value,
-                }))}
-                currentQuality={currentQuality}
-                onQualityChange={handleQualityChange}
-                networkSpeedMbps={networkSpeedMbps}
-              />
-            </div>
-          </div>
-        )}
-
-        {/* --- DESKTOP CONTROLS --- */}
-        {!isMobile && (
-          <div
+      {/* --- MOBILE CONTROLS --- */}
+      {isMobile && (showControls || !videoAvailable || hasError || !src) && (
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(30, 58, 138, 0.95)", // Dark blue background like in image
+            padding: "8px 16px",
+            borderBottomLeftRadius: 8,
+            borderBottomRightRadius: 8,
+            display: "flex",
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+            zIndex: 100,
+            WebkitTapHighlightColor: "transparent",
+          }}
+        >
+          {/* Play/Pause Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePlay();
+            }}
+            title={playing ? "Pause" : "Play"}
             style={{
-              position: "absolute",
-              left: 0,
-              right: 0,
-              bottom: 0,
-              opacity:
-                showControls || !videoAvailable || hasError || !src ? 1 : 0,
-              pointerEvents:
-                showControls || !videoAvailable || hasError || !src
-                  ? "auto"
-                  : "none",
-              transition: "opacity 0.3s",
-              background: "rgba(30, 58, 138, 0.95)", // Dark blue background like in image
-              padding: "8px 16px",
-              borderBottomLeftRadius: 8,
-              borderBottomRightRadius: 8,
+              background: "rgba(59, 130, 246, 0.8)", // Glassy blue background
+              border: "none",
+              color: "#fff",
+              fontSize: 20,
+              borderRadius: "50%",
+              width: 40,
+              height: 40,
+              cursor: "pointer",
               display: "flex",
-              zIndex: 100,
-              flexDirection: "row",
               alignItems: "center",
-              gap: 12,
+              justifyContent: "center",
+              boxShadow: "0 2px 8px rgba(59, 130, 246, 0.3)",
+              WebkitTapHighlightColor: "transparent", // Fix iPhone touch
+              touchAction: "manipulation", // Fix iPhone touch
+              minHeight: "44px", // iOS minimum touch target
+              minWidth: "44px", // iOS minimum touch target
             }}
           >
-            {/* Play/Pause Button */}
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                togglePlay();
-              }}
-              title={playing ? "Pause" : "Play"}
-              style={{
-                background: "rgba(59, 130, 246, 0.8)", // Glassy blue background
-                border: "none",
-                color: "#fff",
-                fontSize: 20,
-                borderRadius: "50%",
-                width: 40,
-                height: 40,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                boxShadow: "0 2px 8px rgba(59, 130, 246, 0.3)",
-              }}
-            >
-              {playing ? <Pause /> : <Play />}
-            </button>
+            {playing ? <Pause /> : <Play />}
+          </button>
 
-            {/* Progress Bar */}
-            <div
-              style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}
-            >
-              <ProgressBar
-                currentTime={currentTime}
-                duration={duration}
-                onSeek={handleSeek}
-                buffered={buffered}
-              />
-            </div>
-
-            {/* Time Display */}
-            <span style={{ color: "#fff", fontSize: 14, minWidth: 50 }}>
-              -{formatTime(duration - currentTime)}
-            </span>
-
-            {/* Volume Control */}
-            <VolumeControl
-              volume={volume}
-              muted={muted}
-              onVolumeChange={handleVolumeChange}
-              onMuteToggle={handleMuteToggle}
+          {/* Progress Bar */}
+          <div
+            style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}
+          >
+            <ProgressBar
+              currentTime={currentTime}
+              duration={duration}
+              onSeek={handleSeek}
+              buffered={buffered}
             />
+          </div>
 
-            {/* Quality Control */}
+          {/* Time Display */}
+          <span style={{ color: "#fff", fontSize: 14, minWidth: 50 }}>
+            -{formatTime(duration - currentTime)}
+          </span>
+
+          {/* Volume Control */}
+          <VolumeControl
+            volume={volume}
+            muted={muted}
+            onVolumeChange={handleVolumeChange}
+            onMuteToggle={handleMuteToggle}
+          />
+
+          {/* Fullscreen Button */}
+          <FullscreenButton
+            onClick={handleFullscreen}
+            isFullscreen={isFullscreen}
+          />
+
+          {/* Quality Control (Mobile) */}
+          <div style={{ marginLeft: 8 }}>
             <QualityControl
               isHls={isHlsSource}
               hlsLevels={hlsLevels}
@@ -1433,29 +1295,109 @@ function Player({
               onQualityChange={handleQualityChange}
               networkSpeedMbps={networkSpeedMbps}
             />
+          </div>
+        </div>
+      )}
 
-            {/* Fullscreen Button */}
-            <FullscreenButton
-              onClick={handleFullscreen}
-              isFullscreen={isFullscreen}
+      {/* --- DESKTOP CONTROLS --- */}
+      {!isMobile && (
+        <div
+          style={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            bottom: 0,
+            opacity:
+              showControls || !videoAvailable || hasError || !src ? 1 : 0,
+            pointerEvents:
+              showControls || !videoAvailable || hasError || !src
+                ? "auto"
+                : "none",
+            transition: "opacity 0.3s",
+            background: "rgba(30, 58, 138, 0.95)", // Dark blue background like in image
+            padding: "8px 16px",
+            borderBottomLeftRadius: 8,
+            borderBottomRightRadius: 8,
+            display: "flex",
+            zIndex: 100,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 12,
+          }}
+        >
+          {/* Play/Pause Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              togglePlay();
+            }}
+            title={playing ? "Pause" : "Play"}
+            style={{
+              background: "rgba(59, 130, 246, 0.8)", // Glassy blue background
+              border: "none",
+              color: "#fff",
+              fontSize: 20,
+              borderRadius: "50%",
+              width: 40,
+              height: 40,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              boxShadow: "0 2px 8px rgba(59, 130, 246, 0.3)",
+            }}
+          >
+            {playing ? <Pause /> : <Play />}
+          </button>
+
+          {/* Progress Bar */}
+          <div
+            style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}
+          >
+            <ProgressBar
+              currentTime={currentTime}
+              duration={duration}
+              onSeek={handleSeek}
+              buffered={buffered}
             />
           </div>
-        )}
 
-        {/* Settings overlay removed: using inline QualityControl */}
-      </div>
-      {playlist.length > 0 && (
-        <div style={{ width: "100%", maxWidth: 640, marginTop: 16 }}>
-          <Playlist
-            videos={playlist}
-            currentVideoId={playlist[currentVideoIndex]?.id}
-            onSelect={(_id) => {
-              const idx = playlist.findIndex((v) => v.id === _id);
-              if (idx !== -1) handleSelect(idx);
-            }}
+          {/* Time Display */}
+          <span style={{ color: "#fff", fontSize: 14, minWidth: 50 }}>
+            -{formatTime(duration - currentTime)}
+          </span>
+
+          {/* Volume Control */}
+          <VolumeControl
+            volume={volume}
+            muted={muted}
+            onVolumeChange={handleVolumeChange}
+            onMuteToggle={handleMuteToggle}
+          />
+
+          {/* Quality Control */}
+          <QualityControl
+            isHls={isHlsSource}
+            hlsLevels={hlsLevels}
+            currentHlsLevel={currentHlsLevel}
+            nonHlsQualities={qualities.map((q) => ({
+              label: q.label,
+              value: q.value,
+            }))}
+            currentQuality={currentQuality}
+            onQualityChange={handleQualityChange}
+            networkSpeedMbps={networkSpeedMbps}
+          />
+
+          {/* Fullscreen Button */}
+          <FullscreenButton
+            onClick={handleFullscreen}
+            isFullscreen={isFullscreen}
           />
         </div>
       )}
+
+      {/* Settings overlay removed: using inline QualityControl */}
     </div>
   );
 }

@@ -63,6 +63,18 @@ enum TransferStatus {
   paid
 }
 
+enum DiscountType {
+  PERCENT
+  AMOUNT
+}
+
+enum Frequency {
+  NONE
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
 model User {
   id              String            @id @default(uuid())
   role            Role
@@ -104,43 +116,44 @@ model Permission {
 // ------------------------- Course -----------------------------
 
 model Course {
-  id              String          @id @default(uuid())
-  titleEn         String
-  titleAm         String
-  aboutEn         String          @db.Text
-  aboutAm         String          @db.Text
-  thumbnail       String
-  video           String
-  pdfData         String?         @db.Text
-  aiProvider      String?         @default("gemini")
-  courseMaterials String?         @db.Text
-  price           Decimal
-  dolarPrice      Int
-  birrPrice       Int
+  id                String             @id @default(uuid())
+  titleEn           String
+  titleAm           String
+  aboutEn           String             @db.Text
+  aboutAm           String             @db.Text
+  thumbnail         String
+  video             String
+  pdfData           String?            @db.Text
+  aiProvider        String?            @default("gemini")
+  courseMaterials   String?            @db.Text
+  price             Decimal
+  dolarPrice        Int
+  birrPrice         Int
   // currency        String          @default("ETB")
-  level           CourseLevel
-  language        String          @default("Amharic")
-  duration        String?
-  accessEn        String          @default("Access on mobile, computer")
-  accessAm        String          @default("በሞባይል ፣ በኮምፒተር ላይ መጠቀም")
-  certificate     Boolean         @default(false)
-  instructorRate  Decimal
-  sellerRate      Decimal
-  affiliateRate   Decimal
-  channel         Channel?        @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  channelId       String?         @unique
-  instructor      User            @relation(fields: [instructorId], references: [id], onDelete: Cascade)
-  instructorId    String
-  status          Boolean         @default(true)
-  requirement     Requirement[]
-  courseFor       CourseFor[]
-  activity        Activity[]
-  order           Order[]
-  incomeRate      IncomeRate[]
-  question        question[]
-  chatQuestions   VideoQuestion[]
-  announcement    Announcement[]
-  feedback        Feedback[]
+  level             CourseLevel
+  language          String             @default("Amharic")
+  duration          String?
+  accessEn          String             @default("Access on mobile, computer")
+  accessAm          String             @default("በሞባይል ፣ በኮምፒተር ላይ መጠቀም")
+  certificate       Boolean            @default(false)
+  instructorRate    Decimal
+  sellerRate        Decimal
+  affiliateRate     Decimal
+  channel           Channel?           @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  channelId         String?            @unique
+  instructor        User               @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  instructorId      String
+  status            Boolean            @default(true)
+  requirement       Requirement[]
+  courseFor         CourseFor[]
+  activity          Activity[]
+  order             Order[]
+  incomeRate        IncomeRate[]
+  question          question[]
+  chatQuestions     VideoQuestion[]
+  announcement      Announcement[]
+  feedback          Feedback[]
+  periodicDiscounts periodicDiscount[]
 }
 
 model Requirement {
@@ -371,4 +384,37 @@ model Feedback {
   feedback  String   @db.Text
   rating    Int
   createdAt DateTime @default(now())
+}
+
+model publicAnnouncement {
+  id        String   @id @default(uuid())
+  message   String   @db.Text
+  photo     String?  @db.Text
+  createdAt DateTime @default(now())
+}
+
+model periodicDiscount {
+  id           String   @id @default(uuid())
+  courseId     String
+  discountRate Int
+  startDate    DateTime
+  endDate      DateTime
+  createdAt    DateTime @default(now())
+  course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+}
+
+model PeriodicDiscount {
+  id          String       @id @default(uuid())
+  title       String
+  description String?
+  type        DiscountType @default(PERCENT)
+  value       Float // percent (0-100) or fixed amount (with currency)
+  currency    String? // required when type = AMOUNT
+  startDate   DateTime
+  endDate     DateTime?
+  frequency   Frequency    @default(NONE)
+  daysOfWeek  String? // CSV e.g. "1,3,5" (Mon,Wed,Fri) for WEEKLY
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
 }
