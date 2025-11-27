@@ -1,6 +1,6 @@
-'use server';
+"use server";
 import prisma from "@/lib/db";
-import { revalidatePath } from 'next/cache';
+import { revalidatePath } from "next/cache";
 
 export interface PublicAnnouncementInput {
   id?: string;
@@ -11,45 +11,47 @@ export interface PublicAnnouncementInput {
   isActive?: boolean;
 }
 
-export async function getPublicAnnouncements(options: { 
-  activeOnly?: boolean;
-  limit?: number;
-} = {}) {
+export async function getPublicAnnouncements(
+  options: {
+    activeOnly?: boolean;
+    limit?: number;
+  } = {}
+) {
   try {
     const { activeOnly = false, limit } = options;
-    
+
     const now = new Date();
-    
+
     const announcements = await prisma.publicAnnouncement.findMany({
-      where: activeOnly 
+      where: activeOnly
         ? {
             isActive: true,
             OR: [
               {
                 startDate: { lte: now },
-                endDate: null
+                endDate: null,
               },
               {
                 startDate: { lte: now },
-                endDate: { gte: now }
+                endDate: { gte: now },
               },
               {
                 startDate: null,
-                endDate: null
-              }
-            ]
+                endDate: null,
+              },
+            ],
           }
         : {},
-      orderBy: { createdAt: 'desc' },
+      orderBy: { createdAt: "desc" },
       take: limit,
     });
-    
+
     return { data: announcements, error: null };
   } catch (error) {
-    console.error('Error fetching public announcements:', error);
-    return { 
-      data: [], 
-      error: 'Failed to fetch announcements. Please try again.' 
+    console.error("Error fetching public announcements:", error);
+    return {
+      data: [],
+      error: "Failed to fetch announcements. Please try again.",
     };
   }
 }
@@ -59,28 +61,30 @@ export async function getPublicAnnouncementById(id: string) {
     const announcement = await prisma.publicAnnouncement.findUnique({
       where: { id },
     });
-    
+
     if (!announcement) {
-      return { data: null, error: 'Announcement not found' };
+      return { data: null, error: "Announcement not found" };
     }
-    
+
     return { data: announcement, error: null };
   } catch (error) {
     console.error(`Error fetching announcement with ID ${id}:`, error);
-    return { 
-      data: null, 
-      error: 'Failed to fetch announcement. Please try again.' 
+    return {
+      data: null,
+      error: "Failed to fetch announcement. Please try again.",
     };
   }
 }
 
-export async function createPublicAnnouncement(data: Omit<PublicAnnouncementInput, 'id'>) {
+export async function createPublicAnnouncement(
+  data: Omit<PublicAnnouncementInput, "id">
+) {
   try {
     // Validate required fields
     if (!data.message) {
-      return { 
-        data: null, 
-        error: 'Message is required' 
+      return {
+        data: null,
+        error: "Message is required",
       };
     }
 
@@ -88,11 +92,11 @@ export async function createPublicAnnouncement(data: Omit<PublicAnnouncementInpu
     if (data.startDate && data.endDate) {
       const start = new Date(data.startDate);
       const end = new Date(data.endDate);
-      
+
       if (end <= start) {
-        return { 
-          data: null, 
-          error: 'End date must be after start date' 
+        return {
+          data: null,
+          error: "End date must be after start date",
         };
       }
     }
@@ -107,19 +111,19 @@ export async function createPublicAnnouncement(data: Omit<PublicAnnouncementInpu
       },
     });
 
-    revalidatePath('/admin/announcements');
+    revalidatePath("/admin/announcements");
     return { data: announcement, error: null };
   } catch (error) {
-    console.error('Error creating public announcement:', error);
-    return { 
-      data: null, 
-      error: 'Failed to create announcement. Please try again.' 
+    console.error("Error creating public announcement:", error);
+    return {
+      data: null,
+      error: "Failed to create announcement. Please try again.",
     };
   }
 }
 
 export async function updatePublicAnnouncement(
-  id: string, 
+  id: string,
   data: Partial<PublicAnnouncementInput>
 ) {
   try {
@@ -129,26 +133,34 @@ export async function updatePublicAnnouncement(
     });
 
     if (!existingAnnouncement) {
-      return { 
-        data: null, 
-        error: 'Announcement not found' 
+      return {
+        data: null,
+        error: "Announcement not found",
       };
     }
 
     // Validate date range if dates are being updated
     if (data.startDate !== undefined || data.endDate !== undefined) {
-      const startDate = data.startDate !== undefined 
-        ? new Date(data.startDate) 
-        : (existingAnnouncement.startDate ? new Date(existingAnnouncement.startDate) : null);
-        
-      const endDate = data.endDate !== undefined 
-        ? (data.endDate ? new Date(data.endDate) : null)
-        : (existingAnnouncement.endDate ? new Date(existingAnnouncement.endDate) : null);
+      const startDate =
+        data.startDate !== undefined
+          ? new Date(data.startDate)
+          : existingAnnouncement.startDate
+          ? new Date(existingAnnouncement.startDate)
+          : null;
+
+      const endDate =
+        data.endDate !== undefined
+          ? data.endDate
+            ? new Date(data.endDate)
+            : null
+          : existingAnnouncement.endDate
+          ? new Date(existingAnnouncement.endDate)
+          : null;
 
       if (startDate && endDate && endDate <= startDate) {
-        return { 
-          data: null, 
-          error: 'End date must be after start date' 
+        return {
+          data: null,
+          error: "End date must be after start date",
         };
       }
     }
@@ -158,23 +170,29 @@ export async function updatePublicAnnouncement(
       data: {
         message: data.message,
         photo: data.photo !== undefined ? data.photo : undefined,
-        startDate: data.startDate !== undefined 
-          ? (data.startDate ? new Date(data.startDate) : null)
-          : undefined,
-        endDate: data.endDate !== undefined 
-          ? (data.endDate ? new Date(data.endDate) : null)
-          : undefined,
+        startDate:
+          data.startDate !== undefined
+            ? data.startDate
+              ? new Date(data.startDate)
+              : null
+            : undefined,
+        endDate:
+          data.endDate !== undefined
+            ? data.endDate
+              ? new Date(data.endDate)
+              : null
+            : undefined,
         isActive: data.isActive,
       },
     });
 
-    revalidatePath('/admin/announcements');
+    revalidatePath("/admin/announcements");
     return { data: updatedAnnouncement, error: null };
   } catch (error) {
     console.error(`Error updating announcement with ID ${id}:`, error);
-    return { 
-      data: null, 
-      error: 'Failed to update announcement. Please try again.' 
+    return {
+      data: null,
+      error: "Failed to update announcement. Please try again.",
     };
   }
 }
@@ -187,9 +205,9 @@ export async function deletePublicAnnouncement(id: string) {
     });
 
     if (!existingAnnouncement) {
-      return { 
-        success: false, 
-        error: 'Announcement not found' 
+      return {
+        success: false,
+        error: "Announcement not found",
       };
     }
 
@@ -197,13 +215,13 @@ export async function deletePublicAnnouncement(id: string) {
       where: { id },
     });
 
-    revalidatePath('/admin/announcements');
+    revalidatePath("/admin/announcements");
     return { success: true, error: null };
   } catch (error) {
     console.error(`Error deleting announcement with ID ${id}:`, error);
-    return { 
-      success: false, 
-      error: 'Failed to delete announcement. Please try again.' 
+    return {
+      success: false,
+      error: "Failed to delete announcement. Please try again.",
     };
   }
 }
@@ -215,13 +233,13 @@ export async function toggleAnnouncementStatus(id: string, isActive: boolean) {
       data: { isActive },
     });
 
-    revalidatePath('/admin/announcements');
+    revalidatePath("/admin/announcements");
     return { data: updatedAnnouncement, error: null };
   } catch (error) {
     console.error(`Error toggling status for announcement ${id}:`, error);
-    return { 
-      data: null, 
-      error: 'Failed to update announcement status. Please try again.' 
+    return {
+      data: null,
+      error: "Failed to update announcement status. Please try again.",
     };
   }
 }

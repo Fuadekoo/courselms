@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, { useState, useEffect } from "react";
@@ -9,23 +10,21 @@ import {
   Switch,
   Textarea,
   Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
+  CardBody,
   Table,
   TableHeader,
   TableBody,
   TableCell,
   TableRow,
-  TableHead,
+  TableColumn,
   Modal,
   ModalContent,
   ModalHeader,
   ModalFooter,
+  ModalBody,
 } from "@heroui/react";
 import { format } from "date-fns";
-import { Plus, Pencil, Trash2, Calendar as CalendarIcon } from "lucide-react";
+import { Plus, Pencil, Trash2 } from "lucide-react";
 
 type DiscountType = "PERCENT" | "AMOUNT";
 type Frequency = "NONE" | "DAILY" | "WEEKLY" | "MONTHLY";
@@ -206,19 +205,17 @@ export default function PeriodicDiscountsPage() {
       </div>
 
       <Card>
-        <CardContent className="p-6">
+        <CardBody className="p-6">
           <Table>
             <TableHeader>
-              <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Type</TableHead>
-                <TableHead>Value</TableHead>
-                <TableHead>Start Date</TableHead>
-                <TableHead>End Date</TableHead>
-                <TableHead>Frequency</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
+              <TableColumn>Title</TableColumn>
+              <TableColumn>Type</TableColumn>
+              <TableColumn>Value</TableColumn>
+              <TableColumn>Start Date</TableColumn>
+              <TableColumn>End Date</TableColumn>
+              <TableColumn>Frequency</TableColumn>
+              <TableColumn>Status</TableColumn>
+              <TableColumn>Actions</TableColumn>
             </TableHeader>
             <TableBody>
               {discounts.map((discount) => (
@@ -252,7 +249,7 @@ export default function PeriodicDiscountsPage() {
                       {discount.isActive ? "Active" : "Inactive"}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell>
                     <div className="flex justify-end space-x-2">
                       <Button
                         variant="light"
@@ -273,153 +270,78 @@ export default function PeriodicDiscountsPage() {
                   </TableCell>
                 </TableRow>
               ))}
-              {discounts.length === 0 && (
-                <TableRow>
-                  <TableCell
-                    colSpan={8}
-                    className="text-center py-8 text-muted-foreground"
-                  >
-                    No discounts found. Create your first discount to get
-                    started.
-                  </TableCell>
-                </TableRow>
-              )}
             </TableBody>
           </Table>
-        </CardContent>
+          {discounts.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              No discounts found. Create your first discount to get started.
+            </div>
+          )}
+        </CardBody>
       </Card>
 
       {/* Add/Edit Dialog */}
-      <Modal open={isDialogOpen} onOpenChange={setIsDialogOpen} size="lg">
+      <Modal isOpen={isDialogOpen} onOpenChange={setIsDialogOpen} size="lg">
         <ModalContent>
           <ModalHeader>
-            <CardTitle>
+            <h3 className="text-lg font-semibold">
               {editingId ? "Edit Discount" : "Add New Discount"}
-            </CardTitle>
-            <CardDescription>
-              {editingId
-                ? "Update the discount details below."
-                : "Fill in the form to create a new discount."}
-            </CardDescription>
+            </h3>
           </ModalHeader>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <ModalBody>
+            <form onSubmit={handleSubmit} className="space-y-4">
               <Input
                 label="Title"
                 name="title"
                 value={formData.title}
                 onChange={handleInputChange}
-                placeholder="E.g., Summer Sale"
                 required
-              />
-              <Select
-                label="Type"
-                value={formData.type}
-                onChange={(e) => handleSelectChange("type", e.target.value)}
-                required
-              >
-                <SelectItem value="PERCENT">Percentage</SelectItem>
-                <SelectItem value="AMOUNT">Fixed Amount</SelectItem>
-              </Select>
-              <Input
-                label={formData.type === "PERCENT" ? "Percentage" : "Amount"}
-                type="number"
-                name="value"
-                value={formData.value}
-                onChange={handleInputChange}
-                placeholder={formData.type === "PERCENT" ? "10" : "100"}
-                min="0"
-                step={formData.type === "PERCENT" ? "0.01" : "1"}
-                required
-              />
-              {formData.type === "AMOUNT" && (
-                <Select
-                  label="Currency"
-                  value={formData.currency}
-                  onChange={(e) =>
-                    handleSelectChange("currency", e.target.value)
-                  }
-                >
-                  <SelectItem value="ETB">ETB</SelectItem>
-                  <SelectItem value="USD">USD</SelectItem>
-                </Select>
-              )}
-              <Input
-                label="Start Date"
-                type="date"
-                name="startDate"
-                value={formData.startDate.toISOString().slice(0, 10)}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    startDate: new Date(e.target.value),
-                  })
-                }
-                required
-              />
-              <Input
-                label="End Date"
-                type="date"
-                name="endDate"
-                value={
-                  formData.endDate
-                    ? formData.endDate.toISOString().slice(0, 10)
-                    : ""
-                }
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    endDate: e.target.value
-                      ? new Date(e.target.value)
-                      : undefined,
-                  })
-                }
-              />
-              <Select
-                label="Frequency"
-                value={formData.frequency}
-                onChange={(e) =>
-                  handleSelectChange("frequency", e.target.value)
-                }
-                required
-              >
-                <SelectItem value="NONE">One Time</SelectItem>
-                <SelectItem value="DAILY">Daily</SelectItem>
-                <SelectItem value="WEEKLY">Weekly</SelectItem>
-                <SelectItem value="MONTHLY">Monthly</SelectItem>
-              </Select>
-              {formData.frequency === "WEEKLY" && (
-                <Input
-                  label="Days of Week"
-                  name="daysOfWeek"
-                  value={formData.daysOfWeek}
-                  onChange={handleInputChange}
-                  placeholder="1,3,5 (Mon, Wed, Fri)"
-                />
-              )}
-              <Switch
-                label="Active"
-                checked={formData.isActive}
-                onChange={handleSwitchChange}
               />
               <Textarea
                 label="Description"
                 name="description"
                 value={formData.description}
                 onChange={handleInputChange}
-                placeholder="Enter a description for this discount..."
-                rows={3}
               />
-            </div>
-            <ModalFooter className="flex justify-end gap-2 pt-4">
-              <Button type="button" variant="light" onClick={handleCloseDialog}>
-                Cancel
-              </Button>
-              <Button type="submit" color="primary">
-                {editingId ? "Update Discount" : "Create Discount"}
-              </Button>
-            </ModalFooter>
-          </form>
+              <div className="grid grid-cols-2 gap-4">
+                <Select
+                  label="Type"
+                  selectedKeys={[formData.type]}
+                  onSelectionChange={(keys) =>
+                    handleSelectChange("type", Array.from(keys)[0] as string)
+                  }
+                >
+                  <SelectItem key="PERCENT">Percentage</SelectItem>
+                  <SelectItem key="AMOUNT">Fixed Amount</SelectItem>
+                </Select>
+                <Input
+                  label="Value"
+                  name="value"
+                  type="number"
+                  value={formData.value.toString()}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              <Switch
+                isSelected={formData.isActive}
+                onValueChange={handleSwitchChange}
+              >
+                Active
+              </Switch>
+            </form>
+          </ModalBody>
+          <ModalFooter>
+            <Button variant="light" onPress={() => setIsDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              color="primary"
+              onPress={() => handleSubmit(new Event("submit") as any)}
+            >
+              {editingId ? "Update" : "Create"}
+            </Button>
+          </ModalFooter>
         </ModalContent>
       </Modal>
     </div>
