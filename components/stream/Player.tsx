@@ -294,7 +294,9 @@ function Player({
     const minutes = Math.floor((seconds % 3600) / 60);
     const secs = Math.floor(seconds % 60);
     if (hours > 0) {
-      return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+      return `${hours}:${minutes.toString().padStart(2, "0")}:${secs
+        .toString()
+        .padStart(2, "0")}`;
     }
     return `${minutes}:${secs.toString().padStart(2, "0")}`;
   };
@@ -819,7 +821,7 @@ function Player({
   // Handle quality change
   const handleQualityChange = (quality: QualityLevel) => {
     setCurrentQuality(quality);
-    
+
     // If HLS, update the HLS level
     if (isHlsSource && hlsRef.current && hlsLevels.length > 0) {
       const cq = toQualityValue(quality);
@@ -835,7 +837,7 @@ function Player({
           if (cq === "144p" && height >= 144 && height < 360) return true;
           return false;
         });
-        
+
         if (levelIndex !== -1) {
           hlsRef.current.currentLevel = levelIndex;
           setCurrentHlsLevel(levelIndex);

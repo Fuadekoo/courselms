@@ -29,7 +29,14 @@ const nextConfig: NextConfig = {
     // your project has ESLint errors.
     ignoreDuringBuilds: true,
   },
+  webpack: (config) => {
+    // Exclude the fuad directory from webpack processing
+    config.watchOptions = {
+      ...config.watchOptions,
+      ignored: ["**/fuad/**", "**/node_modules/**"],
+    };
+    return config;
+  },
 };
 
 export default nextConfig;
-
