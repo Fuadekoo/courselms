@@ -8,14 +8,7 @@ export async function GET(req: Request) {
   const pageSize = Math.min(Number(searchParams.get("pageSize") ?? "20"), 100);
   const skip = (page - 1) * pageSize;
 
-  const where = q
-    ? {
-        OR: [
-          { title: { contains: q, mode: "insensitive" } },
-          { description: { contains: q, mode: "insensitive" } },
-        ],
-      }
-    : {};
+  const where = {}; // No searchable text fields in periodicDiscount schema
 
   const [items, total] = await Promise.all([
     prisma.periodicDiscount.findMany({
@@ -33,47 +26,24 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const {
-      title,
-      description,
-      type = "PERCENT",
-      value,
-      currency,
-      startDate,
-      endDate,
-      frequency = "NONE",
-      daysOfWeek,
-      isActive = true,
-    } = body;
+    const { discountRate, startDate, endDate, courseId } = body;
 
-    if (!title || typeof value !== "number" || !startDate) {
+    if (typeof discountRate !== "number" || !startDate || !courseId) {
       return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
     }
-    if (type === "AMOUNT" && !currency) {
+    if (discountRate < 0 || discountRate > 100) {
       return NextResponse.json(
-        { error: "currency required for AMOUNT" },
-        { status: 400 }
-      );
-    }
-    if (type === "PERCENT" && (value < 0 || value > 100)) {
-      return NextResponse.json(
-        { error: "percent value must be 0..100" },
+        { error: "discount rate must be 0..100" },
         { status: 400 }
       );
     }
 
     const created = await prisma.periodicDiscount.create({
       data: {
-        title,
-        description,
-        type,
-        value,
-        currency: type === "AMOUNT" ? currency : null,
+        discountRate,
         startDate: new Date(startDate),
-        endDate: endDate ? new Date(endDate) : null,
-        frequency,
-        daysOfWeek: daysOfWeek ?? null,
-        isActive: Boolean(isActive),
+        endDate: new Date(endDate),
+        courseId,
       },
     });
 

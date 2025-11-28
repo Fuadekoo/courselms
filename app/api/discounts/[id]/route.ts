@@ -14,38 +14,15 @@ export async function PUT(req: Request, ctx: Ctx) {
   try {
     const { id } = await ctx.params;
     const body = await req.json();
-    const {
-      title,
-      description,
-      type,
-      value,
-      currency,
-      startDate,
-      endDate,
-      frequency,
-      daysOfWeek,
-      isActive,
-    } = body;
-
-    if (type === "AMOUNT" && currency === undefined) {
-      // keep previous currency if not provided; explicit null will clear
-    }
+    const { discountRate, startDate, endDate, courseId } = body;
 
     const updated = await prisma.periodicDiscount.update({
       where: { id },
       data: {
-        ...(title !== undefined && { title }),
-        ...(description !== undefined && { description }),
-        ...(type !== undefined && { type }),
-        ...(value !== undefined && { value }),
-        ...(currency !== undefined && { currency }),
+        ...(discountRate !== undefined && { discountRate }),
         ...(startDate !== undefined && { startDate: new Date(startDate) }),
-        ...(endDate !== undefined && {
-          endDate: endDate ? new Date(endDate) : null,
-        }),
-        ...(frequency !== undefined && { frequency }),
-        ...(daysOfWeek !== undefined && { daysOfWeek }),
-        ...(isActive !== undefined && { isActive: Boolean(isActive) }),
+        ...(endDate !== undefined && { endDate: new Date(endDate) }),
+        ...(courseId !== undefined && { courseId }),
       },
     });
 

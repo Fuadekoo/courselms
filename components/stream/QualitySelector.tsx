@@ -99,7 +99,7 @@ export default function QualitySelector({
       options: qualityOptions,
       hlsLevelsCount: hlsLevels.length,
     });
-  }, [isHls, qualityOptions.length, hlsLevels.length]);
+  }, [isHls, qualityOptions, hlsLevels.length]);
 
   // Determine current quality display
   const getCurrentQualityValue = () => {
@@ -165,71 +165,71 @@ export default function QualitySelector({
         qualityOptions
           .filter((q) => q.value !== "loading") // Filter out loading option
           .map((quality) => (
-          <div
-            key={quality.value}
-            onClick={() => {
-              if (quality.value !== "loading") {
-                onQualityChange(quality.value);
-                onBack();
-              }
-            }}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              padding: "12px 16px",
-              cursor: "pointer",
-              transition: "background 0.2s",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(0, 0, 0, 0.05)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "transparent";
-            }}
-          >
-            {/* Radio Button */}
             <div
+              key={quality.value}
+              onClick={() => {
+                if (quality.value !== "loading") {
+                  onQualityChange(quality.value);
+                  onBack();
+                }
+              }}
               style={{
-                width: "18px",
-                height: "18px",
-                borderRadius: "50%",
-                border: "2px solid",
-                borderColor:
-                  displayQuality === quality.value
-                    ? "rgba(59, 130, 246, 1)"
-                    : "rgba(0, 0, 0, 0.3)",
-                marginRight: "12px",
                 display: "flex",
                 alignItems: "center",
-                justifyContent: "center",
-                position: "relative",
+                padding: "12px 16px",
+                cursor: "pointer",
+                transition: "background 0.2s",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = "rgba(0, 0, 0, 0.05)";
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = "transparent";
               }}
             >
-              {displayQuality === quality.value && (
-                <div
-                  style={{
-                    width: "10px",
-                    height: "10px",
-                    borderRadius: "50%",
-                    background: "rgba(59, 130, 246, 1)",
-                  }}
-                />
-              )}
+              {/* Radio Button */}
+              <div
+                style={{
+                  width: "18px",
+                  height: "18px",
+                  borderRadius: "50%",
+                  border: "2px solid",
+                  borderColor:
+                    displayQuality === quality.value
+                      ? "rgba(59, 130, 246, 1)"
+                      : "rgba(0, 0, 0, 0.3)",
+                  marginRight: "12px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  position: "relative",
+                }}
+              >
+                {displayQuality === quality.value && (
+                  <div
+                    style={{
+                      width: "10px",
+                      height: "10px",
+                      borderRadius: "50%",
+                      background: "rgba(59, 130, 246, 1)",
+                    }}
+                  />
+                )}
+              </div>
+              <span
+                style={{
+                  fontSize: "14px",
+                  color:
+                    displayQuality === quality.value
+                      ? "#000"
+                      : "rgba(0, 0, 0, 0.7)",
+                  fontWeight: displayQuality === quality.value ? 500 : 400,
+                }}
+              >
+                {quality.label}
+              </span>
             </div>
-            <span
-              style={{
-                fontSize: "14px",
-                color:
-                  displayQuality === quality.value
-                    ? "#000"
-                    : "rgba(0, 0, 0, 0.7)",
-                fontWeight: displayQuality === quality.value ? 500 : 400,
-              }}
-            >
-              {quality.label}
-            </span>
-          </div>
-        ))
+          ))
       )}
     </div>
   );

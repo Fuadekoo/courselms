@@ -3,17 +3,9 @@ import React, { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
   useLanguageStore,
-  type Lang,
   ensureHtmlLangObserver,
+  type Lang,
 } from "./useLanguageStore";
-
-type Lang = "en" | "am" | "ar";
-
-const LANGS: Array<{ code: Lang; label: string }> = [
-  { code: "en", label: "English" },
-  { code: "am", label: "Amharic" },
-  { code: "ar", label: "Arabic" },
-];
 
 function getCookie(name: string) {
   if (typeof document === "undefined") return undefined;
