@@ -1370,12 +1370,18 @@ export default function Page() {
                             dolarPrice: {
                               value: dolarPrice,
                               type: typeof dolarPrice,
-                              isEmpty: !dolarPrice || dolarPrice <= 0,
+                              isEmpty:
+                                dolarPrice === null ||
+                                dolarPrice === undefined ||
+                                dolarPrice < 0,
                             },
                             birrPrice: {
                               value: birrPrice,
                               type: typeof birrPrice,
-                              isEmpty: !birrPrice || birrPrice <= 0,
+                              isEmpty:
+                                birrPrice === null ||
+                                birrPrice === undefined ||
+                                birrPrice < 0,
                             },
                           });
 

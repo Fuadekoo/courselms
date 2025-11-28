@@ -24,6 +24,9 @@ import CourseActivity from "@/components/courseActivity";
 import CourseTopOverview from "@/components/courseTopOverview";
 import { Button, useDisclosure } from "@heroui/react";
 import { useCourseDiscount } from "@/hooks/useCourseDiscount";
+import { enrollInFreeCourse } from "@/lib/action/freeCourse";
+import useAction from "@/hooks/useAction";
+import { useRouter } from "next/navigation";
 
 export default function Page() {
   const params = useParams<{ lang: string; id: string }>();
@@ -45,6 +48,35 @@ export default function Page() {
   const discountedDolarPrice = dolarDiscount.hasDiscount
     ? dolarDiscount.discountedPrice
     : data?.dolarPrice || 0;
+
+  // Check if course is free
+  const isFreeCourse = (discountedBirrPrice === 0 && discountedDolarPrice === 0) ||
+    (data?.birrPrice === 0 && data?.dolarPrice === 0);
+
+  const router = useRouter();
+  const { action: enrollAction, isPending: isEnrolling } = useAction(
+    enrollInFreeCourse,
+    undefined,
+    {
+      loading: lang === "en" ? "Enrolling..." : "በመመዝገብ ላይ...",
+      success: lang === "en" ? "Successfully enrolled" : "በተሳካ ሁኔታ ተመዝግቧል",
+      error: lang === "en" ? "Failed to enroll" : "መመዝገብ አልተሳካም",
+      onSuccess() {
+        router.push(`/${lang}/student/mycourse`);
+      },
+    }
+  );
+
+  const handleEnroll = () => {
+    if (isFreeCourse) {
+      enrollAction({
+        courseId: id,
+        affiliateCode: searchParams?.get("code") || undefined,
+      });
+    } else {
+      onOpen();
+    }
+  };
 
   if (globalLoading) {
     return null; // Hide content while TopLoadingBar is active
@@ -74,7 +106,13 @@ export default function Page() {
             <CourseAbout data={lang == "en" ? data.aboutEn : data.aboutAm} />
             <CourseMainDescription
               btn={
-                <Button onPress={onOpen} variant="solid" color="primary">
+                <Button 
+                  onPress={handleEnroll} 
+                  variant="solid" 
+                  color="primary"
+                  isLoading={isEnrolling}
+                  isDisabled={isEnrolling}
+                >
                   {lang == "en" ? "Enroll" : "ይመዝገቡ"}
                 </Button>
               }
@@ -127,18 +165,20 @@ export default function Page() {
             <CourseFor data={data.courseFor} />
             <CourseActivity data={data.activity} />
           </div>
-          <Payment
-            isOpen={isOpen}
-            id={data.id}
-            onOpenChange={onOpenChange}
-            affiliateCode={searchParams?.get("code") || ""}
-            title={lang == "en" ? data.titleEn : data.titleAm}
-            price={data.price}
-            birrPrice={discountedBirrPrice}
-            dolarPrice={discountedDolarPrice}
-            originalBirrPrice={data.birrPrice}
-            originalDolarPrice={data.dolarPrice}
-          />
+          {!isFreeCourse && (
+            <Payment
+              isOpen={isOpen}
+              id={data.id}
+              onOpenChange={onOpenChange}
+              affiliateCode={searchParams?.get("code") || ""}
+              title={lang == "en" ? data.titleEn : data.titleAm}
+              price={data.price}
+              birrPrice={discountedBirrPrice}
+              dolarPrice={discountedDolarPrice}
+              originalBirrPrice={data.birrPrice}
+              originalDolarPrice={data.dolarPrice}
+            />
+          )}
         </div>
       )}
     </div>

@@ -2,7 +2,7 @@ import crypto from "crypto";
 
 /**
  * Generate a secure token for video streaming
- * Token is valid for 5 minutes
+ * Token is valid for 30 minutes (longer for HLS streaming sessions)
  */
 export function generateVideoToken(file: string): string {
   const timestamp = Date.now().toString();
@@ -27,9 +27,16 @@ export function verifyVideoToken(token: string, file: string): boolean {
     const decoded = Buffer.from(token, 'base64').toString('utf-8');
     const [timestamp, hash] = decoded.split('|');
     
-    // Check if token expired (5 minutes validity)
+    if (!timestamp || !hash) {
+      return false;
+    }
+    
+    // Check if token expired (30 minutes validity for HLS streaming)
     const tokenAge = Date.now() - parseInt(timestamp);
-    if (tokenAge > 5 * 60 * 1000) return false;
+    if (tokenAge > 30 * 60 * 1000) {
+      console.warn('[Video Security] Token expired:', { tokenAge, maxAge: 30 * 60 * 1000 });
+      return false;
+    }
     
     // Verify hash
     const expectedHash = crypto
@@ -38,8 +45,14 @@ export function verifyVideoToken(token: string, file: string): boolean {
       .digest('hex')
       .substring(0, 16);
     
-    return hash === expectedHash;
-  } catch {
+    const isValid = hash === expectedHash;
+    if (!isValid) {
+      console.warn('[Video Security] Token hash mismatch for file:', file);
+    }
+    
+    return isValid;
+  } catch (error) {
+    console.error('[Video Security] Token verification error:', error);
     return false;
   }
 }

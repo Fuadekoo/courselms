@@ -10,10 +10,10 @@ export async function courseRegistration(
   data: TCourse | undefined | null
 ): Promise<StateType> {
   try {
-    console.log("🔧 Server action started", { 
-      hasData: !!data, 
-      isUpdate: !!(data?.id),
-      dataKeys: data ? Object.keys(data) : []
+    console.log("🔧 Server action started", {
+      hasData: !!data,
+      isUpdate: !!data?.id,
+      dataKeys: data ? Object.keys(data) : [],
     });
 
     if (!data || data === null) {
@@ -35,7 +35,7 @@ export async function courseRegistration(
       dolarPrice: data.dolarPrice,
       birrPrice: data.birrPrice,
       finalExamQuestionsCount: data.finalExamQuestions?.length || 0,
-      activityCount: data.activity?.length || 0
+      activityCount: data.activity?.length || 0,
     });
 
     // Validate required fields
@@ -55,11 +55,27 @@ export async function courseRegistration(
       };
     }
 
-    if (!data.dolarPrice || !data.birrPrice) {
+    // Allow 0 for free courses, but ensure values are not null/undefined
+    if (data.dolarPrice === null || data.dolarPrice === undefined) {
       return {
         status: false,
         cause: "Validation Error",
-        message: "Dollar price and Birr price are required",
+        message: "Dollar price is required",
+      };
+    }
+    if (data.birrPrice === null || data.birrPrice === undefined) {
+      return {
+        status: false,
+        cause: "Validation Error",
+        message: "Birr price is required",
+      };
+    }
+    // Prevent negative prices
+    if (data.dolarPrice < 0 || data.birrPrice < 0) {
+      return {
+        status: false,
+        cause: "Validation Error",
+        message: "Prices cannot be negative",
       };
     }
 
@@ -91,7 +107,7 @@ export async function courseRegistration(
 
     if (id) {
       console.log("🔄 Starting course update process for ID:", id);
-      
+
       await prisma.courseFor.deleteMany({ where: { courseId: id } });
       await prisma.requirement.deleteMany({ where: { courseId: id } });
 
@@ -100,21 +116,21 @@ export async function courseRegistration(
         where: { courseId: id },
       });
       console.log("🗑️ Found activities to delete:", activities.length);
-      
+
       // Delete ALL questions related to this course (both activity and final exam questions)
       // This is simpler and prevents orphaned data
       const allQuestions = await prisma.question.findMany({
         where: {
           OR: [
-            { activityId: { in: activities.map(a => a.id) } },
+            { activityId: { in: activities.map((a) => a.id) } },
             { courseId: id, activityId: null },
-          ]
+          ],
         },
-        select: { id: true }
+        select: { id: true },
       });
 
-      const questionIds = allQuestions.map(q => q.id);
-      
+      const questionIds = allQuestions.map((q) => q.id);
+
       if (questionIds.length > 0) {
         await prisma.questionAnswer.deleteMany({
           where: { questionId: { in: questionIds } },
@@ -130,15 +146,14 @@ export async function courseRegistration(
       await prisma.activity.deleteMany({ where: { courseId: id } });
 
       // Extract relation fields from courseData
-      const { instructorId, channelId, ...restWithoutRelations } =
-        courseData;
+      const { instructorId, channelId, ...restWithoutRelations } = courseData;
 
       console.log("💾 Updating course with data:", {
         instructorId,
         channelId,
         courseForCount: courseFor.length,
         requirementCount: requirement.length,
-        activityCount: activity.length
+        activityCount: activity.length,
       });
 
       const updatedCourse = await prisma.course.update({
@@ -217,13 +232,15 @@ export async function courseRegistration(
 
       // Create final exam questions (only if provided)
       if (finalExamQuestions && finalExamQuestions.length > 0) {
-        console.log(`📝 Processing ${finalExamQuestions.length} final exam questions`);
-        
+        console.log(
+          `📝 Processing ${finalExamQuestions.length} final exam questions`
+        );
+
         // Track which activity questions we've already marked to prevent duplicates
         const markedActivityQuestions = new Set<string>();
         // Track created standalone questions to prevent duplicates
         const createdStandaloneQuestions = new Set<string>();
-        
+
         for (const examQuestion of finalExamQuestions) {
           if (
             examQuestion.isSharedFromActivity &&
@@ -233,13 +250,15 @@ export async function courseRegistration(
             // For shared questions: update the activity question to also belong to final exam
             const activityIndex = examQuestion.sourceActivityIndex;
             const questionIndex = examQuestion.sourceQuestionIndex;
-            
+
             // Create a unique key for this activity question
             const activityQuestionKey = `${activityIndex}-${questionIndex}`;
-            
+
             // Skip if we've already processed this activity question
             if (markedActivityQuestions.has(activityQuestionKey)) {
-              console.log(`⚠️ Skipping duplicate shared question reference: Activity ${activityIndex}, Question ${questionIndex}`);
+              console.log(
+                `⚠️ Skipping duplicate shared question reference: Activity ${activityIndex}, Question ${questionIndex}`
+              );
               continue;
             }
 
@@ -260,12 +279,16 @@ export async function courseRegistration(
                   where: { id: targetQuestion.id },
                   data: { courseId: id }, // Add courseId to mark it as final exam question
                 });
-                
+
                 // Mark this activity question as processed
                 markedActivityQuestions.add(activityQuestionKey);
-                console.log(`✅ Marked activity question ${activityIndex}-${questionIndex} as final exam question`);
+                console.log(
+                  `✅ Marked activity question ${activityIndex}-${questionIndex} as final exam question`
+                );
               } else {
-                console.log(`⚠️ Question index ${questionIndex} out of bounds for activity ${activityIndex}`);
+                console.log(
+                  `⚠️ Question index ${questionIndex} out of bounds for activity ${activityIndex}`
+                );
               }
             } else {
               console.log(`⚠️ Activity index ${activityIndex} out of bounds`);
@@ -273,13 +296,20 @@ export async function courseRegistration(
           } else {
             // Create standalone final exam questions (not tied to activities)
             // Create a unique key based on question content to detect duplicates
-            const questionKey = `${examQuestion.question}-${examQuestion.options.join('|')}`;
-            
+            const questionKey = `${
+              examQuestion.question
+            }-${examQuestion.options.join("|")}`;
+
             if (createdStandaloneQuestions.has(questionKey)) {
-              console.log(`⚠️ Skipping duplicate standalone question: "${examQuestion.question.substring(0, 50)}..."`);
+              console.log(
+                `⚠️ Skipping duplicate standalone question: "${examQuestion.question.substring(
+                  0,
+                  50
+                )}..."`
+              );
               continue;
             }
-            
+
             const createdQuestion = await prisma.question.create({
               data: {
                 question: examQuestion.question,
@@ -309,10 +339,15 @@ export async function courseRegistration(
                 });
               }
             }
-            
+
             // Mark this question as created
             createdStandaloneQuestions.add(questionKey);
-            console.log(`✅ Created standalone final exam question: "${examQuestion.question.substring(0, 50)}..."`);
+            console.log(
+              `✅ Created standalone final exam question: "${examQuestion.question.substring(
+                0,
+                50
+              )}..."`
+            );
           }
         }
       } else {
@@ -330,7 +365,9 @@ export async function courseRegistration(
             ...restWithoutRelations,
             // For create, courseMaterials is a scalar field and accepts string[] directly
             instructor: { connect: { id: createInstructorId as string } },
-            ...(createChannelId ? { channel: { connect: { id: createChannelId as string } } } : {}),
+            ...(createChannelId
+              ? { channel: { connect: { id: createChannelId as string } } }
+              : {}),
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
           } as any,
         })
@@ -399,13 +436,15 @@ export async function courseRegistration(
 
         // Create final exam questions (only if provided)
         if (finalExamQuestions && finalExamQuestions.length > 0) {
-          console.log(`📝 Processing ${finalExamQuestions.length} final exam questions`);
-          
+          console.log(
+            `📝 Processing ${finalExamQuestions.length} final exam questions`
+          );
+
           // Track which activity questions we've already marked to prevent duplicates
           const markedActivityQuestions = new Set<string>();
           // Track created standalone questions to prevent duplicates
           const createdStandaloneQuestions = new Set<string>();
-          
+
           for (const examQuestion of finalExamQuestions) {
             if (
               examQuestion.isSharedFromActivity &&
@@ -415,13 +454,15 @@ export async function courseRegistration(
               // For shared questions: update the activity question to also belong to final exam
               const activityIndex = examQuestion.sourceActivityIndex;
               const questionIndex = examQuestion.sourceQuestionIndex;
-              
+
               // Create a unique key for this activity question
               const activityQuestionKey = `${activityIndex}-${questionIndex}`;
-              
+
               // Skip if we've already processed this activity question
               if (markedActivityQuestions.has(activityQuestionKey)) {
-                console.log(`⚠️ Skipping duplicate shared question reference: Activity ${activityIndex}, Question ${questionIndex}`);
+                console.log(
+                  `⚠️ Skipping duplicate shared question reference: Activity ${activityIndex}, Question ${questionIndex}`
+                );
                 continue;
               }
 
@@ -448,12 +489,16 @@ export async function courseRegistration(
                     where: { id: targetQuestion.id },
                     data: { courseId }, // Add courseId to mark it as final exam question
                   });
-                  
+
                   // Mark this activity question as processed
                   markedActivityQuestions.add(activityQuestionKey);
-                  console.log(`✅ Marked activity question ${activityIndex}-${questionIndex} as final exam question`);
+                  console.log(
+                    `✅ Marked activity question ${activityIndex}-${questionIndex} as final exam question`
+                  );
                 } else {
-                  console.log(`⚠️ Question index ${questionIndex} out of bounds for activity ${activityIndex}`);
+                  console.log(
+                    `⚠️ Question index ${questionIndex} out of bounds for activity ${activityIndex}`
+                  );
                 }
               } else {
                 console.log(`⚠️ Activity index ${activityIndex} out of bounds`);
@@ -461,13 +506,20 @@ export async function courseRegistration(
             } else {
               // Create standalone final exam questions (not tied to activities)
               // Create a unique key based on question content to detect duplicates
-              const questionKey = `${examQuestion.question}-${examQuestion.options.join('|')}`;
-              
+              const questionKey = `${
+                examQuestion.question
+              }-${examQuestion.options.join("|")}`;
+
               if (createdStandaloneQuestions.has(questionKey)) {
-                console.log(`⚠️ Skipping duplicate standalone question: "${examQuestion.question.substring(0, 50)}..."`);
+                console.log(
+                  `⚠️ Skipping duplicate standalone question: "${examQuestion.question.substring(
+                    0,
+                    50
+                  )}..."`
+                );
                 continue;
               }
-              
+
               const createdQuestion = await prisma.question.create({
                 data: {
                   question: examQuestion.question,
@@ -497,10 +549,15 @@ export async function courseRegistration(
                   });
                 }
               }
-              
+
               // Mark this question as created
               createdStandaloneQuestions.add(questionKey);
-              console.log(`✅ Created standalone final exam question: "${examQuestion.question.substring(0, 50)}..."`);
+              console.log(
+                `✅ Created standalone final exam question: "${examQuestion.question.substring(
+                  0,
+                  50
+                )}..."`
+              );
             }
           }
         } else {

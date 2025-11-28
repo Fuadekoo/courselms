@@ -55,6 +55,7 @@ export default function CourseBasicInfo({
           color="primary"
           value={watch ? watch("dolarPrice")?.toString() : ""}
           {...register("dolarPrice", { valueAsNumber: true })}
+          min="0"
           endContent={<span className="text-sm text-gray-500">USD</span>}
           className="w-full"
         />
@@ -64,6 +65,7 @@ export default function CourseBasicInfo({
           color="primary"
           value={watch ? watch("birrPrice")?.toString() : ""}
           {...register("birrPrice", { valueAsNumber: true })}
+          min="0"
           endContent={<span className="text-sm text-gray-500">ETB</span>}
           className="w-full"
         />

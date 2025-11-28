@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { readFile } from 'fs/promises';
-import { join } from 'path';
+import { join, normalize, resolve } from 'path';
+import { existsSync } from 'fs';
+import { verifyVideoToken } from '@/lib/videoSecurity';
 
 export async function GET(request: NextRequest) {
   try {
@@ -9,6 +11,7 @@ export async function GET(request: NextRequest) {
     const token = searchParams.get('token');
 
     if (!file || !token) {
+      console.error('[Stream API] Missing parameters:', { hasFile: !!file, hasToken: !!token });
       return NextResponse.json(
         { error: 'Missing file or token parameter' },
         { status: 400 }
@@ -18,14 +21,77 @@ export async function GET(request: NextRequest) {
     // Decode the file path (in case it's URL encoded)
     const decodedFile = decodeURIComponent(file);
 
-    // Construct file path
-    const filePath = join(process.cwd(), 'fuad', 'course', decodedFile);
+    // Verify token
+    try {
+      const isValid = verifyVideoToken(token, decodedFile);
+      if (!isValid) {
+        console.error('[Stream API] Invalid token for file:', decodedFile);
+        return NextResponse.json(
+          { error: 'Invalid or expired token' },
+          { status: 403 }
+        );
+      }
+    } catch (tokenError: any) {
+      console.error('[Stream API] Token verification error:', tokenError?.message);
+      return NextResponse.json(
+        { error: 'Token verification failed' },
+        { status: 403 }
+      );
+    }
+
+    // Construct file path - handle both absolute and relative paths
+    const basePath = resolve(process.cwd(), 'fuad', 'course');
+    let filePath: string;
+    
+    if (decodedFile.startsWith('/')) {
+      // Remove leading slash and join
+      filePath = join(basePath, decodedFile.slice(1));
+    } else {
+      // Relative path
+      filePath = join(basePath, decodedFile);
+    }
+    
+    // Normalize and resolve path to prevent directory traversal
+    const normalizedPath = normalize(resolve(filePath));
+    
+    // Ensure the resolved path is within the base directory
+    if (!normalizedPath.startsWith(basePath)) {
+      console.error('[Stream API] Path traversal detected:', { 
+        requestedFile: decodedFile,
+        filePath, 
+        normalizedPath, 
+        basePath 
+      });
+      return NextResponse.json(
+        { error: 'Invalid file path' },
+        { status: 403 }
+      );
+    }
     
     console.log('[Stream API] Requested file:', decodedFile);
-    console.log('[Stream API] Full path:', filePath);
+    console.log('[Stream API] Full path:', normalizedPath);
+    console.log('[Stream API] File exists:', existsSync(normalizedPath));
+
+    // Check if file exists before trying to read
+    if (!existsSync(normalizedPath)) {
+      console.error('[Stream API] File not found:', {
+        requestedFile: decodedFile,
+        fullPath: normalizedPath,
+        basePath,
+        cwd: process.cwd(),
+      });
+      return NextResponse.json(
+        { 
+          error: 'File not found', 
+          path: decodedFile,
+          fullPath: normalizedPath,
+        },
+        { status: 404 }
+      );
+    }
 
     try {
-      const fileBuffer = await readFile(filePath);
+      const fileBuffer = await readFile(normalizedPath);
       
       // Determine content type based on file extension
       let contentType = 'application/octet-stream';
@@ -53,18 +119,26 @@ export async function GET(request: NextRequest) {
         headers,
       });
     } catch (fileError: any) {
-      console.error('[Stream API] File not found:', {
-        filePath,
+      console.error('[Stream API] File read error:', {
+        filePath: normalizedPath,
         decodedFile,
         error: fileError?.message,
+        code: fileError?.code,
       });
       return NextResponse.json(
-        { error: 'File not found', path: decodedFile },
-        { status: 404 }
+        { 
+          error: 'File read error', 
+          path: decodedFile,
+          message: fileError?.message,
+        },
+        { status: 500 }
       );
     }
   } catch (error: any) {
-    console.error('[Stream API] Error:', error);
+    console.error('[Stream API] Unexpected error:', {
+      error: error?.message,
+      stack: error?.stack,
+    });
     return NextResponse.json(
       { error: 'Internal server error', message: error?.message },
       { status: 500 }
