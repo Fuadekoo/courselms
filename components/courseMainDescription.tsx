@@ -11,7 +11,7 @@ export default function CourseMainDescription({
   data: {
     icon: React.ReactNode;
     label: string;
-    value: string | number | boolean;
+    value: string | number | boolean | React.ReactNode;
   }[];
   btn?: React.ReactNode;
 }) {
@@ -38,12 +38,27 @@ export default function CourseMainDescription({
       )}
       <div className="py-4 space-y-4">
         {data.map(({ icon, label, value }, i) => (
-          <p key={i + ""} className="flex gap-2 items-center">
+          <div key={i + ""} className="flex gap-2 items-start">
             {icon}
-            <span className="">
-              {label} {label && ":"} {value}
-            </span>
-          </p>
+            <div className="flex-1">
+              {label && (
+                <span className="text-sm text-default-600">
+                  {label} {label && ":"}
+                </span>
+              )}
+              <div className={label ? "mt-1" : ""}>
+                {typeof value === "object" &&
+                value !== null &&
+                "$$typeof" in value
+                  ? value
+                  : typeof value === "string" ||
+                    typeof value === "number" ||
+                    typeof value === "boolean"
+                  ? value
+                  : String(value)}
+              </div>
+            </div>
+          </div>
         ))}
       </div>
     </div>
