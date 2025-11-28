@@ -53,7 +53,13 @@ export function useCourseDiscount(courseId: string, originalPrice: number) {
           const discountedPrice = originalPrice - discountAmount;
 
           setDiscountData({
-            discount: result.data,
+            discount: {
+              id: result.data.id,
+              title: result.data.title,
+              value: result.data.value,
+              type: result.data.type,
+              endDate: result.data.endDate,
+            },
             originalPrice,
             discountedPrice: Math.max(0, discountedPrice),
             discountAmount,
