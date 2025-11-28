@@ -114,6 +114,7 @@ export async function enrollInFreeCourse(
         currency: "FREE",
         birrPrice: 0,
         dolarPrice: 0,
+        img: "", // Empty for free courses (no transaction image)
         ...(affiliate
           ? {
               code: affiliate.code,
