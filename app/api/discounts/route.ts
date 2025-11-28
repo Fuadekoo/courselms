@@ -9,20 +9,20 @@ export async function GET(req: Request) {
   const pageSize = Math.min(Number(searchParams.get("pageSize") ?? "20"), 100);
   const skip = (page - 1) * pageSize;
 
-  const where: Prisma.PeriodicDiscountWhereInput | undefined = q
+  const where: any = q
     ? {
         OR: [{ title: { contains: q } }, { description: { contains: q } }],
       }
     : undefined;
 
   const [items, total] = await Promise.all([
-    prisma.periodicDiscount.findMany({
+    (prisma as any).PeriodicDiscount.findMany({
       where,
       orderBy: { createdAt: "desc" },
       skip,
       take: pageSize,
     }),
-    prisma.periodicDiscount.count({ where }),
+    (prisma as any).PeriodicDiscount.count({ where }),
   ]);
 
   return NextResponse.json({ items, total, page, pageSize });
@@ -43,7 +43,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const created = await prisma.periodicDiscount.create({
+    const created = await (prisma as any).PeriodicDiscount.create({
       data: {
         discountRate,
         startDate: new Date(startDate),
