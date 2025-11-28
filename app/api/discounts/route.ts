@@ -12,8 +12,8 @@ export async function GET(req: Request) {
   const where: Prisma.PeriodicDiscountWhereInput | undefined = q
     ? {
         OR: [
-          { title: { contains: q, mode: "insensitive" } },
-          { description: { contains: q, mode: "insensitive" } },
+          { title: { contains: q } },
+          { description: { contains: q } },
         ],
       }
     : undefined;

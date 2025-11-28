@@ -31,9 +31,10 @@ export async function getCoursesForAffiliate() {
                   0
                 ),
               },
-              link: `${normalizeUrl(process.env.MAIN_API || "", `/courses/${id}`)}?code=${
-                session?.user?.code || ""
-              }`,
+              link: `${normalizeUrl(
+                process.env.MAIN_API || "",
+                `/courses/${id}`
+              )}?code=${session?.user?.code || ""}`,
             })
           )
         );
@@ -48,7 +49,21 @@ export async function getCoursesForCustomer() {
   try {
     const data = await prisma.course
       .findMany({
-        include: {
+        select: {
+          id: true,
+          titleEn: true,
+          titleAm: true,
+          aboutEn: true,
+          aboutAm: true,
+          thumbnail: true,
+          level: true,
+          duration: true,
+          price: true,
+          birrPrice: true,
+          dolarPrice: true,
+          instructorRate: true,
+          sellerRate: true,
+          affiliateRate: true,
           activity: { select: { _count: { select: { subActivity: true } } } },
           instructor: {
             select: { id: true, firstName: true, fatherName: true },
@@ -60,6 +75,8 @@ export async function getCoursesForCustomer() {
           ({
             id,
             price,
+            birrPrice,
+            dolarPrice,
             instructorRate,
             sellerRate,
             affiliateRate,
@@ -69,6 +86,8 @@ export async function getCoursesForCustomer() {
             id,
             ...rest,
             price: Number(price),
+            birrPrice: birrPrice ? Number(birrPrice) : Number(price),
+            dolarPrice: dolarPrice ? Number(dolarPrice) : Number(price),
             instructorRate: Number(instructorRate),
             sellerRate: Number(sellerRate),
             affiliateRate: Number(affiliateRate),
@@ -115,7 +134,21 @@ export async function getCoursesForLoginCustomer() {
             notIn: enrolledCourseIds,
           },
         },
-        include: {
+        select: {
+          id: true,
+          titleEn: true,
+          titleAm: true,
+          aboutEn: true,
+          aboutAm: true,
+          thumbnail: true,
+          level: true,
+          duration: true,
+          price: true,
+          birrPrice: true,
+          dolarPrice: true,
+          instructorRate: true,
+          sellerRate: true,
+          affiliateRate: true,
           activity: { select: { _count: { select: { subActivity: true } } } },
           instructor: {
             select: { id: true, firstName: true, fatherName: true },
@@ -127,6 +160,8 @@ export async function getCoursesForLoginCustomer() {
           ({
             id,
             price,
+            birrPrice,
+            dolarPrice,
             instructorRate,
             sellerRate,
             affiliateRate,
@@ -136,6 +171,8 @@ export async function getCoursesForLoginCustomer() {
             id,
             ...rest,
             price: Number(price),
+            birrPrice: birrPrice ? Number(birrPrice) : Number(price),
+            dolarPrice: dolarPrice ? Number(dolarPrice) : Number(price),
             instructorRate: Number(instructorRate),
             sellerRate: Number(sellerRate),
             affiliateRate: Number(affiliateRate),
@@ -381,9 +418,10 @@ export async function getCourseForAffiliate(id: string) {
             ? {
                 ...res,
                 price: Number(res.price),
-                link: `${normalizeUrl(process.env.MAIN_API || "", `/courses/${id}`)}?code=${
-                  session?.user?.code || ""
-                }`,
+                link: `${normalizeUrl(
+                  process.env.MAIN_API || "",
+                  `/courses/${id}`
+                )}?code=${session?.user?.code || ""}`,
               }
             : res
         );

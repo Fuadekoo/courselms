@@ -242,8 +242,8 @@ export default function Page() {
                         <div className="ml-4">
                           <PriceDisplay
                             courseId={course.id}
-                            price={course.price}
-                            currency="ETB"
+                            birrPrice={course.birrPrice || course.price}
+                            dolarPrice={course.dolarPrice || course.price}
                           />
                         </div>
                       </div>

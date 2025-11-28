@@ -19,6 +19,8 @@ export default function CourseCardAffiliate({
   duration,
   _count: { activity },
   price,
+  birrPrice,
+  dolarPrice,
   btn,
   titleLink,
 }: Omit<
@@ -34,6 +36,8 @@ export default function CourseCardAffiliate({
   | "price"
 > & {
   price: number;
+  birrPrice?: number;
+  dolarPrice?: number;
   instructor: Pick<User, "firstName" | "fatherName">;
   _count: { activity: number };
   btn: React.ReactNode;
@@ -155,8 +159,8 @@ export default function CourseCardAffiliate({
         {price > 0 ? (
           <PriceDisplay
             courseId={id}
-            price={price}
-            currency="ETB"
+            birrPrice={birrPrice || price}
+            dolarPrice={dolarPrice || price}
             className="text-xs"
             showDiscountBadge={false}
           />
