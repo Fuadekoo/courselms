@@ -472,12 +472,15 @@ export async function getCourseForCustomer(id: string) {
             select: { id: true, courseForEn: true, courseForAm: true },
           },
           activity: {
+            orderBy: { order: "asc" },
             select: {
               _count: { select: { subActivity: true } },
               id: true,
               titleEn: true,
               titleAm: true,
-              subActivity: true,
+              subActivity: {
+                orderBy: { order: "asc" },
+              },
             },
           },
           instructor: {

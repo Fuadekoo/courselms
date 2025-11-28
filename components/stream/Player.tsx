@@ -130,6 +130,7 @@ function Player({
         }
 
         // Fallback to original file
+        console.log("[Player] Generating secure URL for file:", filePath);
         const response = await fetch("/api/video-token", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -137,14 +138,24 @@ function Player({
         });
 
         if (!response.ok) {
-          console.error("Failed to generate video token");
+          const errorText = await response.text();
+          console.error("[Player] Failed to generate video token:", {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorText,
+            filePath,
+          });
           return null;
         }
 
         const data = await response.json();
+        console.log("[Player] Generated secure URL:", data.url);
         return data.url;
       } catch (err) {
-        console.error("Error generating secure URL:", err);
+        console.error("[Player] Error generating secure URL:", {
+          error: err,
+          filePath,
+        });
         return null;
       }
     },
@@ -209,14 +220,26 @@ function Player({
           setSecureVideoUrl(qualityUrls["auto"]);
         } else {
           // Check for HLS master playlist first, then fallback to original file
-          generateSecureUrl(src, true).then((url) => {
-            if (url) {
-              setSecureVideoUrl(url);
-            } else {
-              setHasError(true);
-              setIsLoading(false);
-            }
-          });
+          generateSecureUrl(src, true)
+            .then((url) => {
+              if (url) {
+                setSecureVideoUrl(url);
+              } else {
+                // If secure URL generation fails, try to use the original src directly
+                // This handles cases where the file might be accessible without token
+                console.warn(
+                  "[Player] Secure URL generation failed, trying original src:",
+                  src
+                );
+                setSecureVideoUrl(src);
+                // Don't set error immediately - let the video element try to load it
+              }
+            })
+            .catch((err) => {
+              console.error("[Player] Error in generateSecureUrl:", err);
+              // Fallback to original src
+              setSecureVideoUrl(src);
+            });
         }
 
         // Refresh token every 4 minutes (before 5-minute expiry)
@@ -1159,6 +1182,16 @@ function Player({
           }
         }}
         onError={(e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
+          const video = e.currentTarget;
+          const error = video.error;
+          console.error("[Player] Video element error:", {
+            code: error?.code,
+            message: error?.message,
+            src: video.src,
+            currentSrc: video.currentSrc,
+            networkState: video.networkState,
+            readyState: video.readyState,
+          });
           console.error("Video load error:", e);
           setIsLoading(false);
           setHasError(true);

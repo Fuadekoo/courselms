@@ -1,6 +1,5 @@
 "use server";
 
-import { AIProvider } from "@/lib/ask";
 import prisma from "@/lib/db";
 import { StateType, TTableData } from "@/lib/definations";
 import { Selection } from "@heroui/react";
@@ -388,12 +387,15 @@ export async function getCourse(id: string) {
           select: { id: true, courseForEn: true, courseForAm: true },
         },
         activity: {
+          orderBy: { order: "asc" },
           select: {
             _count: { select: { subActivity: true } },
             id: true,
             titleEn: true,
             titleAm: true,
-            subActivity: true,
+            subActivity: {
+              orderBy: { order: "asc" },
+            },
             question: true,
           },
         },
