@@ -31,22 +31,23 @@ export async function PUT(req: Request, ctx: Ctx) {
       // keep previous currency if not provided; explicit null will clear
     }
 
+    const updateData: any = {};
+    if (title !== undefined) updateData.title = title;
+    if (description !== undefined) updateData.description = description;
+    if (type !== undefined) updateData.type = type;
+    if (value !== undefined) updateData.value = value;
+    if (currency !== undefined) updateData.currency = currency;
+    if (startDate !== undefined) updateData.startDate = new Date(startDate);
+    if (endDate !== undefined) {
+      updateData.endDate = endDate ? new Date(endDate) : null;
+    }
+    if (frequency !== undefined) updateData.frequency = frequency;
+    if (daysOfWeek !== undefined) updateData.daysOfWeek = daysOfWeek;
+    if (isActive !== undefined) updateData.isActive = Boolean(isActive);
+
     const updated = await prisma.periodicDiscount.update({
       where: { id },
-      data: {
-        ...(title !== undefined && { title }),
-        ...(description !== undefined && { description }),
-        ...(type !== undefined && { type }),
-        ...(value !== undefined && { value }),
-        ...(currency !== undefined && { currency }),
-        ...(startDate !== undefined && { startDate: new Date(startDate) }),
-        ...(endDate !== undefined && {
-          endDate: endDate ? new Date(endDate) : null,
-        }),
-        ...(frequency !== undefined && { frequency }),
-        ...(daysOfWeek !== undefined && { daysOfWeek }),
-        ...(isActive !== undefined && { isActive: Boolean(isActive) }),
-      },
+      data: updateData,
     });
 
     return NextResponse.json(updated);

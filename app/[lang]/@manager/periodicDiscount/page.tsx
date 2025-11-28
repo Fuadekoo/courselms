@@ -523,8 +523,8 @@ export default function PeriodicDiscountsPage() {
                     : "አንድ ወይም ከዚያ በላይ ኮርሶች ይምረጡ"
                 }
               >
-                {courses?.map((course: Course) => (
-                  <SelectItem key={course.id} value={course.id}>
+                {(courses || []).map((course: Course) => (
+                  <SelectItem key={course.id}>
                     {lang === "en" ? course.titleEn : course.titleAm}
                   </SelectItem>
                 ))}

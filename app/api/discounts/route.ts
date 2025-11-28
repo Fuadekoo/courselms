@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
@@ -8,14 +9,14 @@ export async function GET(req: Request) {
   const pageSize = Math.min(Number(searchParams.get("pageSize") ?? "20"), 100);
   const skip = (page - 1) * pageSize;
 
-  const where = q
+  const where: Prisma.PeriodicDiscountWhereInput | undefined = q
     ? {
         OR: [
           { title: { contains: q, mode: "insensitive" } },
           { description: { contains: q, mode: "insensitive" } },
         ],
       }
-    : {};
+    : undefined;
 
   const [items, total] = await Promise.all([
     prisma.periodicDiscount.findMany({
