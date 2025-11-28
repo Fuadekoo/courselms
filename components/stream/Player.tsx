@@ -489,6 +489,78 @@ function Player({
         console.warn("[Player] Failed to parse master playlist URL:", e);
       }
 
+      // Helper function to rewrite HLS URLs
+      const rewriteHlsUrl = (url: string): string => {
+        try {
+          // Handle both absolute and relative URLs
+          let requestUrl: URL;
+          let isRelative = false;
+          try {
+            requestUrl = new URL(url);
+          } catch {
+            // If URL is relative, resolve it relative to the master playlist URL
+            isRelative = true;
+            // Resolve relative to the master playlist base URL
+            const masterUrlObj = new URL(currentSrc, window.location.origin);
+            // Extract the base path from master playlist (e.g., /api/stream?file=...)
+            // For relative URLs, HLS.js resolves them relative to the master playlist location
+            // which would be /api/stream, so we need to extract the actual file path
+            requestUrl = new URL(url, masterUrlObj);
+          }
+
+          // If the request is already going to /api/stream, let it through
+          if (requestUrl.pathname === "/api/stream") {
+            return url;
+          }
+
+          // If the request is to /api/ but not /api/stream, rewrite it
+          // This happens when HLS.js resolves relative URLs from the master playlist
+          if (
+            requestUrl.pathname.startsWith("/api/") &&
+            requestUrl.pathname !== "/api/stream"
+          ) {
+            // Extract filename from path (e.g., "/api/1764332590594-99387_1.m3u8" -> "1764332590594-99387_1.m3u8")
+            const filename = requestUrl.pathname.replace("/api/", "");
+
+            // Construct full file path with base directory
+            const filePath = baseDir ? `${baseDir}/${filename}` : filename;
+
+            // Generate new secure URL through /api/stream
+            const newUrl = `/api/stream?file=${encodeURIComponent(
+              filePath
+            )}&token=${encodeURIComponent(masterToken)}`;
+
+            console.log(
+              `[Player] Rewriting HLS request: ${url} -> ${newUrl} (relative: ${isRelative})`
+            );
+
+            return newUrl;
+          }
+
+          // Also handle relative URLs that don't start with /api/
+          // These might be resolved relative to the current page, not the master playlist
+          if (isRelative && !url.startsWith("/") && !url.startsWith("http")) {
+            // This is a relative URL like "1764332590594-99387_2_0000.ts"
+            // Construct full file path with base directory
+            const filePath = baseDir ? `${baseDir}/${url}` : url;
+
+            // Generate new secure URL through /api/stream
+            const newUrl = `/api/stream?file=${encodeURIComponent(
+              filePath
+            )}&token=${encodeURIComponent(masterToken)}`;
+
+            console.log(
+              `[Player] Rewriting relative HLS request: ${url} -> ${newUrl}`
+            );
+
+            return newUrl;
+          }
+        } catch (e) {
+          console.warn("[Player] Failed to rewrite HLS URL:", url, e);
+        }
+        return url;
+      };
+
       // Create new HLS instance with adaptive bitrate settings
       const hls = new Hls({
         enableWorker: true,
@@ -515,65 +587,32 @@ function Player({
         abrEwmaFastVoD: 9.0,
         startLevel: -1, // Auto-select starting level (adaptive)
         xhrSetup: (xhr, url) => {
-          // Intercept all HLS requests and route them through /api/stream
-          try {
-            // Handle both absolute and relative URLs
-            let requestUrl: URL;
-            try {
-              requestUrl = new URL(url);
-            } catch {
-              // If URL is relative, resolve it relative to current origin
-              requestUrl = new URL(url, window.location.origin);
-            }
+          // Rewrite the URL before the request is made
+          const rewrittenUrl = rewriteHlsUrl(url);
+          if (rewrittenUrl !== url) {
+            // Store the rewritten URL on the xhr object
+            (xhr as any)._rewrittenUrl = rewrittenUrl;
 
-            // If the request is already going to /api/stream, let it through
-            if (requestUrl.pathname === "/api/stream") {
-              return;
-            }
-
-            // If the request is to /api/ but not /api/stream, rewrite it
-            if (
-              requestUrl.pathname.startsWith("/api/") &&
-              requestUrl.pathname !== "/api/stream"
+            // Override xhr.open to use the rewritten URL
+            const originalOpen = xhr.open;
+            xhr.open = function (
+              method: string,
+              urlParam: string | URL,
+              async?: boolean,
+              username?: string | null,
+              password?: string | null
             ) {
-              // Extract filename from path (e.g., "/api/1764332590594-99387_1.m3u8" -> "1764332590594-99387_1.m3u8")
-              const filename = requestUrl.pathname.replace("/api/", "");
-
-              // Construct full file path with base directory
-              const filePath = baseDir ? `${baseDir}/${filename}` : filename;
-
-              // Generate new secure URL through /api/stream
-              const newUrl = `/api/stream?file=${encodeURIComponent(
-                filePath
-              )}&token=${encodeURIComponent(masterToken)}`;
-
-              console.log(
-                `[Player] Rewriting HLS request: ${url} -> ${newUrl}`
+              // Use the rewritten URL if available, otherwise use the original
+              const finalUrl = (this as any)._rewrittenUrl || urlParam;
+              return originalOpen.call(
+                this,
+                method,
+                finalUrl,
+                async !== false,
+                username,
+                password
               );
-
-              // Store the new URL and override xhr.open
-              const originalOpen = xhr.open;
-              (xhr as any)._hlsRewrittenUrl = newUrl;
-              xhr.open = function (
-                method: string,
-                url: string | URL,
-                async?: boolean,
-                username?: string | null,
-                password?: string | null
-              ) {
-                const targetUrl = (this as any)._hlsRewrittenUrl || url;
-                return originalOpen.call(
-                  this,
-                  method,
-                  targetUrl,
-                  async !== false,
-                  username,
-                  password
-                );
-              };
-            }
-          } catch (e) {
-            console.warn("[Player] Failed to rewrite HLS URL:", url, e);
+            };
           }
         },
       });
