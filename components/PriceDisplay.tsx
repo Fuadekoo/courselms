@@ -5,6 +5,7 @@ import { useCourseDiscount } from "@/hooks/useCourseDiscount";
 import { Chip } from "@heroui/react";
 import { useParams } from "next/navigation";
 import { usePaymentMethod } from "@/hooks/usePaymentMethod";
+import CountdownTimer from "@/components/CountdownTimer";
 
 interface PriceDisplayProps {
   courseId: string;
@@ -82,6 +83,9 @@ export default function PriceDisplay({
             {!isEthiopia && " USD"}
           </span>
         </div>
+        {discount.endDate && (
+          <CountdownTimer endDate={discount.endDate} className="mt-1" />
+        )}
       </div>
     );
   }

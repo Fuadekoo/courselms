@@ -26,6 +26,7 @@ import { Button, useDisclosure } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useCourseDiscount } from "@/hooks/useCourseDiscount";
 import PriceDisplay from "@/components/PriceDisplay";
+import { DollarSign } from "lucide-react";
 
 export default function Page() {
   const params = useParams<{ lang: string; id: string }>();
@@ -84,17 +85,30 @@ export default function Page() {
                   onPress={isFree ? onOpenChange : loginRedirect}
                   variant="solid"
                   color={isFree ? "success" : "primary"}
+                  className="w-full"
                 >
                   {isFree
                     ? lang == "en"
                       ? "Start Free Course"
                       : "ነፃ ኮርስ ይጀምሩ"
                     : lang == "en"
-                    ? "Continue Learning"
-                    : "መማርዎን ይቀጥሉ"}
+                    ? "Enroll Now"
+                    : "አሁን ይመዝግቡ"}
                 </Button>
               }
               data={[
+                {
+                  icon: <DollarSign className="" />,
+                  label: lang == "en" ? "Price" : "ዋጋ",
+                  value: (
+                    <PriceDisplay
+                      courseId={id}
+                      birrPrice={data.birrPrice || data.price}
+                      dolarPrice={data.dolarPrice || data.price}
+                      className="text-lg"
+                    />
+                  ),
+                },
                 {
                   icon: <ChartBarIncreasing className="" />,
                   label: lang == "en" ? "Level" : "ደረጃ",

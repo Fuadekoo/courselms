@@ -1,13 +1,13 @@
-import { useEffect, useCallback } from 'react';
-import { useStudentStore } from '@/stores/useStudentStore';
-import { getProfile, updateProfile } from '@/actions/student/profile';
-import { 
-  getDashboardData, 
-  getGraphData, 
+import { useEffect, useCallback } from "react";
+import { useStudentStore } from "@/stores/useStudentStore";
+import { getProfile, updateProfile } from "@/actions/student/profile";
+import {
+  getDashboardData,
+  getGraphData,
   getContinueLearning,
-  getAllEnrolledCourses 
-} from '@/actions/student/dashboard';
-import { StateType } from '@/lib/definations';
+  getAllEnrolledCourses,
+} from "@/actions/student/dashboard";
+import { StateType } from "@/lib/definations";
 
 /**
  * Hook to manage student profile data with caching
@@ -22,28 +22,46 @@ export function useStudentProfile() {
     clearProfile,
   } = useStudentStore();
 
-  const fetchProfile = useCallback(async (force = false) => {
-    // Return cached data if fresh and not forcing refresh
-    if (!force && isProfileFresh() && profile) {
-      return profile;
-    }
+  const fetchProfile = useCallback(
+    async (force = false) => {
+      // Return cached data if fresh and not forcing refresh
+      if (!force && isProfileFresh() && profile) {
+        return profile;
+      }
 
-    setLoadingProfile(true);
-    try {
-      const data = await getProfile();
-      setProfile(data);
-      return data;
-    } catch (error) {
-      console.error('Error fetching profile:', error);
-      setLoadingProfile(false);
-      throw error;
-    }
-  }, [profile, isProfileFresh, setProfile, setLoadingProfile]);
+      setLoadingProfile(true);
+      try {
+        const data = await getProfile();
+        setProfile(data);
+        setLoadingProfile(false);
+        return data;
+      } catch (error: any) {
+        // Handle unauthorized/guest users gracefully
+        if (
+          error?.message === "Unauthorized" ||
+          error?.message === "Profile not found"
+        ) {
+          // User is not authenticated or is a guest - this is expected
+          setLoadingProfile(false);
+          return null;
+        }
+        console.error("Error fetching profile:", error);
+        setLoadingProfile(false);
+        // Don't throw for guest users
+        return null;
+      }
+    },
+    [profile, isProfileFresh, setProfile, setLoadingProfile]
+  );
 
-  // Auto-fetch on mount if data is stale
+  // Auto-fetch on mount if data is stale - but only if user might be authenticated
   useEffect(() => {
+    // Only try to fetch if we don't have fresh data and we're not already loading
+    // The fetchProfile will handle the case where user is not authenticated
     if (!isProfileFresh() && !isLoadingProfile) {
-      fetchProfile();
+      fetchProfile().catch(() => {
+        // Silently handle errors for guest users
+      });
     }
   }, []); // Only run on mount
 
@@ -76,24 +94,27 @@ export function useStudentDashboard() {
     clearDashboard,
   } = useStudentStore();
 
-  const fetchDashboard = useCallback(async (force = false) => {
-    if (!force && isDashboardFresh() && dashboardStats) {
-      return dashboardStats;
-    }
-
-    setLoadingDashboard(true);
-    try {
-      const data = await getDashboardData();
-      if (data) {
-        setDashboardStats(data);
+  const fetchDashboard = useCallback(
+    async (force = false) => {
+      if (!force && isDashboardFresh() && dashboardStats) {
+        return dashboardStats;
       }
-      return data;
-    } catch (error) {
-      console.error('Error fetching dashboard:', error);
-      setLoadingDashboard(false);
-      throw error;
-    }
-  }, [dashboardStats, isDashboardFresh, setDashboardStats, setLoadingDashboard]);
+
+      setLoadingDashboard(true);
+      try {
+        const data = await getDashboardData();
+        if (data) {
+          setDashboardStats(data);
+        }
+        return data;
+      } catch (error) {
+        console.error("Error fetching dashboard:", error);
+        setLoadingDashboard(false);
+        throw error;
+      }
+    },
+    [dashboardStats, isDashboardFresh, setDashboardStats, setLoadingDashboard]
+  );
 
   useEffect(() => {
     if (!isDashboardFresh() && !isLoadingDashboard) {
@@ -126,62 +147,71 @@ export function useStudentCourses() {
     clearCourses,
   } = useStudentStore();
 
-  const fetchGraphData = useCallback(async (force = false) => {
-    if (!force && isCoursesFresh() && graphData) {
-      return graphData;
-    }
-
-    setLoadingCourses(true);
-    try {
-      const data = await getGraphData();
-      if (data) {
-        setGraphData(data);
+  const fetchGraphData = useCallback(
+    async (force = false) => {
+      if (!force && isCoursesFresh() && graphData) {
+        return graphData;
       }
-      return data;
-    } catch (error) {
-      console.error('Error fetching graph data:', error);
-      setLoadingCourses(false);
-      throw error;
-    }
-  }, [graphData, isCoursesFresh, setGraphData, setLoadingCourses]);
 
-  const fetchContinueLearning = useCallback(async (force = false) => {
-    if (!force && isCoursesFresh() && continueLearning) {
-      return continueLearning;
-    }
-
-    setLoadingCourses(true);
-    try {
-      const data = await getContinueLearning();
-      if (data) {
-        setContinueLearning(data);
+      setLoadingCourses(true);
+      try {
+        const data = await getGraphData();
+        if (data) {
+          setGraphData(data);
+        }
+        return data;
+      } catch (error) {
+        console.error("Error fetching graph data:", error);
+        setLoadingCourses(false);
+        throw error;
       }
-      return data;
-    } catch (error) {
-      console.error('Error fetching continue learning:', error);
-      setLoadingCourses(false);
-      throw error;
-    }
-  }, [continueLearning, isCoursesFresh, setContinueLearning, setLoadingCourses]);
+    },
+    [graphData, isCoursesFresh, setGraphData, setLoadingCourses]
+  );
 
-  const fetchEnrolledCourses = useCallback(async (force = false) => {
-    if (!force && isCoursesFresh() && enrolledCourses) {
-      return enrolledCourses;
-    }
-
-    setLoadingCourses(true);
-    try {
-      const data = await getAllEnrolledCourses();
-      if (data) {
-        setEnrolledCourses(data);
+  const fetchContinueLearning = useCallback(
+    async (force = false) => {
+      if (!force && isCoursesFresh() && continueLearning) {
+        return continueLearning;
       }
-      return data;
-    } catch (error) {
-      console.error('Error fetching enrolled courses:', error);
-      setLoadingCourses(false);
-      throw error;
-    }
-  }, [enrolledCourses, isCoursesFresh, setEnrolledCourses, setLoadingCourses]);
+
+      setLoadingCourses(true);
+      try {
+        const data = await getContinueLearning();
+        if (data) {
+          setContinueLearning(data);
+        }
+        return data;
+      } catch (error) {
+        console.error("Error fetching continue learning:", error);
+        setLoadingCourses(false);
+        throw error;
+      }
+    },
+    [continueLearning, isCoursesFresh, setContinueLearning, setLoadingCourses]
+  );
+
+  const fetchEnrolledCourses = useCallback(
+    async (force = false) => {
+      if (!force && isCoursesFresh() && enrolledCourses) {
+        return enrolledCourses;
+      }
+
+      setLoadingCourses(true);
+      try {
+        const data = await getAllEnrolledCourses();
+        if (data) {
+          setEnrolledCourses(data);
+        }
+        return data;
+      } catch (error) {
+        console.error("Error fetching enrolled courses:", error);
+        setLoadingCourses(false);
+        throw error;
+      }
+    },
+    [enrolledCourses, isCoursesFresh, setEnrolledCourses, setLoadingCourses]
+  );
 
   useEffect(() => {
     if (!isCoursesFresh() && !isLoadingCourses) {
@@ -209,15 +239,19 @@ export function useStudentFullData() {
   const dashboard = useStudentDashboard();
   const courses = useStudentCourses();
 
-  const fetchAll = useCallback(async (force = false) => {
-    await Promise.all([
-      profile.fetchProfile(force),
-      dashboard.fetchDashboard(force),
-      courses.fetchGraphData(force),
-    ]);
-  }, [profile, dashboard, courses]);
+  const fetchAll = useCallback(
+    async (force = false) => {
+      await Promise.all([
+        profile.fetchProfile(force),
+        dashboard.fetchDashboard(force),
+        courses.fetchGraphData(force),
+      ]);
+    },
+    [profile, dashboard, courses]
+  );
 
-  const isLoading = profile.isLoading || dashboard.isLoading || courses.isLoading;
+  const isLoading =
+    profile.isLoading || dashboard.isLoading || courses.isLoading;
 
   return {
     profile: profile.profile,
@@ -227,4 +261,3 @@ export function useStudentFullData() {
     fetchAll,
   };
 }
-
