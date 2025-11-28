@@ -162,7 +162,7 @@ export default function Page() {
               {...register("gender")}
             >
               {["Female", "Male"].map((v) => (
-                <CSelectItem key={v}>{v}</CSelectItem>
+                <CSelectItem key={v} textValue={v}>{v}</CSelectItem>
               ))}
             </CSelect>
             <CInput

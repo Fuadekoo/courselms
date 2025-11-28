@@ -209,7 +209,7 @@ export default function Page() {
                   }}
                 >
                   {(courses ?? []).map((course: any) => (
-                    <SelectItem key={course.id}>{course.titleEn}</SelectItem>
+                    <SelectItem key={course.id} textValue={course.titleEn}>{course.titleEn}</SelectItem>
                   ))}
                 </Select>
                 <p className="text-xs text-gray-500 mt-2">
@@ -333,7 +333,7 @@ export default function Page() {
                 }}
               >
                 {(courses ?? []).map((course: any) => (
-                  <SelectItem key={course.id}>{course.titleEn}</SelectItem>
+                  <SelectItem key={course.id} textValue={course.titleEn}>{course.titleEn}</SelectItem>
                 ))}
               </Select>
             </div>

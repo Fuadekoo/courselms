@@ -115,7 +115,7 @@ export default function Page() {
                 [lang == "en" ? "Female" : "ሴት", "Female"],
                 [lang == "en" ? "Male" : "ወንድ", "Male"],
               ].map(([n, v]) => (
-                <CSelectItem key={v}>
+                <CSelectItem key={v} textValue={n}>
                   {n}
                 </CSelectItem>
               ))}

@@ -71,7 +71,7 @@ export function CourseMaterialsSelector({
             className="w-full max-w-md"
           >
             {coursePackages.map((pkg) => (
-              <SelectItem key={pkg.id}>{pkg.titleEn}</SelectItem>
+              <SelectItem key={pkg.id} textValue={pkg.titleEn}>{pkg.titleEn}</SelectItem>
             ))}
           </Select>
         </CardHeader>

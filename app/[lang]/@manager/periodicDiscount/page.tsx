@@ -524,7 +524,7 @@ export default function PeriodicDiscountsPage() {
                 }
               >
                 {(courses || []).map((course: Course) => (
-                  <SelectItem key={course.id}>
+                  <SelectItem key={course.id} textValue={lang === "en" ? course.titleEn : course.titleAm}>
                     {lang === "en" ? course.titleEn : course.titleAm}
                   </SelectItem>
                 ))}

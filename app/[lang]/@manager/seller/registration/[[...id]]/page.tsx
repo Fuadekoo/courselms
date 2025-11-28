@@ -111,10 +111,10 @@ export default function Page() {
               {...register("gender")}
               label={lang == "en" ? "Gender" : "ፆታ"}
             >
-              <CSelectItem key="Female">
+              <CSelectItem key="Female" textValue={lang == "en" ? "Female" : "ሴት"}>
                 {lang == "en" ? "Female" : "ሴት"}
               </CSelectItem>
-              <SelectItem key="Male">
+              <SelectItem key="Male" textValue={lang == "en" ? "Male" : "ወንድ"}>
                 {lang == "en" ? "Male" : "ወንድ"}
               </SelectItem>
             </CSelect>

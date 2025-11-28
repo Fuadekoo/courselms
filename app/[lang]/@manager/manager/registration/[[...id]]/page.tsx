@@ -93,7 +93,7 @@ export default function Page() {
             label={lang == "en" ? "Gender" : "ፆታ"}
           >
             {["Female", "Male"].map((v) => (
-              <CSelectItem key={v}>{v}</CSelectItem>
+              <CSelectItem key={v} textValue={v}>{v}</CSelectItem>
             ))}
           </CSelect>
           <CInput {...register("age")} label={lang == "en" ? "Age" : "እድሜ"} />
