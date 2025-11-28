@@ -9,6 +9,7 @@ export default function CourseActivity({
     titleEn: string;
     titleAm: string;
     subActivity: { id: string; titleEn: string; titleAm: string }[];
+    order?: number;
   }[];
 }) {
   const params = useParams<{ lang: string }>();
@@ -19,14 +20,16 @@ export default function CourseActivity({
         {lang == "en" ? "What you will learn" : "ምን ይማራሉ"}
       </p>
       <Accordion variant="splitted" isCompact className="p-0 ">
-        {data.map(({ titleEn, titleAm, subActivity }, i) => (
+        {[...data]
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+          .map(({ titleEn, titleAm, subActivity, order }, i) => (
           <AccordionItem
             key={i + ""}
             aria-label={titleEn}
             title={
               <p className="">
                 <span className="pr-2 font-bold whitespace-nowrap">
-                  {lang == "en" ? "Module" : "ሞጁል"} {i + 1}:
+                  {lang == "en" ? "Module" : "ሞጁል"} {(order ?? i + 1)}:
                 </span>
                 <span className="break-words">
                   {lang == "en" ? titleEn : titleAm}

@@ -41,6 +41,7 @@ type TActivity = {
   titleAm: string;
   subActivity: TSubActivity[];
   questions?: TQuestion[];
+  order?: number;
 };
 
 export type { TQuestion };
@@ -135,359 +136,177 @@ export default function ActivityManager({
       />
 
       <Accordion variant="splitted" className="space-y-2">
-        {list.map((activity, activityIndex) => (
-          <AccordionItem
-            key={activityIndex}
-            title={
-              <div className="flex items-center gap-2">
-                <span
-                  className="cursor-grab active:cursor-grabbing"
-                  draggable
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData(
-                      "text/plain",
-                      activityIndex.toString()
-                    );
-                    e.dataTransfer.effectAllowed = "move";
-                  }}
-                  onDragOver={(e) => e.preventDefault()}
-                  onDrop={(e) => {
-                    e.preventDefault();
-                    const fromIndex = parseInt(
-                      e.dataTransfer.getData("text/plain")
-                    );
-                    if (fromIndex !== activityIndex) {
-                      reorderActivities(fromIndex, activityIndex);
-                    }
-                  }}
-                >
-                  <GripVertical className="size-4 inline mr-2" />
-                </span>
-                <span className="break-words overflow-wrap-anywhere">
-                  {lang === "en" ? activity.titleEn : activity.titleAm}
-                </span>
-              </div>
-            }
-            className="border border-primary-300 rounded-xl"
-          >
-            <div className="space-y-4 p-4">
-              <div className="flex justify-end gap-1 mb-3">
-                {updateActivity && (
+        {[...list]
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0))
+          .map((activity, activityIndex) => (
+            <AccordionItem
+              key={activityIndex}
+              title={
+                <div className="flex items-center gap-2">
+                  <span
+                    className="cursor-grab active:cursor-grabbing"
+                    draggable
+                    onDragStart={(e) => {
+                      e.dataTransfer.setData(
+                        "text/plain",
+                        activityIndex.toString()
+                      );
+                      e.dataTransfer.effectAllowed = "move";
+                    }}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const fromIndex = parseInt(
+                        e.dataTransfer.getData("text/plain")
+                      );
+                      if (fromIndex !== activityIndex) {
+                        reorderActivities(fromIndex, activityIndex);
+                      }
+                    }}
+                  >
+                    <GripVertical className="size-4 inline mr-2" />
+                  </span>
+                  <span className="break-words overflow-wrap-anywhere">
+                    {lang === "en" ? activity.titleEn : activity.titleAm}
+                  </span>
+                </div>
+              }
+              className="border border-primary-300 rounded-xl"
+            >
+              <div className="space-y-4 p-4">
+                <div className="flex justify-end gap-1 mb-3">
+                  {updateActivity && (
+                    <Button
+                      type="button"
+                      size="sm"
+                      color="primary"
+                      variant="light"
+                      onPress={() => setEditingActivity(activityIndex)}
+                    >
+                      <Edit className="size-4" />
+                    </Button>
+                  )}
                   <Button
                     type="button"
                     size="sm"
-                    color="primary"
+                    color="danger"
                     variant="light"
-                    onPress={() => setEditingActivity(activityIndex)}
+                    onPress={() => {
+                      const confirmMessage =
+                        lang === "en"
+                          ? "Are you sure you want to delete this activity?"
+                          : "ይህን እንቅስቃሴ መሰረዝ እርግጠኛ ነዎት?";
+                      if (confirm(confirmMessage)) {
+                        removeActivity(activityIndex);
+                      }
+                    }}
                   >
-                    <Edit className="size-4" />
+                    <Trash className="size-4" />
                   </Button>
-                )}
-                <Button
-                  type="button"
-                  size="sm"
-                  color="danger"
-                  variant="light"
-                  onPress={() => {
-                    const confirmMessage =
+                </div>
+                {editingActivity === activityIndex && updateActivity && (
+                  <EditForm
+                    initialValues={{
+                      en: activity.titleEn,
+                      am: activity.titleAm,
+                    }}
+                    onSave={(values) => {
+                      updateActivity(activityIndex, values);
+                      setEditingActivity(null);
+                    }}
+                    onCancel={() => setEditingActivity(null)}
+                    lang={lang}
+                    label={lang === "en" ? "Edit Activity" : "እንቅስቃሴ አርም"}
+                    placeHolderEn={
                       lang === "en"
-                        ? "Are you sure you want to delete this activity?"
-                        : "ይህን እንቅስቃሴ መሰረዝ እርግጠኛ ነዎት?";
-                    if (confirm(confirmMessage)) {
-                      removeActivity(activityIndex);
+                        ? "Activity title in English"
+                        : "እንቅስቃሴ በእንግሊዝኛ"
                     }
-                  }}
-                >
-                  <Trash className="size-4" />
-                </Button>
-              </div>
-              {editingActivity === activityIndex && updateActivity && (
-                <EditForm
-                  initialValues={{ en: activity.titleEn, am: activity.titleAm }}
-                  onSave={(values) => {
-                    updateActivity(activityIndex, values);
-                    setEditingActivity(null);
-                  }}
-                  onCancel={() => setEditingActivity(null)}
-                  lang={lang}
-                  label={lang === "en" ? "Edit Activity" : "እንቅስቃሴ አርም"}
-                  placeHolderEn={
-                    lang === "en"
-                      ? "Activity title in English"
-                      : "እንቅስቃሴ በእንግሊዝኛ"
-                  }
-                  placeHolderAm={
-                    lang === "en" ? "Activity title in Amharic" : "እንቅስቃሴ በአማርኛ"
-                  }
-                />
-              )}
+                    placeHolderAm={
+                      lang === "en"
+                        ? "Activity title in Amharic"
+                        : "እንቅስቃሴ በአማርኛ"
+                    }
+                  />
+                )}
 
-              <div className="space-y-2">
-                <h4 className="font-medium">
-                  {lang === "en" ? "Sub Activities" : "ንዑስ እንቅስቃሴዎች"}
-                </h4>
-                <Add
-                  add={(input) => addSubActivity(activityIndex, input)}
-                  label={lang === "en" ? "Sub Activity" : "ንዑስ እንቅስቃሴ"}
-                  placeHolderEn={
-                    lang === "en"
-                      ? "Sub activity in English"
-                      : "ንዑስ እንቅስቃሴ በእንግሊዝኛ"
-                  }
-                  placeHolderAm={
-                    lang === "en"
-                      ? "Sub activity in Amharic"
-                      : "ንዑስ እንቅስቃሴ በአማርኛ"
-                  }
-                />
+                <div className="space-y-2">
+                  <h4 className="font-medium">
+                    {lang === "en" ? "Sub Activities" : "ንዑስ እንቅስቃሴዎች"}
+                  </h4>
+                  <Add
+                    add={(input) => addSubActivity(activityIndex, input)}
+                    label={lang === "en" ? "Sub Activity" : "ንዑስ እንቅስቃሴ"}
+                    placeHolderEn={
+                      lang === "en"
+                        ? "Sub activity in English"
+                        : "ንዑስ እንቅስቃሴ በእንግሊዝኛ"
+                    }
+                    placeHolderAm={
+                      lang === "en"
+                        ? "Sub activity in Amharic"
+                        : "ንዑስ እንቅስቃሴ በአማርኛ"
+                    }
+                  />
 
-                {activity.subActivity.map((sub, subIndex) => (
-                  <div
-                    key={subIndex}
-                    className="bg-primary/10 rounded-lg p-3 space-y-2"
-                  >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Button
-                          type="button"
-                          size="sm"
-                          variant="light"
-                          isIconOnly
-                          className="cursor-grab active:cursor-grabbing"
-                          draggable
-                          onDragStart={(e) => {
-                            e.dataTransfer.setData(
-                              "text/plain",
-                              `${activityIndex}-${subIndex}`
-                            );
-                            e.dataTransfer.effectAllowed = "move";
-                          }}
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            const [fromActivityIndex, fromSubIndex] =
-                              e.dataTransfer
-                                .getData("text/plain")
-                                .split("-")
-                                .map(Number);
-                            if (
-                              fromActivityIndex === activityIndex &&
-                              fromSubIndex !== subIndex
-                            ) {
-                              reorderSubActivities(
-                                activityIndex,
-                                fromSubIndex,
-                                subIndex
-                              );
-                            }
-                          }}
-                        >
-                          <GripVertical className="size-3" />
-                        </Button>
-                        <span className="font-medium break-words overflow-wrap-anywhere flex-1">
-                          {lang === "en" ? sub.titleEn : sub.titleAm}
-                        </span>
-                      </div>
-                      <div className="flex gap-1">
-                        {updateSubActivity && (
+                  {activity.subActivity.map((sub, subIndex) => (
+                    <div
+                      key={subIndex}
+                      className="bg-primary/10 rounded-lg p-3 space-y-2"
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
                           <Button
                             type="button"
                             size="sm"
-                            color="primary"
                             variant="light"
-                            onPress={() =>
-                              setEditingSubActivity({
-                                activityIndex,
-                                subActivityIndex: subIndex,
-                              })
-                            }
-                          >
-                            <Edit className="size-4" />
-                          </Button>
-                        )}
-                        <Button
-                          type="button"
-                          size="sm"
-                          color="danger"
-                          variant="light"
-                          onPress={() => {
-                            const confirmMessage =
-                              lang === "en"
-                                ? "Are you sure you want to delete this sub-activity?"
-                                : "ይህን ንዑስ እንቅስቃሴ መሰረዝ እርግጠኛ ነዎት?";
-                            if (confirm(confirmMessage)) {
-                              removeSubActivity(activityIndex, subIndex);
-                            }
-                          }}
-                        >
-                          <Trash className="size-4" />
-                        </Button>
-                      </div>
-                    </div>
-
-                    {editingSubActivity?.activityIndex === activityIndex &&
-                      editingSubActivity?.subActivityIndex === subIndex &&
-                      updateSubActivity && (
-                        <EditForm
-                          initialValues={{ en: sub.titleEn, am: sub.titleAm }}
-                          onSave={(values) => {
-                            updateSubActivity(activityIndex, subIndex, values);
-                            setEditingSubActivity(null);
-                          }}
-                          onCancel={() => setEditingSubActivity(null)}
-                          lang={lang}
-                          label={
-                            lang === "en"
-                              ? "Edit Sub-Activity"
-                              : "ንዑስ እንቅስቃሴ አርም"
-                          }
-                          placeHolderEn={
-                            lang === "en"
-                              ? "Sub-activity title in English"
-                              : "ንዑስ እንቅስቃሴ በእንግሊዝኛ"
-                          }
-                          placeHolderAm={
-                            lang === "en"
-                              ? "Sub-activity title in Amharic"
-                              : "ንዑስ እንቅስቃሴ በአማርኛ"
-                          }
-                        />
-                      )}
-
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Video className="size-4" />
-                          <span className="text-sm">
-                            {lang === "en" ? "Video" : "ቪዲዮ"}
-                          </span>
-                        </div>
-
-                        <SubActivityVideoUpload
-                          lang={lang}
-                          hasVideo={!!sub.video}
-                          onVideoSelect={(filename) => {
-                            updateSubActivityVideo(
-                              activityIndex,
-                              subIndex,
-                              filename
-                            );
-                          }}
-                          onVideoRemove={() => {
-                            updateSubActivityVideo(activityIndex, subIndex, "");
-                          }}
-                        />
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm">
-                            {lang === "en" ? "Thumbnail" : "ምስል"}
-                          </span>
-                        </div>
-
-                        <SubActivityThumbnailUpload
-                          lang={lang}
-                          hasThumbnail={!!sub.thumbnail}
-                          currentThumbnail={sub.thumbnail || ""}
-                          activityIndex={activityIndex}
-                          subActivityIndex={subIndex}
-                          onThumbnailSelect={(thumbnailUrl) => {
-                            updateSubActivityThumbnail(
-                              activityIndex,
-                              subIndex,
-                              thumbnailUrl
-                            );
-                          }}
-                          onThumbnailRemove={() => {
-                            updateSubActivityThumbnail(activityIndex, subIndex, "");
-                          }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-2">
-                <h4 className="font-medium flex items-center gap-2">
-                  <HelpCircle className="size-4" />
-                  {lang === "en" ? "Questions" : "ጥያቄዎች"}
-                </h4>
-
-                <QuestionForm
-                  onAdd={(question) => addQuestion(activityIndex, question)}
-                  lang={lang}
-                />
-
-                <Accordion variant="splitted" className="space-y-2">
-                  {(activity.questions || []).map((question, questionIndex) => (
-                    <AccordionItem
-                      key={questionIndex}
-                      title={
-                        <span className="text-sm font-medium truncate">
-                          {question.question.length > 60
-                            ? `${question.question.substring(0, 60)}...`
-                            : question.question}
-                        </span>
-                      }
-                      className="border border-warning-300 rounded-lg"
-                    >
-                      <div className="p-3">
-                        <div className="flex justify-end gap-1 mb-3">
-                          {addToFinalExam && removeFromFinalExam && (
-                            <Button
-                              type="button"
-                              size="sm"
-                              color={
-                                finalExamQuestions?.some(
-                                  (q) =>
-                                    q.sourceActivityIndex === activityIndex &&
-                                    q.sourceQuestionIndex === questionIndex
-                                )
-                                  ? "warning"
-                                  : "secondary"
-                              }
-                              variant="light"
-                              onPress={() => {
-                                const isInFinalExam = finalExamQuestions?.some(
-                                  (q) =>
-                                    q.sourceActivityIndex === activityIndex &&
-                                    q.sourceQuestionIndex === questionIndex
+                            isIconOnly
+                            className="cursor-grab active:cursor-grabbing"
+                            draggable
+                            onDragStart={(e) => {
+                              e.dataTransfer.setData(
+                                "text/plain",
+                                `${activityIndex}-${subIndex}`
+                              );
+                              e.dataTransfer.effectAllowed = "move";
+                            }}
+                            onDragOver={(e) => e.preventDefault()}
+                            onDrop={(e) => {
+                              e.preventDefault();
+                              const [fromActivityIndex, fromSubIndex] =
+                                e.dataTransfer
+                                  .getData("text/plain")
+                                  .split("-")
+                                  .map(Number);
+                              if (
+                                fromActivityIndex === activityIndex &&
+                                fromSubIndex !== subIndex
+                              ) {
+                                reorderSubActivities(
+                                  activityIndex,
+                                  fromSubIndex,
+                                  subIndex
                                 );
-                                if (isInFinalExam) {
-                                  removeFromFinalExam(
-                                    activityIndex,
-                                    questionIndex
-                                  );
-                                } else {
-                                  addToFinalExam(activityIndex, questionIndex);
-                                }
-                              }}
-                            >
-                              {finalExamQuestions?.some(
-                                (q) =>
-                                  q.sourceActivityIndex === activityIndex &&
-                                  q.sourceQuestionIndex === questionIndex
-                              )
-                                ? lang === "en"
-                                  ? "Remove from Final"
-                                  : "ከመጨረሻ አስወግድ"
-                                : lang === "en"
-                                ? "Add to Final"
-                                : "ወደ መጨረሻ ጨምር"}
-                            </Button>
-                          )}
-                          {updateQuestion && (
+                              }
+                            }}
+                          >
+                            <GripVertical className="size-3" />
+                          </Button>
+                          <span className="font-medium break-words overflow-wrap-anywhere flex-1">
+                            {lang === "en" ? sub.titleEn : sub.titleAm}
+                          </span>
+                        </div>
+                        <div className="flex gap-1">
+                          {updateSubActivity && (
                             <Button
                               type="button"
                               size="sm"
                               color="primary"
                               variant="light"
                               onPress={() =>
-                                setEditingQuestion({
+                                setEditingSubActivity({
                                   activityIndex,
-                                  questionIndex,
+                                  subActivityIndex: subIndex,
                                 })
                               }
                             >
@@ -502,73 +321,294 @@ export default function ActivityManager({
                             onPress={() => {
                               const confirmMessage =
                                 lang === "en"
-                                  ? "Are you sure you want to delete this question?"
-                                  : "ይህን ጥያቄ መሰረዝ እርግጠኛ ነዎት?";
+                                  ? "Are you sure you want to delete this sub-activity?"
+                                  : "ይህን ንዑስ እንቅስቃሴ መሰረዝ እርግጠኛ ነዎት?";
                               if (confirm(confirmMessage)) {
-                                removeQuestion(activityIndex, questionIndex);
+                                removeSubActivity(activityIndex, subIndex);
                               }
                             }}
                           >
                             <Trash className="size-4" />
                           </Button>
                         </div>
-                        {editingQuestion?.activityIndex === activityIndex &&
-                        editingQuestion?.questionIndex === questionIndex &&
-                        updateQuestion ? (
-                          <QuestionEditForm
-                            initialQuestion={question}
-                            onSave={(updatedQuestion) => {
-                              updateQuestion(
-                                activityIndex,
-                                questionIndex,
-                                updatedQuestion
-                              );
-                              setEditingQuestion(null);
-                            }}
-                            onCancel={() => setEditingQuestion(null)}
-                            lang={lang}
-                          />
-                        ) : (
-                          <>
-                            <p className="font-medium mb-3 break-words overflow-wrap-anywhere">
-                              {question.question}
-                            </p>
-                            <div className="space-y-2">
-                              {question.options.map((option, optionIndex) => (
-                                <div
-                                  key={optionIndex}
-                                  className="flex items-center gap-2 p-2 rounded bg-gray-50"
-                                >
-                                  <div
-                                    className={cn(
-                                      "w-3 h-3 rounded-full flex-shrink-0",
-                                      question.answers.includes(option)
-                                        ? "bg-success"
-                                        : "bg-gray-300"
-                                    )}
-                                  />
-                                  <span className="text-sm break-words flex-1">{option}</span>
-                                </div>
-                              ))}
-                            </div>
-                            {question.explanation && (
-                              <div className="mt-3 p-3 bg-blue-50 rounded text-sm break-words overflow-wrap-anywhere">
-                                <span className="font-medium">
-                                  {lang === "en" ? "Explanation: " : "ማብራሪያ: "}
-                                </span>
-                                <span className="break-words">{question.explanation}</span>
-                              </div>
-                            )}
-                          </>
-                        )}
                       </div>
-                    </AccordionItem>
+
+                      {editingSubActivity?.activityIndex === activityIndex &&
+                        editingSubActivity?.subActivityIndex === subIndex &&
+                        updateSubActivity && (
+                          <EditForm
+                            initialValues={{ en: sub.titleEn, am: sub.titleAm }}
+                            onSave={(values) => {
+                              updateSubActivity(
+                                activityIndex,
+                                subIndex,
+                                values
+                              );
+                              setEditingSubActivity(null);
+                            }}
+                            onCancel={() => setEditingSubActivity(null)}
+                            lang={lang}
+                            label={
+                              lang === "en"
+                                ? "Edit Sub-Activity"
+                                : "ንዑስ እንቅስቃሴ አርም"
+                            }
+                            placeHolderEn={
+                              lang === "en"
+                                ? "Sub-activity title in English"
+                                : "ንዑስ እንቅስቃሴ በእንግሊዝኛ"
+                            }
+                            placeHolderAm={
+                              lang === "en"
+                                ? "Sub-activity title in Amharic"
+                                : "ንዑስ እንቅስቃሴ በአማርኛ"
+                            }
+                          />
+                        )}
+
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Video className="size-4" />
+                            <span className="text-sm">
+                              {lang === "en" ? "Video" : "ቪዲዮ"}
+                            </span>
+                          </div>
+
+                          <SubActivityVideoUpload
+                            lang={lang}
+                            hasVideo={!!sub.video}
+                            onVideoSelect={(filename) => {
+                              updateSubActivityVideo(
+                                activityIndex,
+                                subIndex,
+                                filename
+                              );
+                            }}
+                            onVideoRemove={() => {
+                              updateSubActivityVideo(
+                                activityIndex,
+                                subIndex,
+                                ""
+                              );
+                            }}
+                          />
+                        </div>
+
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm">
+                              {lang === "en" ? "Thumbnail" : "ምስል"}
+                            </span>
+                          </div>
+
+                          <SubActivityThumbnailUpload
+                            lang={lang}
+                            hasThumbnail={!!sub.thumbnail}
+                            currentThumbnail={sub.thumbnail || ""}
+                            activityIndex={activityIndex}
+                            subActivityIndex={subIndex}
+                            onThumbnailSelect={(thumbnailUrl) => {
+                              updateSubActivityThumbnail(
+                                activityIndex,
+                                subIndex,
+                                thumbnailUrl
+                              );
+                            }}
+                            onThumbnailRemove={() => {
+                              updateSubActivityThumbnail(
+                                activityIndex,
+                                subIndex,
+                                ""
+                              );
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
                   ))}
-                </Accordion>
+                </div>
+
+                <div className="space-y-2">
+                  <h4 className="font-medium flex items-center gap-2">
+                    <HelpCircle className="size-4" />
+                    {lang === "en" ? "Questions" : "ጥያቄዎች"}
+                  </h4>
+
+                  <QuestionForm
+                    onAdd={(question) => addQuestion(activityIndex, question)}
+                    lang={lang}
+                  />
+
+                  <Accordion variant="splitted" className="space-y-2">
+                    {(activity.questions || []).map(
+                      (question, questionIndex) => (
+                        <AccordionItem
+                          key={questionIndex}
+                          title={
+                            <span className="text-sm font-medium truncate">
+                              {question.question.length > 60
+                                ? `${question.question.substring(0, 60)}...`
+                                : question.question}
+                            </span>
+                          }
+                          className="border border-warning-300 rounded-lg"
+                        >
+                          <div className="p-3">
+                            <div className="flex justify-end gap-1 mb-3">
+                              {addToFinalExam && removeFromFinalExam && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  color={
+                                    finalExamQuestions?.some(
+                                      (q) =>
+                                        q.sourceActivityIndex ===
+                                          activityIndex &&
+                                        q.sourceQuestionIndex === questionIndex
+                                    )
+                                      ? "warning"
+                                      : "secondary"
+                                  }
+                                  variant="light"
+                                  onPress={() => {
+                                    const isInFinalExam =
+                                      finalExamQuestions?.some(
+                                        (q) =>
+                                          q.sourceActivityIndex ===
+                                            activityIndex &&
+                                          q.sourceQuestionIndex ===
+                                            questionIndex
+                                      );
+                                    if (isInFinalExam) {
+                                      removeFromFinalExam(
+                                        activityIndex,
+                                        questionIndex
+                                      );
+                                    } else {
+                                      addToFinalExam(
+                                        activityIndex,
+                                        questionIndex
+                                      );
+                                    }
+                                  }}
+                                >
+                                  {finalExamQuestions?.some(
+                                    (q) =>
+                                      q.sourceActivityIndex === activityIndex &&
+                                      q.sourceQuestionIndex === questionIndex
+                                  )
+                                    ? lang === "en"
+                                      ? "Remove from Final"
+                                      : "ከመጨረሻ አስወግድ"
+                                    : lang === "en"
+                                    ? "Add to Final"
+                                    : "ወደ መጨረሻ ጨምር"}
+                                </Button>
+                              )}
+                              {updateQuestion && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  color="primary"
+                                  variant="light"
+                                  onPress={() =>
+                                    setEditingQuestion({
+                                      activityIndex,
+                                      questionIndex,
+                                    })
+                                  }
+                                >
+                                  <Edit className="size-4" />
+                                </Button>
+                              )}
+                              <Button
+                                type="button"
+                                size="sm"
+                                color="danger"
+                                variant="light"
+                                onPress={() => {
+                                  const confirmMessage =
+                                    lang === "en"
+                                      ? "Are you sure you want to delete this question?"
+                                      : "ይህን ጥያቄ መሰረዝ እርግጠኛ ነዎት?";
+                                  if (confirm(confirmMessage)) {
+                                    removeQuestion(
+                                      activityIndex,
+                                      questionIndex
+                                    );
+                                  }
+                                }}
+                              >
+                                <Trash className="size-4" />
+                              </Button>
+                            </div>
+                            {editingQuestion?.activityIndex === activityIndex &&
+                            editingQuestion?.questionIndex === questionIndex &&
+                            updateQuestion ? (
+                              <QuestionEditForm
+                                initialQuestion={question}
+                                onSave={(updatedQuestion) => {
+                                  updateQuestion(
+                                    activityIndex,
+                                    questionIndex,
+                                    updatedQuestion
+                                  );
+                                  setEditingQuestion(null);
+                                }}
+                                onCancel={() => setEditingQuestion(null)}
+                                lang={lang}
+                              />
+                            ) : (
+                              <>
+                                <p className="font-medium mb-3 break-words overflow-wrap-anywhere">
+                                  {question.question}
+                                </p>
+                                <div className="space-y-2">
+                                  {question.options.map(
+                                    (option, optionIndex) => (
+                                      <div
+                                        key={optionIndex}
+                                        className="flex items-center gap-2 p-2 rounded bg-gray-50"
+                                      >
+                                        <div
+                                          className={cn(
+                                            "w-3 h-3 rounded-full flex-shrink-0",
+                                            question.answers.includes(option)
+                                              ? "bg-success"
+                                              : "bg-gray-300"
+                                          )}
+                                        />
+                                        <span className="text-sm break-words flex-1">
+                                          {option}
+                                        </span>
+                                      </div>
+                                    )
+                                  )}
+                                </div>
+                                {question.explanation && (
+                                  <div className="mt-3 p-3 bg-blue-50 rounded text-sm break-words overflow-wrap-anywhere">
+                                    <span className="font-medium">
+                                      {lang === "en"
+                                        ? "Explanation: "
+                                        : "ማብራሪያ: "}
+                                    </span>
+                                    <span className="break-words">
+                                      {question.explanation}
+                                    </span>
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        </AccordionItem>
+                      )
+                    )}
+                  </Accordion>
+                </div>
               </div>
-            </div>
-          </AccordionItem>
-        ))}
+            </AccordionItem>
+          ))}
       </Accordion>
     </div>
   );

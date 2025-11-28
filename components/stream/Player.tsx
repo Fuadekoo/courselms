@@ -14,7 +14,6 @@ import { cn } from "@/lib/utils";
 import "./VideoProtection.css";
 import Hls from "hls.js";
 import type { QualityLevel } from "./QualityControl";
-import { formatTime } from "@/utils/formatTime";
 
 interface PlayerProps {
   src: string;
@@ -469,6 +468,27 @@ function Player({
         video.load(); // Reload to clear any existing source
       }
 
+      // Extract base directory and token from master playlist URL
+      // Master URL format: /api/stream?file=DIR/FILE.m3u8&token=TOKEN
+      let baseDir = "";
+      let masterToken = "";
+      try {
+        const masterUrl = new URL(currentSrc, window.location.origin);
+        if (masterUrl.pathname === "/api/stream") {
+          const fileParam = masterUrl.searchParams.get("file");
+          masterToken = masterUrl.searchParams.get("token") || "";
+          if (fileParam) {
+            // Extract directory from file path (e.g., "1764332590594-99387/1764332590594-99387.m3u8" -> "1764332590594-99387")
+            const fileParts = fileParam.split("/");
+            if (fileParts.length > 1) {
+              baseDir = fileParts.slice(0, -1).join("/");
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("[Player] Failed to parse master playlist URL:", e);
+      }
+
       // Create new HLS instance with adaptive bitrate settings
       const hls = new Hls({
         enableWorker: true,
@@ -494,6 +514,68 @@ function Player({
         abrEwmaSlowVoD: 3.0,
         abrEwmaFastVoD: 9.0,
         startLevel: -1, // Auto-select starting level (adaptive)
+        xhrSetup: (xhr, url) => {
+          // Intercept all HLS requests and route them through /api/stream
+          try {
+            // Handle both absolute and relative URLs
+            let requestUrl: URL;
+            try {
+              requestUrl = new URL(url);
+            } catch {
+              // If URL is relative, resolve it relative to current origin
+              requestUrl = new URL(url, window.location.origin);
+            }
+
+            // If the request is already going to /api/stream, let it through
+            if (requestUrl.pathname === "/api/stream") {
+              return;
+            }
+
+            // If the request is to /api/ but not /api/stream, rewrite it
+            if (
+              requestUrl.pathname.startsWith("/api/") &&
+              requestUrl.pathname !== "/api/stream"
+            ) {
+              // Extract filename from path (e.g., "/api/1764332590594-99387_1.m3u8" -> "1764332590594-99387_1.m3u8")
+              const filename = requestUrl.pathname.replace("/api/", "");
+
+              // Construct full file path with base directory
+              const filePath = baseDir ? `${baseDir}/${filename}` : filename;
+
+              // Generate new secure URL through /api/stream
+              const newUrl = `/api/stream?file=${encodeURIComponent(
+                filePath
+              )}&token=${encodeURIComponent(masterToken)}`;
+
+              console.log(
+                `[Player] Rewriting HLS request: ${url} -> ${newUrl}`
+              );
+
+              // Store the new URL and override xhr.open
+              const originalOpen = xhr.open;
+              (xhr as any)._hlsRewrittenUrl = newUrl;
+              xhr.open = function (
+                method: string,
+                url: string | URL,
+                async?: boolean,
+                username?: string | null,
+                password?: string | null
+              ) {
+                const targetUrl = (this as any)._hlsRewrittenUrl || url;
+                return originalOpen.call(
+                  this,
+                  method,
+                  targetUrl,
+                  async !== false,
+                  username,
+                  password
+                );
+              };
+            }
+          } catch (e) {
+            console.warn("[Player] Failed to rewrite HLS URL:", url, e);
+          }
+        },
       });
 
       hlsRef.current = hls;
