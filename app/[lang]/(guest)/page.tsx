@@ -8,7 +8,8 @@ import { FeaturesSection } from "@/components/guest/features-section";
 // import { TestimonialsSection } from "@/components/guest/testimonial";
 import { Footer } from "@/components/guest/footer";
 import { OurStudentsSection } from "@/components/guest/out-students";
-  
+import PublicAnnouncement from "@/components/guest/public-announcment";
+
 export default function Page() {
   useEffect(() => {
     toast.dismiss();
@@ -16,6 +17,7 @@ export default function Page() {
 
   return (
     <div className="h-full">
+      <PublicAnnouncement />
       <HeroSection />
       <CoursePage />
       <FeaturesSection />

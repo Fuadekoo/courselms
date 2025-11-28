@@ -24,6 +24,8 @@ import CourseActivity from "@/components/courseActivity";
 import CourseTopOverview from "@/components/courseTopOverview";
 import { Button, useDisclosure } from "@heroui/react";
 import { useRouter } from "next/navigation";
+import { useCourseDiscount } from "@/hooks/useCourseDiscount";
+import PriceDisplay from "@/components/PriceDisplay";
 
 export default function Page() {
   const params = useParams<{ lang: string; id: string }>();
@@ -34,8 +36,20 @@ export default function Page() {
     { isOpen, onOpenChange } = useDisclosure();
   const router = useRouter();
 
-  // Check if course is free
-  const isFree = data && data.birrPrice === 0 && data.dolarPrice === 0;
+  // Get discount for the course
+  const birrDiscount = useCourseDiscount(id, data?.birrPrice || 0);
+  const dolarDiscount = useCourseDiscount(id, data?.dolarPrice || 0);
+
+  // Calculate discounted prices
+  const discountedBirrPrice = birrDiscount.hasDiscount
+    ? birrDiscount.discountedPrice
+    : data?.birrPrice || 0;
+  const discountedDolarPrice = dolarDiscount.hasDiscount
+    ? dolarDiscount.discountedPrice
+    : data?.dolarPrice || 0;
+
+  // Check if course is free (after discount)
+  const isFree = discountedBirrPrice === 0 && discountedDolarPrice === 0;
 
   const loginRedirect = () => {
     // Redirect to login page with course ID and affiliate code
@@ -136,8 +150,10 @@ export default function Page() {
             affiliateCode={searchParams?.get("code") || ""}
             title={lang == "en" ? data.titleEn : data.titleAm}
             price={data.price}
-            birrPrice={data.birrPrice}
-            dolarPrice={data.dolarPrice}
+            birrPrice={discountedBirrPrice}
+            dolarPrice={discountedDolarPrice}
+            originalBirrPrice={data.birrPrice}
+            originalDolarPrice={data.dolarPrice}
           />
         </div>
       )}

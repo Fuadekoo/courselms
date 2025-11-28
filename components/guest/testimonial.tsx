@@ -1,65 +1,86 @@
+"use client";
 import { Card, CardBody } from "@heroui/react";
 import { Star } from "lucide-react";
+import { useParams } from "next/navigation";
 
-const testimonials = [
+const getTestimonials = (lang: string) => [
   {
     name: "Aisha Rahman",
-    role: "Hifz Student from USA",
+    role: lang === "en" ? "Hifz Student from USA" : "ከአሜሪካ የሂፍዝ ተማሪ",
     content:
-      "The structured approach and patient teachers helped me memorize 5 Juz in just 8 months. The revision system keeps everything fresh in my memory. Alhamdulillah!",
+      lang === "en"
+        ? "The structured approach and patient teachers helped me memorize 5 Juz in just 8 months. The revision system keeps everything fresh in my memory. Alhamdulillah!"
+        : "የተዋቀረው አቀራረብ እና ታጋሽ አስተማሪዎች 5 ጁዝን በ8 ወራት ውስጥ ለማስታወስ ረዱኝ። የግምገማ ስርዓቱ ሁሉንም ነገር በማስታወሻዬ ውስጥ ትኩስ ይይዛል። አልሐምዱሊላህ!",
     rating: 5,
   },
   {
     name: "Muhammad Ali",
-    role: "Tajweed Student from UK",
+    role: lang === "en" ? "Tajweed Student from UK" : "ከእንግሊዝ የታጅዊድ ተማሪ",
     content:
-      "My Tajweed improved significantly. The one-on-one sessions with personalized feedback are incredibly effective. I can now recite with confidence.",
+      lang === "en"
+        ? "My Tajweed improved significantly. The one-on-one sessions with personalized feedback are incredibly effective. I can now recite with confidence."
+        : "ታጅዊዴዬ በእጅጉ ተሻሽሏል። ከግላዊ ግብረመልስ ጋር ያሉት አንድ-በ-አንድ ክፍለ ጊዜያት እጅጉን ውጤታማ ናቸው። አሁን በእምነት ማንበብ እችላለሁ።",
     rating: 5,
   },
   {
     name: "Fatima Yusuf",
-    role: "Working Professional from Canada",
+    role: lang === "en" ? "Working Professional from Canada" : "ከካናዳ የሚሰራ ባለሙያ",
     content:
-      "Flexible timing allowed me to balance my career and learning. The quality of instruction is exceptional. Best decision I made this year!",
+      lang === "en"
+        ? "Flexible timing allowed me to balance my career and learning. The quality of instruction is exceptional. Best decision I made this year!"
+        : "መለዋወጫ የጊዜ ሰሌዳ ስራዬን እና ትምህርቴን ለማመዛዘን ረድቶኛል። የትምህርት ጥራት ልዩ ነው። በዚህ ዓመት የወሰንኩት ምርጥ ውሳኔ!",
     rating: 5,
   },
   {
     name: "Omar Hassan",
-    role: "Arabic Student from Australia",
+    role: lang === "en" ? "Arabic Student from Australia" : "ከአውስትራሊያ የዐረብኛ ተማሪ",
     content:
-      "Learning Quranic Arabic has transformed my understanding of the Quran. The instructors make complex grammar simple and enjoyable.",
+      lang === "en"
+        ? "Learning Quranic Arabic has transformed my understanding of the Quran. The instructors make complex grammar simple and enjoyable."
+        : "የቁርአን ዐረብኛ መማር የቁርአንን ግንዛቤዬን ቀይሯል። አስተማሪዎቹ የተወሳሰቡ ሰዋሰውያን ቀላል እና አስደሳች ያደርጉታል።",
     rating: 5,
   },
   {
     name: "Maryam Ahmed",
-    role: "Fiqh Student from Malaysia",
+    role: lang === "en" ? "Fiqh Student from Malaysia" : "ከማሌዢያ የፊቅህ ተማሪ",
     content:
-      "The Islamic jurisprudence course answered so many questions I had. The scholars are knowledgeable and approachable.",
+      lang === "en"
+        ? "The Islamic jurisprudence course answered so many questions I had. The scholars are knowledgeable and approachable."
+        : "የእስላም ሕግ ኮርሱ ያላቸውን ብዙ ጥያቄዎች መለሰልኝ። ምሁራኑ የተማሩ እና ቀርበዋል።",
     rating: 5,
   },
   {
     name: "Ibrahim Khan",
-    role: "Parent from UAE",
+    role: lang === "en" ? "Parent from UAE" : "ከUAE ወላጅ",
     content:
-      "Both my children are enrolled and loving their classes. The platform is safe, professional, and the progress tracking is excellent!",
+      lang === "en"
+        ? "Both my children are enrolled and loving their classes. The platform is safe, professional, and the progress tracking is excellent!"
+        : "ሁለቱም ልጆቼ ተመዝግበዋል እና ክፍሎቻቸውን ይወዳሉ። መድረኩ ደህንነቱ የተጠበቀ፣ ባለሙያ እና የእድገት መከታተያው በጣም ጥሩ ነው!",
     rating: 5,
   },
 ];
 
 export function TestimonialsSection() {
+  const params = useParams();
+  const lang = (params?.lang as string) || "en";
+  const testimonials = getTestimonials(lang);
+
   return (
     <section id="testimonials" className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-balance text-foreground">
-            Testimonials
+            {lang === "en" ? "Testimonials" : "መመስከሪያዎች"}
           </h2>
           <p className="text-lg font-semibold text-primary mb-2">
-            Transforming Lives Through Islamic Education
+            {lang === "en"
+              ? "Transforming Lives Through Islamic Education"
+              : "በእስላም ትምህርት ሕይወቶችን ማለወጥ"}
           </p>
           <p className="text-default-600 max-w-2xl mx-auto">
-            Join thousands of students who have transformed their relationship
-            with Islamic knowledge
+            {lang === "en"
+              ? "Join thousands of students who have transformed their relationship with Islamic knowledge"
+              : "ከእስላም እውቀት ጋር ያላቸውን ግንኙነት የቀየሩ በሺዎች የሚቆጠሩ ተማሪዎች ይቀላቀሉ"}
           </p>
         </div>
 

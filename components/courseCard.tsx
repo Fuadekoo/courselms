@@ -5,6 +5,7 @@ import { Course, User } from "@prisma/client";
 import { ChartBarIncreasing, Clock, Logs, Play } from "lucide-react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
+import PriceDisplay from "@/components/PriceDisplay";
 
 export default function CourseCardAffiliate({
   id,
@@ -145,13 +146,23 @@ export default function CourseCardAffiliate({
 
       <div
         className={cn(
-          "absolute top-0 right-0 px-5 py-2 rounded-bl-xl shadow-lg font-bold text-sm transition-all duration-300 ease-out backdrop-blur-sm",
+          "absolute top-0 right-0 px-3 py-2 rounded-bl-xl shadow-lg text-sm transition-all duration-300 ease-out backdrop-blur-sm",
           price > 0
-            ? "bg-background/95 dark:bg-background/90 text-foreground dark:text-white border-l border-b border-divider dark:border-white/10"
+            ? "bg-background/95 dark:bg-background/90 border-l border-b border-divider dark:border-white/10"
             : "bg-gradient-to-br from-success-500 to-success-600 dark:from-success-600 dark:to-success-700 text-white shadow-success-900/50"
         )}
       >
-        {price > 0 ? `${price} ETB` : "Free"}
+        {price > 0 ? (
+          <PriceDisplay
+            courseId={id}
+            price={price}
+            currency="ETB"
+            className="text-xs"
+            showDiscountBadge={false}
+          />
+        ) : (
+          <span className="font-bold">Free</span>
+        )}
       </div>
     </div>
   );

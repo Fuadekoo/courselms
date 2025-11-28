@@ -18,6 +18,7 @@ import {
 import { Clock, Users, Star, Search } from "lucide-react";
 import Link from "next/link";
 import { useCourseFilterStore } from "@/stores";
+import PriceDisplay from "@/components/PriceDisplay";
 
 export default function Page() {
   const params = useParams<{ lang: string }>(),
@@ -238,8 +239,12 @@ export default function Page() {
                             {lang === "en" ? course.titleEn : course.titleAm}
                           </h3>
                         </Link>
-                        <div className="text-2xl font-bold text-primary ml-4">
-                          {course.price > 0 ? `${course.price} ETB` : "Free"}
+                        <div className="ml-4">
+                          <PriceDisplay
+                            courseId={course.id}
+                            price={course.price}
+                            currency="ETB"
+                          />
                         </div>
                       </div>
 

@@ -2,6 +2,7 @@ import prisma from "@/lib/db";
 import { randomUUID } from "crypto";
 import { auth } from "@/lib/auth";
 import { normalizeUrl } from "@/lib/utils/url";
+import { getActiveDiscountForCourse } from "@/actions/manager/periodic-discount";
 
 type TPayState =
   | { status: true; cause?: undefined; message?: undefined; url: string }
@@ -37,6 +38,22 @@ export async function payWithStripe(
 
     if (!course) throw new Error();
 
+    // Check for active discount
+    const discountResult = await getActiveDiscountForCourse(id);
+    let discountPercent = 0;
+    if (discountResult.data && discountResult.data.value) {
+      discountPercent = discountResult.data.value;
+    }
+
+    // Calculate discounted prices
+    const originalDolarPrice = course.dolarPrice
+      ? Number(course.dolarPrice)
+      : Number(course.price);
+    const discountedDolarPrice =
+      discountPercent > 0
+        ? originalDolarPrice * (1 - discountPercent / 100)
+        : originalDolarPrice;
+
     const user = await prisma.user.findFirst({
       where: { role: "student", phoneNumber, id: session.user.id },
     });
@@ -66,14 +83,20 @@ export async function payWithStripe(
       if (order.status === "paid") {
         return {
           status: true,
-          url: normalizeUrl(process.env.MAIN_API || "", `/${lang}/student/mycourse`),
+          url: normalizeUrl(
+            process.env.MAIN_API || "",
+            `/${lang}/student/mycourse`
+          ),
         };
       } else if (order.tx_ref) {
         // Check if Stripe payment is already completed
         // You would implement Stripe payment verification here
         return {
           status: true,
-          url: normalizeUrl(process.env.MAIN_API || "", `/${lang}/verify-payment/${order.tx_ref}`),
+          url: normalizeUrl(
+            process.env.MAIN_API || "",
+            `/${lang}/verify-payment/${order.tx_ref}`
+          ),
         };
       }
 
@@ -91,8 +114,8 @@ export async function payWithStripe(
         where: { id: order.id },
         data: {
           tx_ref,
-          totalPrice: course.price,
-          price: course.price,
+          totalPrice: discountedDolarPrice,
+          price: discountedDolarPrice,
           date: new Date(),
           ...(affiliate
             ? {
@@ -108,14 +131,14 @@ export async function payWithStripe(
         data: {
           userId: user.id,
           courseId: course.id,
-          totalPrice: course.price,
-          price: course.price,
+          totalPrice: discountedDolarPrice,
+          price: discountedDolarPrice,
           tx_ref: randomUUID(),
           date: new Date(),
           instructorIncome:
-            (Number(course.price) * Number(course.instructorRate)) / 100,
+            (discountedDolarPrice * Number(course.instructorRate)) / 100,
           img: "",
-          dolarPrice: course.price,
+          dolarPrice: discountedDolarPrice,
           paymentType: "stripe",
           currency: "USD",
           ...(affiliate
@@ -143,9 +166,15 @@ export async function payWithStripe(
           courseId: course.id,
           userId: user.id,
           tx_ref: order.tx_ref,
-          amount: course.price,
-          successUrl: normalizeUrl(process.env.MAIN_API || "", `/${lang}/verify-payment/${order.tx_ref}`),
-          cancelUrl: normalizeUrl(process.env.MAIN_API || "", `/${lang}/course/${course.id}`),
+          amount: discountedDolarPrice,
+          successUrl: normalizeUrl(
+            process.env.MAIN_API || "",
+            `/${lang}/verify-payment/${order.tx_ref}`
+          ),
+          cancelUrl: normalizeUrl(
+            process.env.MAIN_API || "",
+            `/${lang}/course/${course.id}`
+          ),
         }),
       }
     );

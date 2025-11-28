@@ -12,15 +12,18 @@ import {
   NavbarMenuToggle,
 } from "@heroui/react";
 import Link from "next/link";
+import { useParams } from "next/navigation";
 
 export function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const params = useParams();
+  const lang = (params?.lang as string) || "en";
 
   const menuItems = [
-    { label: "Courses", href: "#courses" },
-    { label: "Features", href: "#features" },
-    { label: "Testimonials", href: "#testimonials" },
-    { label: "Pricing", href: "#pricing" },
+    { label: lang === "en" ? "Courses" : "ኮርሶች", href: "#courses" },
+    { label: lang === "en" ? "Features" : "ባህሪያት", href: "#features" },
+    { label: lang === "en" ? "Testimonials" : "መመስከሪያዎች", href: "#testimonials" },
+    { label: lang === "en" ? "Pricing" : "ዋጋ", href: "#pricing" },
   ];
 
   return (
@@ -33,7 +36,7 @@ export function Header() {
     >
       <NavbarContent>
         <NavbarMenuToggle
-          aria-label={isMenuOpen ? "Close menu" : "Open menu"}
+          aria-label={isMenuOpen ? (lang === "en" ? "Close menu" : "ሜኑን ዝጋ") : (lang === "en" ? "Open menu" : "ሜኑን ክፈት")}
           className="md:hidden"
         />
         <NavbarBrand>
@@ -59,11 +62,11 @@ export function Header() {
       <NavbarContent justify="end" className="hidden md:flex">
         <NavbarItem>
           <Button variant="light" color="primary">
-            Login
+            {lang === "en" ? "Login" : "ግባ"}
           </Button>
         </NavbarItem>
         <NavbarItem>
-          <Button color="primary">Sign Up</Button>
+          <Button color="primary">{lang === "en" ? "Sign Up" : "ተመዝግብ"}</Button>
         </NavbarItem>
       </NavbarContent>
 
@@ -82,10 +85,10 @@ export function Header() {
         <NavbarMenuItem>
           <div className="flex flex-col gap-2 pt-4 border-t w-full">
             <Button variant="light" color="primary" fullWidth>
-              Login
+              {lang === "en" ? "Login" : "ግባ"}
             </Button>
             <Button color="primary" fullWidth>
-              Sign Up
+              {lang === "en" ? "Sign Up" : "ተመዝግብ"}
             </Button>
           </div>
         </NavbarMenuItem>

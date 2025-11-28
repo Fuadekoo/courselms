@@ -1,65 +1,88 @@
+"use client";
 import { Card, CardBody } from "@heroui/react";
 import { Star } from "lucide-react";
+import { useParams } from "next/navigation";
 
-const ourStudents = [
+const getOurStudents = (lang: string) => [
   {
     name: "Fatima Abdurrahman",
-    role: "Hifz Student from Saudi",
+    role: lang === "en" ? "Hifz Student from Saudi" : "ከሳውድያ የሂፍዝ ተማሪ",
     content:
-      "Masha'Allah, this lesson has been extremely beneficial and useful! Despite my tight schedule, the resources—including the videos, live lessons, and the Qai'da application—made it possible for me to start the Quran and learn to read. Everything provided has truly helped me. Alhamdulillah!",
+      lang === "en"
+        ? "Masha'Allah, this lesson has been extremely beneficial and useful! Despite my tight schedule, the resources—including the videos, live lessons, and the Qai'da application—made it possible for me to start the Quran and learn to read. Everything provided has truly helped me. Alhamdulillah!"
+        : "ማሻአሏህ፣ ይህ ትምህርት እጅጉን ጠቃሚ እና ምቹ ነበር! ጠባብ የጊዜ ሰሌዳዬ ቢኖርም፣ ቪዲዮዎች፣ ቀጥታ ትምህርቶች እና የቃዒዳ መተግበሪያ ጨምሮ ያሉት ሀብቶች ቁርአንን ለመጀመር እና ለመንባብ ለመማር አስቻሉኝ። የተሰጠው ሁሉ በእውነት ረድቶኛል። አልሐምዱሊላህ!",
     rating: 5,
   },
   {
     name: "Sualihat",
-    role: "Tajweed Student from UK",
+    role: lang === "en" ? "Tajweed Student from UK" : "ከእንግሊዝ የታጅዊድ ተማሪ",
     content:
-      "Masha'Allah, I don't blame the instructors for any of my shortcomings—they haven't held back anything! They taught with videos, live sessions, and three key methods. The content is excellent; I've learned that writing things down is key to retention. May Allah increase you!",
+      lang === "en"
+        ? "Masha'Allah, I don't blame the instructors for any of my shortcomings—they haven't held back anything! They taught with videos, live sessions, and three key methods. The content is excellent; I've learned that writing things down is key to retention. May Allah increase you!"
+        : "ማሻአሏህ፣ አስተማሪዎቹን ለማንኛውም የእኔ ጉድለት አልከሰስም—ምንም ነገር አልደበቁም! በቪዲዮዎች፣ ቀጥታ ክፍለ ጊዜያት እና ሦስት ዋና ዘዴዎች አስተምረዋል። ይዘቱ በጣም ጥሩ ነው፤ ነገሮችን መጻፍ ለመቆጣጠር ቁልፍ እንደሆነ ተማርኩ። አሏህ ያበዛችሁ!",
     rating: 3,
   },
   {
     name: "Siraj Seid",
-    role: "Student from Canada",
+    role: lang === "en" ? "Student from Canada" : "ከካናዳ ተማሪ",
     content:
-      "Masha'Allah, your presentation is very clear and pleasing! It is great, and there is nothing complicated about the way things are done. May Allah make it easy for us, Insha'Allah.",
+      lang === "en"
+        ? "Masha'Allah, your presentation is very clear and pleasing! It is great, and there is nothing complicated about the way things are done. May Allah make it easy for us, Insha'Allah."
+        : "ማሻአሏህ፣ የእናንተ አቀራረብ በጣም ግልጽ እና አስደሳች ነው! በጣም ጥሩ ነው፣ እና ነገሮች እንዴት እንደሚደረጉ ምንም የተወሳሰበ ነገር የለም። አሏህ ለእኛ ያቀላቅልልን፣ ኢንሻአሏህ።",
     rating: 4,
   },
   {
     name: "Aduneya",
-    role: "Student from Australia",
+    role: lang === "en" ? "Student from Australia" : "ከአውስትራሊያ ተማሪ",
     content:
-      "had to pause the course due to work and travel in areas with poor connection. It's a great course, and I'm eager to resume.",
+      lang === "en"
+        ? "had to pause the course due to work and travel in areas with poor connection. It's a great course, and I'm eager to resume."
+        : "በስራ እና በደከመ ግንኙነት ባላቸው አካባቢዎች በመጓዝ ምክንያት ኮርሱን ማቆም ነበረብኝ። በጣም ጥሩ ኮርስ ነው፣ እና መቀጠል እመኝራለሁ።",
     rating: 4,
   },
-  
   {
     name: "Rediwan",
-    role: "Student from Somalia",
+    role: lang === "en" ? "Student from Somalia" : "ከሶማሊያ ተማሪ",
     content:
-      "Alhamdulillah. I have been checking the lessons from time to time, and it is great—very good so far! I am looking forward to doing more as soon as my work schedule allows",
+      lang === "en"
+        ? "Alhamdulillah. I have been checking the lessons from time to time, and it is great—very good so far! I am looking forward to doing more as soon as my work schedule allows"
+        : "አልሐምዱሊላህ። ትምህርቶቹን ከጊዜ ወደ ጊዜ እየፈተንኩ ነው፣ እና በጣም ጥሩ ነው—እስካሁን በጣም ጥሩ! የስራ ሰሌዳዬ እንዲፈቅድ ብዙ ማድረግ እመኝራለሁ",
     rating: 5,
   },
   {
     name: "Biniyam",
-    role: "Student from Ethiopia",
+    role: lang === "en" ? "Student from Ethiopia" : "ከኢትዮጵያ ተማሪ",
     content:
-      "The course is excellent,",
+      lang === "en"
+        ? "The course is excellent,"
+        : "ኮርሱ በጣም ጥሩ ነው፣",
     rating: 5,
   },
 ];
 
 export function OurStudentsSection() {
+  const params = useParams();
+  const lang = (params?.lang as string) || "en";
+  const ourStudents = getOurStudents(lang);
+
   return (
     <section id="testimonials" className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-balance text-foreground">
-            what our studetns say about us !
+            {lang === "en"
+              ? "what our students say about us !"
+              : "ተማሪዎቻችን ስለእኛ ምን ይላሉ!"}
           </h2>
           <p className="text-lg font-semibold text-primary mb-2">
-            Our students are our best ambassadors
+            {lang === "en"
+              ? "Our students are our best ambassadors"
+              : "ተማሪዎቻችን ምርጥ ወኪሎቻችን ናቸው"}
           </p>
           <p className="text-default-600 max-w-2xl mx-auto">
-            Our students are our best ambassadors and they are happy with our services
+            {lang === "en"
+              ? "Our students are our best ambassadors and they are happy with our services"
+              : "ተማሪዎቻችን ምርጥ ወኪሎቻችን ናቸው እና ከአገልግሎቶቻችን ደስ ይላቸዋል"}
           </p>
         </div>
 
