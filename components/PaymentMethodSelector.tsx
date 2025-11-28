@@ -22,6 +22,8 @@ interface PaymentMethodSelectorProps {
   price: number;
   birrPrice: number;
   dolarPrice: number;
+  originalBirrPrice?: number;
+  originalDolarPrice?: number;
 }
 
 export default function PaymentMethodSelector({
@@ -32,13 +34,14 @@ export default function PaymentMethodSelector({
   title,
   birrPrice,
   dolarPrice,
+  originalBirrPrice,
+  originalDolarPrice,
 }: PaymentMethodSelectorProps) {
   const params = useParams<{ lang: string }>();
   const lang = params?.lang || "en";
 
   // Use the smart payment method detection
-  const { paymentMethod,  country, loading, error } =
-    usePaymentMethod();
+  const { paymentMethod, country, loading, error } = usePaymentMethod();
 
   const handlePaymentSelect = () => {
     if (paymentMethod === "chapa") {
@@ -50,9 +53,17 @@ export default function PaymentMethodSelector({
 
   const getDisplayPrice = () => {
     if (paymentMethod === "chapa") {
-      return `${birrPrice} ETB`;
+      const hasDiscount = originalBirrPrice && originalBirrPrice > birrPrice;
+      return {
+        current: `${birrPrice} ETB`,
+        original: hasDiscount ? `${originalBirrPrice} ETB` : null,
+      };
     } else {
-      return `$${dolarPrice} USD`;
+      const hasDiscount = originalDolarPrice && originalDolarPrice > dolarPrice;
+      return {
+        current: `$${dolarPrice} USD`,
+        original: hasDiscount ? `$${originalDolarPrice} USD` : null,
+      };
     }
   };
 
@@ -182,10 +193,24 @@ export default function PaymentMethodSelector({
                         <div className="text-xs text-gray-500">
                           {paymentInfo.description}
                         </div>
-                        <div
-                          className={`text-sm font-bold ${paymentInfo.textColor} mt-1`}
-                        >
-                          {getDisplayPrice()}
+                        <div className="mt-1">
+                          {(() => {
+                            const priceInfo = getDisplayPrice();
+                            return (
+                              <div className="flex items-center gap-2">
+                                <span
+                                  className={`text-sm font-bold ${paymentInfo.textColor}`}
+                                >
+                                  {priceInfo.current}
+                                </span>
+                                {priceInfo.original && (
+                                  <span className="text-xs text-default-400 line-through">
+                                    {priceInfo.original}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })()}
                         </div>
                       </div>
                     </div>

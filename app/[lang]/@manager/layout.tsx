@@ -41,54 +41,62 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     <UserLayout
       list={[
         {
-          label: "Dashboard",
+          label: lang === "en" ? "Dashboard" : "ዳሽቦርድ",
           url: "dashboard",
           icon: <Gauge className="size-5" />,
         },
         {
-          label: "Manager",
+          label: lang === "en" ? "Manager" : "አስተዳዳሪ",
           url: "manager",
           icon: <ShieldEllipsis className="size-5" />,
         },
         {
-          label: "Instructor",
+          label: lang === "en" ? "Instructor" : "አስተማሪ",
           url: "instructor",
           icon: <UserPen className="size-5" />,
         },
-        { label: "Course", url: "course", icon: <Book className="size-5" /> },
         {
-          label: "Affiliate",
+          label: lang === "en" ? "Course" : "ኮርስ",
+          url: "course",
+          icon: <Book className="size-5" />,
+        },
+        {
+          label: lang === "en" ? "Affiliate" : "ተባባሪ",
           url: "affiliate",
           icon: <Megaphone className="size-5" />,
         },
         {
-          label: "Seller",
+          label: lang === "en" ? "Seller" : "ሻጭ",
           url: "seller",
           icon: <BadgeDollarSign className="size-5" />,
         },
-        { label: "Student", url: "student", icon: <User className="size-5" /> },
         {
-          label: "Message",
+          label: lang === "en" ? "Student" : "ተማሪ",
+          url: "student",
+          icon: <User className="size-5" />,
+        },
+        {
+          label: lang === "en" ? "Message" : "መልዕክት",
           url: "message",
           icon: <MessageCircle className="size-5" />,
         },
         {
-          label: "Feedback",
+          label: lang === "en" ? "Feedback" : "ግብረመልስ",
           url: "feedback",
           icon: <MessageSquare className="size-5" />,
         },
         {
-          label: "Course Materials",
+          label: lang === "en" ? "Course Materials" : "የኮርስ ቁሳቁሶች",
           url: "courseMaterials",
           icon: <BookOpen className="size-5" />,
         },
         {
-          label: "Public Announcements",
+          label: lang === "en" ? "Public Announcements" : "የህዝብ ማስታወቂያዎች",
           url: "publicAnnouncment",
           icon: <Bell className="size-5" />,
         },
         {
-          label: "Periodic Discounts",
+          label: lang === "en" ? "Periodic Discounts" : "ወቅታዊ ቅናሾች",
           url: "periodicDiscount",
           icon: <Percent className="size-5" />,
         },

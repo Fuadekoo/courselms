@@ -7,42 +7,56 @@ import {
   Award,
   Video,
 } from "lucide-react";
+import { useParams } from "next/navigation";
 
-const features = [
+const getFeatures = (lang: string) => [
   {
     icon: BookOpen,
-    title: "Comprehensive Curriculum",
+    title: lang === "en" ? "Comprehensive Curriculum" : "ሰፊ የትምህርት ሥነ ጽሑፍ",
     description:
-      "A wide range of courses covering Quran recitation, Tajweed, Islamic studies, and more",
+      lang === "en"
+        ? "A wide range of courses covering Quran recitation, Tajweed, Islamic studies, and more"
+        : "ቁርአን ንባብ፣ ታጅዊድ፣ የእስላም ጥናት እና ሌሎችንም የሚሸፍኑ ሰፊ ኮርሶች",
   },
   {
     icon: GraduationCap,
-    title: "Expert Instructors",
+    title: lang === "en" ? "Expert Instructors" : "ባለሙያ አስተማሪዎች",
     description:
-      "Learn from certified teachers with years of experience in Quranic education",
+      lang === "en"
+        ? "Learn from certified teachers with years of experience in Quranic education"
+        : "ከበዓመታት በቁርአን ትምህርት ልምድ ካላቸው የተመዘገቡ አስተማሪዎች ይማሩ",
   },
   {
     icon: Clock,
-    title: "Flexible Learning",
+    title: lang === "en" ? "Flexible Learning" : "መለዋወጫ ትምህርት",
     description:
-      "Learn at your own comfortable pace and on your own schedule",
+      lang === "en"
+        ? "Learn at your own comfortable pace and on your own schedule"
+        : "በራስዎ ምቹ ፍጥነት እና በራስዎ የጊዜ ሰሌዳ ይማሩ",
   },
   {
     icon: Award,
-    title: "Certification",
+    title: lang === "en" ? "Certification" : "ማረጋገጫ",
     description:
-      "Receive official certificates upon completion of each course level",
+      lang === "en"
+        ? "Receive official certificates upon completion of each course level"
+        : "እያንዳንዱን የኮርስ ደረጃ ከጨረሱ በኋላ ኦፊሴላዊ ማረጋገጫዎችን ይቀበሉ",
   },
   {
     icon: Video,
-    title: "Live Support",
+    title: lang === "en" ? "Live Support" : "የቀጥታ ድጋፍ",
     description:
-      "Get live support from our instructors to help you with your questions and doubts",
+      lang === "en"
+        ? "Get live support from our instructors to help you with your questions and doubts"
+        : "ከአስተማሪዎቻችን የቀጥታ ድጋፍ ያግኙ ለጥያቄዎችዎ እና ለጥርጣሬዎችዎ እንዲረዱዎት",
   },
-  
 ];
 
 export function FeaturesSection() {
+  const params = useParams();
+  const lang = (params?.lang as string) || "en";
+  const features = getFeatures(lang);
+
   return (
     <section
       id="features"
@@ -59,14 +73,15 @@ export function FeaturesSection() {
             </div>
           </div>
           <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-balance text-foreground bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
-            Why Choose Darulkubra
+            {lang === "en" ? "Why Choose Darulkubra" : "ዳሩልኩብራን ለምን ይመርጡ"}
           </h2>
           <p className="text-lg font-semibold text-primary mb-3">
-            Excellence in Islamic Education
+            {lang === "en" ? "Excellence in Islamic Education" : "በእስላም ትምህርት ውስጥ ልዩነት"}
           </p>
           <p className="text-default-600 max-w-2xl mx-auto text-lg">
-            Professional Islamic scholarship combined with cutting-edge learning
-            technology
+            {lang === "en"
+              ? "Professional Islamic scholarship combined with cutting-edge learning technology"
+              : "የሙያ የእስላም ምሁራዊነት ከዘመናዊ የመማሪያ ቴክኖሎጂ ጋር ተዋህዷል"}
           </p>
         </div>
 

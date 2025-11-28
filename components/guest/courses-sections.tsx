@@ -8,54 +8,69 @@ import {
   Chip,
 } from "@heroui/react";
 import { Clock, Users, Star } from "lucide-react";
+import { useParams } from "next/navigation";
+import PriceDisplay from "@/components/PriceDisplay";
 
-const courses = [
+const getCourses = (lang: string) => [
   {
-    title: "Quran Recitation & Tajweed",
+    title: lang === "en" ? "Quran Recitation & Tajweed" : "ቁርአን ንባብ እና ታጅዊድ",
     description:
-      "Master art of proper Quranic recitation with advanced Tajweed rules and Makharij",
-    duration: "3 months",
-    students: "2,500+ students",
-    level: "Beginner to Advanced",
+      lang === "en"
+        ? "Master art of proper Quranic recitation with advanced Tajweed rules and Makharij"
+        : "የላቀ የታጅዊድ ህጎች እና መኻሪጅ በመጠቀም ትክክለኛውን የቁርአን ንባብ ይቆጣጠሩ",
+    duration: lang === "en" ? "3 months" : "3 ወራት",
+    students: lang === "en" ? "2,500+ students" : "2,500+ ተማሪዎች",
+    level: lang === "en" ? "Beginner to Advanced" : "ጀማሪ እስከ ከፍተኛ",
     price: "$199",
     rating: "4.9",
   },
   {
-    title: "Islamic Studies",
+    title: lang === "en" ? "Islamic Studies" : "የእስላም ጥናት",
     description:
-      "Comprehensive study of Islamic history, jurisprudence, theology, and Prophetic biography",
-    duration: "6 months",
-    students: "1,800+ students",
-    level: "All Levels",
+      lang === "en"
+        ? "Comprehensive study of Islamic history, jurisprudence, theology, and Prophetic biography"
+        : "የእስላም ታሪክ፣ ሕግ፣ አስተምህሮ እና የነቢይ ታሪክ ሰፊ ጥናት",
+    duration: lang === "en" ? "6 months" : "6 ወራት",
+    students: lang === "en" ? "1,800+ students" : "1,800+ ተማሪዎች",
+    level: lang === "en" ? "All Levels" : "ሁሉም ደረጃዎች",
     price: "$249",
     rating: "4.8",
   },
   {
-    title: "Classical Arabic Language",
+    title: lang === "en" ? "Classical Arabic Language" : "ክላሲካል ዐረብኛ",
     description:
-      "Learn Quranic Arabic through Nahw, Sarf, and Balagha to understand the Quran deeply",
-    duration: "12 months",
-    students: "3,200+ students",
-    level: "Beginner to Advanced",
+      lang === "en"
+        ? "Learn Quranic Arabic through Nahw, Sarf, and Balagha to understand the Quran deeply"
+        : "ቁርአንን በጥልቀት ለመረዳት በናህው፣ ሳርፍ እና ባላጋ ቁርአን ዐረብኛ ይማሩ",
+    duration: lang === "en" ? "12 months" : "12 ወራት",
+    students: lang === "en" ? "3,200+ students" : "3,200+ ተማሪዎች",
+    level: lang === "en" ? "Beginner to Advanced" : "ጀማሪ እስከ ከፍተኛ",
     price: "$299",
     rating: "4.9",
   },
 ];
 
 export function CoursesSection() {
+  const params = useParams();
+  const lang = (params?.lang as string) || "en";
+  const courses = getCourses(lang);
+
   return (
     <section id="courses" className="py-20 bg-background">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-balance text-foreground">
-            Popular Courses
+            {lang === "en" ? "Popular Courses" : "ታዋቂ ኮርሶች"}
           </h2>
           <p className="text-lg text-default-600 max-w-2xl mx-auto text-pretty">
-            Transform Your Islamic Knowledge
+            {lang === "en"
+              ? "Transform Your Islamic Knowledge"
+              : "የእስላም እውቀትዎን ይቀይሩ"}
           </p>
           <p className="text-default-600 max-w-3xl mx-auto mt-2">
-            Explore our comprehensive range of courses designed by scholars and
-            taught by experienced instructors
+            {lang === "en"
+              ? "Explore our comprehensive range of courses designed by scholars and taught by experienced instructors"
+              : "በምሁራን የተነደፉ እና በልምድ ካላቸው አስተማሪዎች የሚሰጡ ሰፊ ኮርሶችን ይመልከቱ"}
           </p>
         </div>
 
@@ -106,7 +121,9 @@ export function CoursesSection() {
                 <div className="text-2xl font-bold text-primary">
                   {course.price}
                 </div>
-                <Button color="primary">Enroll Now</Button>
+                <Button color="primary">
+                  {lang === "en" ? "Enroll Now" : "አሁን ይመዝግቡ"}
+                </Button>
               </CardFooter>
             </Card>
           ))}

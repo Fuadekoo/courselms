@@ -23,6 +23,7 @@ import CourseFor from "@/components/courseFor";
 import CourseActivity from "@/components/courseActivity";
 import CourseTopOverview from "@/components/courseTopOverview";
 import { Button, useDisclosure } from "@heroui/react";
+import { useCourseDiscount } from "@/hooks/useCourseDiscount";
 
 export default function Page() {
   const params = useParams<{ lang: string; id: string }>();
@@ -32,6 +33,18 @@ export default function Page() {
     { data, loading } = useData({ func: getCourseForCustomer, args: [id] }),
     { isOpen, onOpen, onOpenChange } = useDisclosure();
   const globalLoading = useGlobalLoading();
+
+  // Get discount for the course
+  const birrDiscount = useCourseDiscount(id, data?.birrPrice || 0);
+  const dolarDiscount = useCourseDiscount(id, data?.dolarPrice || 0);
+
+  // Calculate discounted prices
+  const discountedBirrPrice = birrDiscount.hasDiscount
+    ? birrDiscount.discountedPrice
+    : data?.birrPrice || 0;
+  const discountedDolarPrice = dolarDiscount.hasDiscount
+    ? dolarDiscount.discountedPrice
+    : data?.dolarPrice || 0;
 
   if (globalLoading) {
     return null; // Hide content while TopLoadingBar is active
@@ -121,8 +134,10 @@ export default function Page() {
             affiliateCode={searchParams?.get("code") || ""}
             title={lang == "en" ? data.titleEn : data.titleAm}
             price={data.price}
-            birrPrice={data.birrPrice}
-            dolarPrice={data.dolarPrice}
+            birrPrice={discountedBirrPrice}
+            dolarPrice={discountedDolarPrice}
+            originalBirrPrice={data.birrPrice}
+            originalDolarPrice={data.dolarPrice}
           />
         </div>
       )}

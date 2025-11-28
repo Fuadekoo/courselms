@@ -1,11 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import {
   Button,
   Input,
-  Switch,
   Textarea,
   Card,
   CardBody,
@@ -19,7 +18,7 @@ import {
   ModalContent,
   ModalHeader,
   ModalFooter,
-  Badge,
+  ModalBody,
 } from "@heroui/react";
 import {
   Plus,
@@ -28,34 +27,59 @@ import {
   Image as ImageIcon,
   Bell as BellIcon,
 } from "lucide-react";
-
-// ... rest of your imports and type definitions ...
+import {
+  getPublicAnnouncements,
+  createPublicAnnouncement,
+  updatePublicAnnouncement,
+  deletePublicAnnouncement,
+} from "@/actions/manager/public-announcement";
+import { useParams } from "next/navigation";
+import { toast } from "sonner";
 
 export default function PublicAnnouncementsPage() {
-  const [announcements] = useState<
+  const params = useParams<{ lang: string }>();
+  const lang = params?.lang || "en";
+  const [announcements, setAnnouncements] = useState<
     Array<{
       id: string;
       message: string;
-      photo?: string;
-      startDate?: string;
-      endDate?: string;
-      isActive: boolean;
+      photo?: string | null;
+      createdAt: Date | string;
     }>
   >([]);
-  const [loading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [isOpen, setIsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     id: null as string | null,
     message: "",
     photo: "",
-    startDate: null as Date | null,
-    endDate: null as Date | null,
-    isActive: true,
   });
 
-  const formatDate = (date: string | null | undefined) => {
-    if (!date) return "Not set";
+  useEffect(() => {
+    fetchAnnouncements();
+  }, []);
+
+  const fetchAnnouncements = async () => {
+    try {
+      setLoading(true);
+      const result = await getPublicAnnouncements();
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        setAnnouncements(result.data || []);
+      }
+    } catch (error) {
+      console.error("Error fetching announcements:", error);
+      toast.error(
+        lang === "en" ? "Failed to load announcements" : "ማስታወቂያዎችን ለመጫን አልተሳካም"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatDate = (date: Date | string) => {
     return format(new Date(date), "MMM dd, yyyy");
   };
 
@@ -69,12 +93,45 @@ export default function PublicAnnouncementsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    // Add your submit logic here
-    setIsSubmitting(false);
-  };
 
-  const handleStatusToggle = () => {
-    // Add your status toggle logic here
+    try {
+      let result;
+      if (formData.id) {
+        result = await updatePublicAnnouncement(formData.id, {
+          message: formData.message,
+          photo: formData.photo || null,
+        });
+      } else {
+        result = await createPublicAnnouncement({
+          message: formData.message,
+          photo: formData.photo || null,
+        });
+      }
+
+      if (result.error) {
+        toast.error(result.error);
+      } else {
+        toast.success(
+          lang === "en"
+            ? formData.id
+              ? "Announcement updated successfully"
+              : "Announcement created successfully"
+            : formData.id
+            ? "ማስታወቂያ በተሳካ ሁኔታ ተዘምኗል"
+            : "ማስታወቂያ በተሳካ ሁኔታ ተፈጥሯል"
+        );
+        await fetchAnnouncements();
+        resetForm();
+        setIsOpen(false);
+      }
+    } catch (error) {
+      console.error("Error saving announcement:", error);
+      toast.error(
+        lang === "en" ? "Failed to save announcement" : "ማስታወቂያን ለመቀረጽ አልተሳካም"
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleEdit = (announcement: (typeof announcements)[0]) => {
@@ -82,19 +139,38 @@ export default function PublicAnnouncementsPage() {
       id: announcement.id,
       message: announcement.message,
       photo: announcement.photo || "",
-      startDate: announcement.startDate
-        ? new Date(announcement.startDate)
-        : null,
-      endDate: announcement.endDate ? new Date(announcement.endDate) : null,
-      isActive: announcement.isActive,
     });
     setIsOpen(true);
   };
 
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const handleDelete = (id: string) => {
-    if (confirm("Are you sure you want to delete this announcement?")) {
-      // Add your delete logic here
+  const handleDelete = async (id: string) => {
+    if (
+      confirm(
+        lang === "en"
+          ? "Are you sure you want to delete this announcement?"
+          : "ይህን ማስታወቂያ መሰረዝ እንደሚፈልጉ እርግጠኛ ነዎት?"
+      )
+    ) {
+      try {
+        const result = await deletePublicAnnouncement(id);
+        if (result.error) {
+          toast.error(result.error);
+        } else {
+          toast.success(
+            lang === "en"
+              ? "Announcement deleted successfully"
+              : "ማስታወቂያ በተሳካ ሁኔታ ተሰርዟል"
+          );
+          await fetchAnnouncements();
+        }
+      } catch (error) {
+        console.error("Error deleting announcement:", error);
+        toast.error(
+          lang === "en"
+            ? "Failed to delete announcement"
+            : "ማስታወቂያን ለመሰረዝ አልተሳካም"
+        );
+      }
     }
   };
 
@@ -103,9 +179,6 @@ export default function PublicAnnouncementsPage() {
       id: null,
       message: "",
       photo: "",
-      startDate: null,
-      endDate: null,
-      isActive: true,
     });
   };
 
@@ -113,16 +186,24 @@ export default function PublicAnnouncementsPage() {
     <div className="max-w-6xl mx-auto p-4 space-y-6">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold">Public Announcements</h1>
+          <h1 className="text-2xl font-bold">
+            {lang === "en" ? "Public Announcements" : "የህዝብ ማስታወቂያዎች"}
+          </h1>
           <p className="text-gray-600">
-            Manage announcements that will be displayed to users
+            {lang === "en"
+              ? "Manage announcements that will be displayed to users"
+              : "ለተጠቃሚዎች የሚታዩ ማስታወቂያዎችን ያስተዳድሩ"}
           </p>
         </div>
         <Button
-          onClick={() => setIsOpen(true)}
+          onClick={() => {
+            resetForm();
+            setIsOpen(true);
+          }}
           startContent={<Plus className="h-4 w-4" />}
+          color="primary"
         >
-          Add Announcement
+          {lang === "en" ? "Add Announcement" : "ማስታወቂያ ጨምር"}
         </Button>
       </div>
 
@@ -136,34 +217,24 @@ export default function PublicAnnouncementsPage() {
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
-                  <TableColumn>Message</TableColumn>
-                  <TableColumn className="hidden md:table-cell">
-                    Image
+                  <TableColumn>
+                    {lang === "en" ? "Message" : "መልዕክት"}
                   </TableColumn>
                   <TableColumn className="hidden md:table-cell">
-                    Start Date
+                    {lang === "en" ? "Image" : "ምስል"}
                   </TableColumn>
                   <TableColumn className="hidden md:table-cell">
-                    End Date
+                    {lang === "en" ? "Created At" : "የተፈጠረበት ቀን"}
                   </TableColumn>
-                  <TableColumn>Status</TableColumn>
-                  <TableColumn>Actions</TableColumn>
+                  <TableColumn>
+                    {lang === "en" ? "Actions" : "ድርጊቶች"}
+                  </TableColumn>
                 </TableHeader>
-                <TableBody>
+                <TableBody emptyContent="No announcements found">
                   {announcements.length > 0 ? (
                     announcements.map((announcement) => {
-                      const isActive =
-                        announcement.isActive &&
-                        (!announcement.startDate ||
-                          new Date(announcement.startDate) <= new Date()) &&
-                        (!announcement.endDate ||
-                          new Date(announcement.endDate) >= new Date());
-
                       return (
-                        <TableRow
-                          key={announcement.id}
-                          className={!isActive ? "opacity-70" : ""}
-                        >
+                        <TableRow key={announcement.id}>
                           <TableCell className="font-medium max-w-[300px]">
                             <div className="line-clamp-2">
                               {announcement.message}
@@ -177,57 +248,38 @@ export default function PublicAnnouncementsPage() {
                                 rel="noopener noreferrer"
                                 className="text-blue-600 hover:underline inline-flex items-center text-sm"
                               >
-                                <ImageIcon className="h-4 w-4 mr-1" /> View
+                                <ImageIcon className="h-4 w-4 mr-1" />{" "}
+                                {lang === "en" ? "View" : "አሳይ"}
                               </a>
                             ) : (
                               <span className="text-gray-500 text-sm">
-                                No image
+                                {lang === "en" ? "No image" : "ምስል የለም"}
                               </span>
                             )}
                           </TableCell>
                           <TableCell className="hidden md:table-cell">
-                            {formatDate(announcement.startDate ?? null)}
-                          </TableCell>
-                          <TableCell className="hidden md:table-cell">
-                            {formatDate(announcement.endDate ?? null)}
+                            {formatDate(announcement.createdAt)}
                           </TableCell>
                           <TableCell>
-                            <Badge
-                              color={
-                                !announcement.isActive
-                                  ? "default"
-                                  : isActive
-                                  ? "success"
-                                  : "warning"
-                              }
-                              onClick={() => handleStatusToggle()}
-                              className="cursor-pointer"
-                            >
-                              {!announcement.isActive
-                                ? "Inactive"
-                                : isActive
-                                ? "Active"
-                                : "Scheduled"}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right space-x-2">
-                            <Button
-                              variant="light"
-                              size="sm"
-                              isIconOnly
-                              onClick={() => handleEdit(announcement)}
-                            >
-                              <Edit className="h-4 w-4" />
-                            </Button>
-                            <Button
-                              variant="light"
-                              color="danger"
-                              size="sm"
-                              isIconOnly
-                              onClick={() => handleDelete(announcement.id)}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
+                            <div className="flex gap-2">
+                              <Button
+                                variant="light"
+                                size="sm"
+                                isIconOnly
+                                onClick={() => handleEdit(announcement)}
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="light"
+                                color="danger"
+                                size="sm"
+                                isIconOnly
+                                onClick={() => handleDelete(announcement.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       );
@@ -235,20 +287,32 @@ export default function PublicAnnouncementsPage() {
                   ) : (
                     <TableRow>
                       <TableCell
-                        colSpan={6}
+                        colSpan={4}
                         className="text-center py-12 text-gray-500"
                       >
                         <div className="flex flex-col items-center justify-center space-y-4">
                           <BellIcon className="h-12 w-12 text-gray-300" />
                           <p className="text-lg font-medium">
-                            No announcements yet
+                            {lang === "en"
+                              ? "No announcements yet"
+                              : "እስካሁን ምንም ማስታወቂያዎች የሉም"}
                           </p>
-                          <p>Get started by creating your first announcement</p>
+                          <p>
+                            {lang === "en"
+                              ? "Get started by creating your first announcement"
+                              : "የመጀመሪያዎን ማስታወቂያ በመፍጠር ይጀምሩ"}
+                          </p>
                           <Button
-                            onClick={() => setIsOpen(true)}
+                            onClick={() => {
+                              resetForm();
+                              setIsOpen(true);
+                            }}
                             startContent={<Plus className="h-4 w-4" />}
+                            color="primary"
                           >
-                            Create Announcement
+                            {lang === "en"
+                              ? "Create Announcement"
+                              : "ማስታወቂያ ፍጠር"}
                           </Button>
                         </div>
                       </TableCell>
@@ -275,84 +339,56 @@ export default function PublicAnnouncementsPage() {
         <ModalContent>
           <ModalHeader>
             <h2 className="text-xl font-semibold">
-              {formData.id ? "Edit Announcement" : "Create New Announcement"}
+              {formData.id
+                ? lang === "en"
+                  ? "Edit Announcement"
+                  : "ማስታወቂያ አርም"
+                : lang === "en"
+                ? "Create New Announcement"
+                : "አዲስ ማስታወቂያ ፍጠር"}
             </h2>
           </ModalHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 p-4">
-            <Textarea
-              label="Message"
-              name="message"
-              value={formData.message}
-              onChange={handleInputChange}
-              placeholder="Enter announcement message"
-              required
-              minRows={4}
-            />
+          <form onSubmit={handleSubmit}>
+            <ModalBody>
+              <div className="space-y-4">
+                <Textarea
+                  label={lang === "en" ? "Message" : "መልዕክት"}
+                  name="message"
+                  value={formData.message}
+                  onChange={handleInputChange}
+                  placeholder={
+                    lang === "en"
+                      ? "Enter announcement message"
+                      : "የማስታወቂያ መልዕክት ያስገቡ"
+                  }
+                  required
+                  minRows={4}
+                />
 
-            <Input
-              label="Image URL (Optional)"
-              name="photo"
-              value={formData.photo}
-              onChange={handleInputChange}
-              placeholder="https://example.com/image.jpg"
-              endContent={
-                formData.photo && (
-                  <a
-                    href={formData.photo}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline text-sm flex items-center"
-                  >
-                    <ImageIcon className="h-4 w-4 mr-1" /> Preview
-                  </a>
-                )
-              }
-            />
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Start Date"
-                type="datetime-local"
-                value={
-                  formData.startDate
-                    ? format(formData.startDate, "yyyy-MM-dd'T'HH:mm")
-                    : ""
-                }
-                onChange={(e) => {
-                  const date = e.target.value ? new Date(e.target.value) : null;
-                  setFormData((prev) => ({ ...prev, startDate: date }));
-                }}
-              />
-
-              <Input
-                label="End Date (Optional)"
-                type="datetime-local"
-                value={
-                  formData.endDate
-                    ? format(formData.endDate, "yyyy-MM-dd'T'HH:mm")
-                    : ""
-                }
-                onChange={(e) => {
-                  const date = e.target.value ? new Date(e.target.value) : null;
-                  setFormData((prev) => ({ ...prev, endDate: date }));
-                }}
-                min={
-                  formData.startDate
-                    ? format(formData.startDate, "yyyy-MM-dd'T'HH:mm")
-                    : undefined
-                }
-              />
-            </div>
-
-            <Switch
-              isSelected={formData.isActive}
-              onValueChange={(isActive) =>
-                setFormData((prev) => ({ ...prev, isActive }))
-              }
-            >
-              Active
-            </Switch>
-
+                <Input
+                  label={
+                    lang === "en" ? "Image URL (Optional)" : "የምስል URL (አማራጭ)"
+                  }
+                  name="photo"
+                  value={formData.photo}
+                  onChange={handleInputChange}
+                  placeholder="https://example.com/image.jpg"
+                  endContent={
+                    formData.photo && (
+                      <a
+                        href={formData.photo}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-600 hover:underline text-sm flex items-center"
+                      >
+                        <ImageIcon className="h-4 w-4 mr-1" />{" "}
+                        {lang === "en" ? "Preview" : "ይመልከቱ"}
+                      </a>
+                    )
+                  }
+                />
+              </div>
+            </ModalBody>
             <ModalFooter>
               <Button
                 variant="light"
@@ -361,10 +397,16 @@ export default function PublicAnnouncementsPage() {
                   setIsOpen(false);
                 }}
               >
-                Cancel
+                {lang === "en" ? "Cancel" : "ተወው"}
               </Button>
               <Button color="primary" type="submit" isLoading={isSubmitting}>
-                {formData.id ? "Update" : "Create"} Announcement
+                {formData.id
+                  ? lang === "en"
+                    ? "Update"
+                    : "አዘምን"
+                  : lang === "en"
+                  ? "Create"
+                  : "ፍጠር"}
               </Button>
             </ModalFooter>
           </form>

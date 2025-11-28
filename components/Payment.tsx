@@ -31,6 +31,8 @@ export default function Payment({
   price,
   birrPrice,
   dolarPrice,
+  originalBirrPrice,
+  originalDolarPrice,
 }: {
   isOpen: boolean;
   id: string;
@@ -40,6 +42,8 @@ export default function Payment({
   price: number;
   birrPrice: number;
   dolarPrice: number;
+  originalBirrPrice?: number;
+  originalDolarPrice?: number;
 }) {
   const params = useParams<{ lang: string }>();
   const lang = params?.lang || "en";
@@ -130,7 +134,7 @@ export default function Payment({
       if (result.status && result.phoneNumber) {
         setUserPhoneNumber(result.phoneNumber);
         setValue("phoneNumber", result.phoneNumber);
-        
+
         // Check if course is free (all prices are 0)
         const isFree = birrPrice === 0 && dolarPrice === 0;
         if (isFree) {
@@ -159,28 +163,28 @@ export default function Payment({
   const handleFreeEnrollment = async () => {
     try {
       // Create a free enrollment by calling the payment verification API with a mock transaction
-      const response = await fetch('/api/update-order-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/update-order-status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           courseId: id,
           phoneNumber: userPhoneNumber,
           affiliateCode: affiliateCode || undefined,
           amount: 0,
-          currency: 'FREE',
-          status: 'success',
-          tx_ref: `free_${Date.now()}_${id}`
-        })
+          currency: "FREE",
+          status: "success",
+          tx_ref: `free_${Date.now()}_${id}`,
+        }),
       });
-      
+
       if (response.ok) {
         onOpenChange(); // Close modal
         router.push(`/${lang}/mycourse/${id}`);
       } else {
-        throw new Error('Failed to enroll in free course');
+        throw new Error("Failed to enroll in free course");
       }
     } catch (error) {
-      console.error('Error enrolling in free course:', error);
+      console.error("Error enrolling in free course:", error);
       setAuthError(
         lang === "en"
           ? "Failed to enroll in free course"
@@ -234,11 +238,7 @@ export default function Payment({
     <>
       {/* Free Course Enrollment Modal */}
       {isFree && (
-        <Modal
-          isOpen={isOpen}
-          onClose={onOpenChange}
-          placement="top-center"
-        >
+        <Modal isOpen={isOpen} onClose={onOpenChange} placement="top-center">
           <ModalContent>
             <ModalHeader>
               {lang === "en" ? "Free Course" : "ነፃ ኮርስ"}
@@ -248,7 +248,7 @@ export default function Payment({
                 {lang === "en" ? "This course is free!" : "ይህ ኮርስ ነፃ ነው!"}
               </p>
               <p className="text-center">
-                {lang === "en" 
+                {lang === "en"
                   ? "Click below to start learning immediately."
                   : "ወዲያውኑ መማር ለመጀመር ከታች ይጫኑ።"}
               </p>
@@ -288,6 +288,8 @@ export default function Payment({
           price={price}
           birrPrice={birrPrice}
           dolarPrice={dolarPrice}
+          originalBirrPrice={originalBirrPrice}
+          originalDolarPrice={originalDolarPrice}
         />
       )}
 
@@ -347,11 +349,32 @@ export default function Payment({
                 </ModalHeader>
                 <div className="px-5">
                   <p className="text-center">{title}</p>
-                  <p className="text-2xl text-center font-bold ">
-                    {selectedMethod === "chapa"
-                      ? `${birrPrice} ETB`
-                      : `$${dolarPrice} USD`}
-                  </p>
+                  <div className="text-center">
+                    {selectedMethod === "chapa" ? (
+                      <div className="flex flex-col items-center gap-1">
+                        <p className="text-2xl font-bold text-primary">
+                          {birrPrice.toFixed(2)} ETB
+                        </p>
+                        {originalBirrPrice && originalBirrPrice > birrPrice && (
+                          <p className="text-lg text-default-400 line-through">
+                            {originalBirrPrice.toFixed(2)} ETB
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex flex-col items-center gap-1">
+                        <p className="text-2xl font-bold text-primary">
+                          ${dolarPrice.toFixed(2)} USD
+                        </p>
+                        {originalDolarPrice &&
+                          originalDolarPrice > dolarPrice && (
+                            <p className="text-lg text-default-400 line-through">
+                              ${originalDolarPrice.toFixed(2)} USD
+                            </p>
+                          )}
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <ModalBody>
                   <div className="p-3 bg-gray-50 rounded-lg">

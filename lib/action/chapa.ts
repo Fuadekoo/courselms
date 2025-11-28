@@ -9,6 +9,7 @@ import { Transfer, User } from "@prisma/client";
 import { headers } from "next/headers";
 import { auth } from "../auth";
 import { normalizeUrl } from "../utils/url";
+import { getActiveDiscountForCourse } from "@/actions/manager/periodic-discount";
 
 type TPayState =
   | { status: true; cause?: undefined; message?: undefined; url: string }
@@ -63,11 +64,27 @@ export async function pay(
       };
     }
 
+    // Check for active discount
+    const discountResult = await getActiveDiscountForCourse(id);
+    let discountPercent = 0;
+    if (discountResult.data && discountResult.data.value) {
+      discountPercent = discountResult.data.value;
+    }
+
+    // Calculate discounted prices
+    const originalBirrPrice = course.birrPrice
+      ? Number(course.birrPrice)
+      : Number(course.price);
+    const discountedBirrPrice =
+      discountPercent > 0
+        ? originalBirrPrice * (1 - discountPercent / 100)
+        : originalBirrPrice;
+
     // Convert Decimal fields to Number to prevent serialization errors
     const courseData = {
       ...course,
       price: Number(course.price),
-      birrPrice: course.birrPrice ? Number(course.birrPrice) : null,
+      birrPrice: discountedBirrPrice, // Use discounted price
       dolarPrice: course.dolarPrice ? Number(course.dolarPrice) : null,
       instructorRate: Number(course.instructorRate),
       affiliateRate: Number(course.affiliateRate),
@@ -100,7 +117,10 @@ export async function pay(
       if (order.status === "paid") {
         return {
           status: true,
-          url: normalizeUrl(process.env.MAIN_API || "", `/${lang}/student/mycourse`),
+          url: normalizeUrl(
+            process.env.MAIN_API || "",
+            `/${lang}/student/mycourse`
+          ),
         };
       } else if (order.tx_ref) {
         const response = await verify(order.tx_ref);
@@ -111,7 +131,10 @@ export async function pay(
           });
           return {
             status: true,
-            url: normalizeUrl(process.env.MAIN_API || "", `/${lang}/verify-payment/${order.tx_ref}`),
+            url: normalizeUrl(
+              process.env.MAIN_API || "",
+              `/${lang}/verify-payment/${order.tx_ref}`
+            ),
           };
         }
       }
@@ -185,8 +208,14 @@ export async function pay(
           amount: courseData.birrPrice || courseData.price, // Use birrPrice for Chapa
           phone_number: user.phoneNumber,
           tx_ref: order.tx_ref,
-          callback_url: normalizeUrl(process.env.MAIN_API || "", `/api/verify-payment/${order.tx_ref}`),
-          return_url: normalizeUrl(process.env.MAIN_API || "", `/${lang}/verify-payment/${order.tx_ref}`),
+          callback_url: normalizeUrl(
+            process.env.MAIN_API || "",
+            `/api/verify-payment/${order.tx_ref}`
+          ),
+          return_url: normalizeUrl(
+            process.env.MAIN_API || "",
+            `/${lang}/verify-payment/${order.tx_ref}`
+          ),
           "customization[title]": "Payment for my favorite ders",
           "customization[description]": "I love online payments",
           "meta[hide_receipt]": "true",
@@ -255,7 +284,10 @@ export async function verifyPayment(
       // Use the new Chapa API to update the order status
       try {
         const apiResponse = await fetch(
-          normalizeUrl(process.env.MAIN_API || "", `/api/update-order-status-by-chapa`),
+          normalizeUrl(
+            process.env.MAIN_API || "",
+            `/api/update-order-status-by-chapa`
+          ),
           {
             method: "POST",
             headers: {
