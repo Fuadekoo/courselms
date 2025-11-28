@@ -1,7 +1,13 @@
 "use client";
 
 import React, { useCallback, useEffect, useState } from "react";
-import { Calendar, TrendingUp, Users, BookOpen, DollarSign } from "lucide-react";
+import {
+  Calendar,
+  TrendingUp,
+  Users,
+  BookOpen,
+  DollarSign,
+} from "lucide-react";
 import { Button } from "@heroui/react";
 import PageHeader from "@/components/layout/PageHeader";
 import Section from "@/components/layout/Section";
@@ -11,30 +17,34 @@ import Overview02 from "../_components/overview02";
 import Overview03 from "../_components/overview03";
 import { getOverviewData } from "@/actions/manager/course";
 import useData from "@/hooks/useData";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useParams } from "next/navigation";
 import Loading from "@/components/loading";
+import { useUserData } from "@/hooks/useUserData";
 
 export default function Page() {
-  const searchParams = useSearchParams(),
-    getDate = useCallback(() => {
-      const startDate = searchParams?.get("startDate"),
-        endDate = searchParams?.get("endDate"),
-        now = new Date();
+  const params = useParams<{ lang: string }>();
+  const lang = params?.lang ?? "en";
+  const searchParams = useSearchParams();
+  const { userName } = useUserData();
+  const getDate = useCallback(() => {
+    const startDate = searchParams?.get("startDate"),
+      endDate = searchParams?.get("endDate"),
+      now = new Date();
 
-      return {
-        start: startDate
-          ? new Date(startDate)
-          : new Date(now.getFullYear(), now.getMonth(), 1),
-        end: endDate
-          ? new Date(endDate)
-          : new Date(now.getFullYear(), now.getMonth() + 1, 1),
-      };
-    }, [searchParams]),
-    [date, setDate] = useState<ReturnType<typeof getDate>>(getDate),
-    { data, loading } = useData({
-      func: getOverviewData,
-      args: [date],
-    });
+    return {
+      start: startDate
+        ? new Date(startDate)
+        : new Date(now.getFullYear(), now.getMonth(), 1),
+      end: endDate
+        ? new Date(endDate)
+        : new Date(now.getFullYear(), now.getMonth() + 1, 1),
+    };
+  }, [searchParams]);
+  const [date, setDate] = useState<ReturnType<typeof getDate>>(getDate);
+  const { data, loading } = useData({
+    func: getOverviewData,
+    args: [date],
+  });
 
   useEffect(() => {
     const value = getDate();
@@ -55,7 +65,13 @@ export default function Page() {
     return (
       <div className="space-y-6">
         <PageHeader
-          title="Manager Dashboard"
+          title={
+            userName
+              ? `${lang === "en" ? "Aselamualekum" : "አሰላም አለይኩም"} ${userName}`
+              : lang === "en"
+              ? "Aselamualekum"
+              : "አሰላም አለይኩም"
+          }
           subtitle="No data available at the moment."
         />
         <div className="card p-8 text-center">
@@ -82,7 +98,13 @@ export default function Page() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Manager Dashboard"
+        title={
+          userName
+            ? `${lang === "en" ? "Aselamualekum" : "አሰላም አለይኩም"} ${userName}`
+            : lang === "en"
+            ? "Aselamualekum"
+            : "አሰላም አለይኩም"
+        }
         subtitle="Comprehensive overview of platform analytics and performance metrics."
         actions={
           <Button
@@ -101,63 +123,80 @@ export default function Page() {
         <StatCard
           icon={<Users className="size-6" />}
           label="Total Sales"
-          value={data[0]?.find(item => item.label === "Sale")?.value || 0}
+          value={data[0]?.find((item) => item.label === "Sale")?.value || 0}
           trend={{ value: 12, isPositive: true }}
         />
         <StatCard
           icon={<BookOpen className="size-6" />}
           label="Total Courses"
-          value={data[0]?.find(item => item.label === "Course")?.value || 0}
+          value={data[0]?.find((item) => item.label === "Course")?.value || 0}
           trend={{ value: 8, isPositive: true }}
         />
         <StatCard
           icon={<DollarSign className="size-6" />}
           label="Total Revenue"
-          value={`ETB ${data[0]?.find(item => item.label === "Earn ETB")?.value || 0}`}
+          value={`ETB ${
+            data[0]?.find((item) => item.label === "Earn ETB")?.value || 0
+          }`}
           trend={{ value: 25, isPositive: true }}
         />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Analytics */}
-        <Section
-          title="Platform Analytics"
-          className="lg:col-span-2"
-        >
+        <Section title="Platform Analytics" className="lg:col-span-2">
           <Overview01 data={data[0]} />
         </Section>
 
         {/* Quick Stats */}
-        <Section
-          title="Quick Stats"
-          description="Key performance indicators"
-        >
+        <Section title="Quick Stats" description="Key performance indicators">
           <div className="space-y-4">
             <div className="p-4 border border-neutral-200 dark:border-neutral-700 rounded-lg">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">Conversion Rate</span>
-                <span className="text-sm font-bold text-brand-600 dark:text-brand-400">12.5%</span>
+                <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                  Conversion Rate
+                </span>
+                <span className="text-sm font-bold text-brand-600 dark:text-brand-400">
+                  12.5%
+                </span>
               </div>
               <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
-                <div className="bg-brand-500 h-2 rounded-full" style={{ width: "12.5%" }} />
+                <div
+                  className="bg-brand-500 h-2 rounded-full"
+                  style={{ width: "12.5%" }}
+                />
               </div>
             </div>
             <div className="p-4 border border-neutral-200 dark:border-neutral-700 rounded-lg">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">User Satisfaction</span>
-                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">94%</span>
+                <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                  User Satisfaction
+                </span>
+                <span className="text-sm font-bold text-emerald-600 dark:text-emerald-400">
+                  94%
+                </span>
               </div>
               <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
-                <div className="bg-emerald-500 h-2 rounded-full" style={{ width: "94%" }} />
+                <div
+                  className="bg-emerald-500 h-2 rounded-full"
+                  style={{ width: "94%" }}
+                />
               </div>
             </div>
             <div className="p-4 border border-neutral-200 dark:border-neutral-700 rounded-lg">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">Course Completion</span>
-                <span className="text-sm font-bold text-blue-600 dark:text-blue-400">78%</span>
+                <span className="text-sm font-medium text-neutral-600 dark:text-neutral-400">
+                  Course Completion
+                </span>
+                <span className="text-sm font-bold text-blue-600 dark:text-blue-400">
+                  78%
+                </span>
               </div>
               <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2">
-                <div className="bg-blue-500 h-2 rounded-full" style={{ width: "78%" }} />
+                <div
+                  className="bg-blue-500 h-2 rounded-full"
+                  style={{ width: "78%" }}
+                />
               </div>
             </div>
           </div>
@@ -184,48 +223,84 @@ export default function Page() {
         <Section title="Performance Metrics">
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-sm text-neutral-600 dark:text-neutral-400">Page Load Time</span>
-              <span className="font-medium text-neutral-900 dark:text-neutral-100">1.2s</span>
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                Page Load Time
+              </span>
+              <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                1.2s
+              </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-neutral-600 dark:text-neutral-400">Uptime</span>
-              <span className="font-medium text-neutral-900 dark:text-neutral-100">99.9%</span>
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                Uptime
+              </span>
+              <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                99.9%
+              </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-neutral-600 dark:text-neutral-400">Response Time</span>
-              <span className="font-medium text-neutral-900 dark:text-neutral-100">245ms</span>
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                Response Time
+              </span>
+              <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                245ms
+              </span>
             </div>
           </div>
         </Section>
         <Section title="System Health">
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-sm text-neutral-600 dark:text-neutral-400">CPU Usage</span>
-              <span className="font-medium text-neutral-900 dark:text-neutral-100">45%</span>
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                CPU Usage
+              </span>
+              <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                45%
+              </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-neutral-600 dark:text-neutral-400">Memory Usage</span>
-              <span className="font-medium text-neutral-900 dark:text-neutral-100">2.1GB</span>
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                Memory Usage
+              </span>
+              <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                2.1GB
+              </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-neutral-600 dark:text-neutral-400">Storage</span>
-              <span className="font-medium text-neutral-900 dark:text-neutral-100">78%</span>
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                Storage
+              </span>
+              <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                78%
+              </span>
             </div>
           </div>
         </Section>
         <Section title="Recent Activity">
           <div className="space-y-3">
             <div className="flex justify-between">
-              <span className="text-sm text-neutral-600 dark:text-neutral-400">New Users Today</span>
-              <span className="font-medium text-neutral-900 dark:text-neutral-100">23</span>
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                New Users Today
+              </span>
+              <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                23
+              </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-neutral-600 dark:text-neutral-400">Courses Started</span>
-              <span className="font-medium text-neutral-900 dark:text-neutral-100">15</span>
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                Courses Started
+              </span>
+              <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                15
+              </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm text-neutral-600 dark:text-neutral-400">Courses Completed</span>
-              <span className="font-medium text-neutral-900 dark:text-neutral-100">8</span>
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">
+                Courses Completed
+              </span>
+              <span className="font-medium text-neutral-900 dark:text-neutral-100">
+                8
+              </span>
             </div>
           </div>
         </Section>

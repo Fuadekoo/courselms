@@ -11,15 +11,12 @@ import {
 } from "@/actions/student/dashboard";
 import DashboardChart from "./components/DashboardChart";
 import ContinueLearningList from "./components/ContinueLearningList";
+import { getUserName } from "@/actions/user/header";
 
-async function Page({
-  params,
-}: {
-  params: Promise<{ lang: string }>;
-}) {
+async function Page({ params }: { params: Promise<{ lang: string }> }) {
   const { lang } = await params;
   const session = await auth();
-  const user = session?.user;
+  const userName = await getUserName();
 
   // Fetch all dashboard data
   const [dashboardStats, graphData, continueLearning] = await Promise.all([
@@ -51,7 +48,13 @@ async function Page({
   return (
     <div className="space-y-6">
       <PageHeader
-        title={`${lang === "en" ? "Welcome back" : "እንኳን በደህና መጡ"} ${user?.name || "Student"}!`}
+        title={
+          userName
+            ? `${lang === "en" ? "Aselamualekum" : "አሰላም አለይኩም"} ${userName}`
+            : lang === "en"
+            ? "Aselamualekum"
+            : "አሰላም አለይኩም"
+        }
         subtitle={
           lang === "en"
             ? "Let's continue your learning journey."
@@ -63,9 +66,7 @@ async function Page({
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
           icon={<BookOpen className="size-6" />}
-          label={
-            lang === "en" ? "Courses in Progress" : "በሂደት ላይ ያሉ ኮርሶች"
-          }
+          label={lang === "en" ? "Courses in Progress" : "በሂደት ላይ ያሉ ኮርሶች"}
           value={stats.coursesInProgress}
         />
         <StatCard
@@ -75,11 +76,7 @@ async function Page({
         />
         <StatCard
           icon={<Award className="size-6" />}
-          label={
-            lang === "en"
-              ? "Certificates Earned"
-              : "የተገኙ የምስክር ወረቀቶች"
-          }
+          label={lang === "en" ? "Certificates Earned" : "የተገኙ የምስክር ወረቀቶች"}
           value={stats.certificatesEarned}
         />
       </div>
@@ -97,9 +94,7 @@ async function Page({
         <Section
           title={lang === "en" ? "Continue Learning" : "መማርዎን ይቀጥሉ"}
           description={
-            lang === "en"
-              ? "Pick up where you left off"
-              : "ያቆሙበትን ቦታ ይቀጥሉ"
+            lang === "en" ? "Pick up where you left off" : "ያቆሙበትን ቦታ ይቀጥሉ"
           }
         >
           <ContinueLearningList courses={continueList} lang={lang} />

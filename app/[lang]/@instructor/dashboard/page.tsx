@@ -14,17 +14,19 @@ import Overview03 from "../../@manager/_components/overview03";
 import useData from "@/hooks/useData";
 import { useSearchParams, useParams } from "next/navigation";
 import { getOverview } from "@/actions/instructor/overview";
+import { useUserData } from "@/hooks/useUserData";
 
 export default function Page() {
   const { data: session, status } = useSession();
   const params = useParams<{ lang: string }>();
   const lang = params?.lang ?? "en";
   const searchParams = useSearchParams();
+  const { userName } = useUserData();
   const [filterData, setFilterData] = useState<{
     start: Date | undefined;
     end: Date | undefined;
   }>({ start: undefined, end: undefined });
-  
+
   const { data, loading, error } = useData({
     func: getOverview,
     args: [filterData],
@@ -35,7 +37,7 @@ export default function Page() {
       endDateParam = searchParams?.get("endDate") ?? "",
       startDate = new Date(startDateParam),
       endDate = new Date(endDateParam);
-      
+
     setFilterData({
       start: String(startDate) === "Invalid Date" ? undefined : startDate,
       end: String(endDate) === "Invalid Date" ? undefined : endDate,
@@ -63,14 +65,14 @@ export default function Page() {
         description="Please log in to access the instructor dashboard."
         action={{
           label: "Go to Login",
-          onClick: () => window.location.href = `/${lang}/login`
+          onClick: () => (window.location.href = `/${lang}/login`),
         }}
       />
     );
   }
 
   // Access denied state
-  if (session?.user?.role !== 'instructor') {
+  if (session?.user?.role !== "instructor") {
     if (typeof window !== "undefined") {
       window.location.replace(`/${lang}/dashboard`);
     }
@@ -78,7 +80,9 @@ export default function Page() {
       <EmptyState
         icon={<AlertTriangle className="size-16" />}
         title="Access Denied"
-        description={`You need instructor privileges to access this page. Current role: ${session?.user?.role || 'Unknown'}`}
+        description={`You need instructor privileges to access this page. Current role: ${
+          session?.user?.role || "Unknown"
+        }`}
       />
     );
   }
@@ -101,7 +105,7 @@ export default function Page() {
         description="There was an issue loading your dashboard data."
         action={{
           label: "Retry",
-          onClick: () => window.location.reload()
+          onClick: () => window.location.reload(),
         }}
       />
     );
@@ -116,7 +120,7 @@ export default function Page() {
         description="There's no data to display at the moment."
         action={{
           label: "Refresh",
-          onClick: () => window.location.reload()
+          onClick: () => window.location.reload(),
         }}
       />
     );
@@ -126,10 +130,16 @@ export default function Page() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Instructor Dashboard"
+        title={
+          userName
+            ? `${lang === "en" ? "Aselamualekum" : "አሰላም አለይኩም"} ${userName}`
+            : lang === "en"
+            ? "Aselamualekum"
+            : "አሰላም አለይኩም"
+        }
         subtitle="Monitor your courses, students, and performance metrics."
       />
-      
+
       <div className="grid gap-6 md:grid-cols-[1fr_auto]">
         <div className="grid gap-6">
           <Section>
@@ -145,7 +155,7 @@ export default function Page() {
           <Overview02 width={400} data={data[1]} />
         </Section>
       </div>
-      
+
       <Section>
         <Overview03 data={data[3]} />
       </Section>
