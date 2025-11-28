@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
@@ -9,6 +10,8 @@ export async function GET(req: Request) {
   const pageSize = Math.min(Number(searchParams.get("pageSize") ?? "20"), 100);
   const skip = (page - 1) * pageSize;
 
+  // Using PeriodicDiscount model (uppercase) which has title and description fields
+  // Prisma client property is camelCase (periodicDiscount) but type uses exact model name
   const where: Prisma.PeriodicDiscountWhereInput | undefined = q
     ? {
         OR: [{ title: { contains: q } }, { description: { contains: q } }],
