@@ -24,6 +24,7 @@ enum Role {
 enum PaymentType {
   chapa
   stripe
+  free
 }
 
 enum UserStatus {
