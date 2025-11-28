@@ -1,13 +1,18 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-import { Prisma } from "@prisma/client";
+import prisma from "@/lib/db";
+
 
 export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const q = searchParams.get("q") ?? "";
-  const page = Number(searchParams.get("page") ?? "1");
-  const pageSize = Math.min(Number(searchParams.get("pageSize") ?? "20"), 100);
-  const skip = (page - 1) * pageSize;
+  try {
+    const { searchParams } = new URL(req.url);
+    const q = searchParams.get("q") ?? "";
+    const page = Number(searchParams.get("page") ?? "1");
+    const pageSize = Math.min(
+      Number(searchParams.get("pageSize") ?? "20"),
+      100
+    );
+    const skip = (page - 1) * pageSize;
 
   const where: any = q
     ? {
@@ -25,7 +30,14 @@ export async function GET(req: Request) {
     (prisma as any).PeriodicDiscount.count({ where }),
   ]);
 
-  return NextResponse.json({ items, total, page, pageSize });
+    return NextResponse.json({ items, total, page, pageSize });
+  } catch (e: any) {
+    console.error("Error in GET /api/discounts:", e);
+    return NextResponse.json(
+      { error: e?.message ?? "Failed to fetch discounts" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(req: Request) {

@@ -23,17 +23,16 @@ export default function CourseCardAffiliate({
   dolarPrice,
   btn,
   titleLink,
-}: Omit<
+}: Pick<
   Course,
-  | "video"
-  | "currency"
-  | "language"
-  | "access"
-  | "certificate"
-  | "instructorRate"
-  | "sellerRate"
-  | "affiliateRate"
-  | "price"
+  | "id"
+  | "titleEn"
+  | "titleAm"
+  | "aboutEn"
+  | "aboutAm"
+  | "thumbnail"
+  | "level"
+  | "duration"
 > & {
   price: number;
   birrPrice?: number;
