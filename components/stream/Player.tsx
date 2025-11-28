@@ -284,6 +284,21 @@ function Player({
     });
   }, [isHlsSource, secureVideoUrl, src, type, hlsLevels.length]);
 
+  // Helper to safely compare/index with QualityLevel
+  const toQualityValue = (q: QualityLevel) => String(q);
+
+  // Format time in seconds to MM:SS or HH:MM:SS
+  const formatTime = (seconds: number): string => {
+    if (!isFinite(seconds) || isNaN(seconds)) return "0:00";
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+    }
+    return `${minutes}:${secs.toString().padStart(2, "0")}`;
+  };
+
   // If qualities are provided and NOT HLS, use the selected quality URL
   if (qualities.length > 0 && !isHlsSource) {
     const cq = toQualityValue(currentQuality);
@@ -853,6 +868,89 @@ function Player({
     };
   }, [isMobile, isLandscape, isIOS]);
 
+  // Toggle play/pause
+  const togglePlay = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    if (video.paused) {
+      video.play().catch(() => {});
+      setPlaying(true);
+    } else {
+      video.pause();
+      setPlaying(false);
+      onVideoPause?.();
+    }
+  };
+
+  // Handle seeking
+  const handleSeek = (time: number) => {
+    const video = videoRef.current;
+    if (!video) return;
+    video.currentTime = time;
+    setCurrentTime(time);
+  };
+
+  // Handle volume change
+  const handleVolumeChange = (newVolume: number) => {
+    setVolume(newVolume);
+  };
+
+  // Handle mute toggle
+  const handleMuteToggle = () => {
+    setMuted((prev) => !prev);
+  };
+
+  // Handle quality change
+  const handleQualityChange = (quality: QualityLevel) => {
+    setCurrentQuality(quality);
+    
+    // If HLS, update the HLS level
+    if (isHlsSource && hlsRef.current && hlsLevels.length > 0) {
+      const cq = toQualityValue(quality);
+      if (cq === "auto") {
+        hlsRef.current.currentLevel = -1; // Auto/adaptive
+        setCurrentHlsLevel(-1);
+      } else {
+        // Find matching level
+        const levelIndex = hlsLevels.findIndex((level) => {
+          const height = level.height || 0;
+          if (cq === "HD" && height >= 1080) return true;
+          if (cq === "360p" && height >= 360 && height < 720) return true;
+          if (cq === "144p" && height >= 144 && height < 360) return true;
+          return false;
+        });
+        
+        if (levelIndex !== -1) {
+          hlsRef.current.currentLevel = levelIndex;
+          setCurrentHlsLevel(levelIndex);
+        }
+      }
+    }
+  };
+
+  // Determine available quality levels
+  const availableLevels: QualityLevel[] = React.useMemo(() => {
+    if (isHlsSource && hlsLevels.length > 0) {
+      // For HLS, return all standard levels
+      return ["auto", "HD", "360p", "144p"];
+    } else if (qualities.length > 0) {
+      // For non-HLS, map quality options to QualityLevel
+      const levels: QualityLevel[] = ["auto"];
+      qualities.forEach((q) => {
+        const qv = q.value.toLowerCase();
+        if (qv.includes("1080") || qv.includes("hd")) {
+          if (!levels.includes("HD")) levels.push("HD");
+        } else if (qv.includes("360")) {
+          if (!levels.includes("360p")) levels.push("360p");
+        } else if (qv.includes("144")) {
+          if (!levels.includes("144p")) levels.push("144p");
+        }
+      });
+      return levels;
+    }
+    return ["auto"];
+  }, [isHlsSource, hlsLevels.length, qualities]);
+
   // Keyboard shortcuts (play/pause, mute, fullscreen, seek)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -865,7 +963,7 @@ function Player({
       switch (e.key) {
         case " ":
           e.preventDefault();
-          video.paused ? video.play() : video.pause();
+          togglePlay();
           break;
         case "f":
         case "F":
@@ -1366,16 +1464,10 @@ function Player({
           {/* Quality Control (Mobile) */}
           <div style={{ marginLeft: 8 }}>
             <QualityControl
-              isHls={isHlsSource}
-              hlsLevels={hlsLevels}
-              currentHlsLevel={currentHlsLevel}
-              nonHlsQualities={qualities.map((q) => ({
-                label: q.label,
-                value: q.value,
-              }))}
               currentQuality={currentQuality}
+              availableLevels={availableLevels}
               onQualityChange={handleQualityChange}
-              networkSpeedMbps={networkSpeedMbps}
+              networkSpeed={networkSpeedMbps}
             />
           </div>
         </div>
@@ -1459,16 +1551,10 @@ function Player({
 
           {/* Quality Control */}
           <QualityControl
-            isHls={isHlsSource}
-            hlsLevels={hlsLevels}
-            currentHlsLevel={currentHlsLevel}
-            nonHlsQualities={qualities.map((q) => ({
-              label: q.label,
-              value: q.value,
-            }))}
             currentQuality={currentQuality}
+            availableLevels={availableLevels}
             onQualityChange={handleQualityChange}
-            networkSpeedMbps={networkSpeedMbps}
+            networkSpeed={networkSpeedMbps}
           />
 
           {/* Fullscreen Button */}
