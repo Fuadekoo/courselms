@@ -404,18 +404,4 @@ model periodicDiscount {
   course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
 }
 
-model PeriodicDiscount {
-  id          String       @id @default(uuid())
-  title       String
-  description String?
-  type        DiscountType @default(PERCENT)
-  value       Float // percent (0-100) or fixed amount (with currency)
-  currency    String? // required when type = AMOUNT
-  startDate   DateTime
-  endDate     DateTime?
-  frequency   Frequency    @default(NONE)
-  daysOfWeek  String? // CSV e.g. "1,3,5" (Mon,Wed,Fri) for WEEKLY
-  isActive    Boolean      @default(true)
-  createdAt   DateTime     @default(now())
-  updatedAt   DateTime     @updatedAt
-}
+

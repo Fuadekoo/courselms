@@ -283,8 +283,7 @@ import prisma from "@/lib/db";
           aboutEn: courseData.aboutEn,
           aboutAm: courseData.aboutAm,
           thumbnail: courseData.thumbnail,
-          video:
-            "https://www.youtube.com/embed/tak7aLltLuU?si=pF6IhoZmLLjZdFjF&amp;controls=0",
+          video: "course-intro.mp4",
           price: courseData.price,
           birrPrice: courseData.birrPrice,
           dolarPrice: courseData.dolarPrice,
@@ -293,6 +292,8 @@ import prisma from "@/lib/db";
           language: courseData.language,
           duration: courseData.duration,
           certificate: courseData.certificate,
+          accessEn: "Access on mobile, computer",
+          accessAm: "በሞባይል ፣ በኮምፒተር ላይ መጠቀም",
           instructorRate: 10,
           sellerRate: 10,
           affiliateRate: 10,
@@ -368,14 +369,14 @@ import prisma from "@/lib/db";
               titleEn: "Addition Basics",
               titleAm: "የመደመር መሠረት",
               order: 1,
-              video: "https://example.com/video1.mp4",
+              video: "addition-basics.mp4",
               thumbnail: "https://example.com/thumb1.jpg",
             },
             {
               titleEn: "Subtraction Basics",
               titleAm: "የመቀነስ መሠረት",
               order: 2,
-              video: "https://example.com/video2.mp4",
+              video: "subtraction-basics.mp4",
               thumbnail: "https://example.com/thumb2.jpg",
             },
           ],
@@ -447,7 +448,7 @@ import prisma from "@/lib/db";
               titleEn: "Fractions Basics",
               titleAm: "የፍራክሽን መሠረት",
               order: 1,
-              video: "https://example.com/video3.mp4",
+              video: "fractions-basics.mp4",
               thumbnail: "https://example.com/thumb3.jpg",
             },
           ],
@@ -560,21 +561,21 @@ import prisma from "@/lib/db";
               titleEn: "Introduction to Surah Al-Fatiha",
               titleAm: "ሱራቱ አልፋቲሃ መግቢያ",
               order: 1,
-              video: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+              video: "fatiha-intro.mp4",
               thumbnail: "/thumbnails/fatiha-intro.jpg",
             },
             {
               titleEn: "Verse by Verse Memorization - Part 1",
               titleAm: "አንድ ለአንድ ሂፍዝ - ክፍል 1",
               order: 2,
-              video: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+              video: "fatiha-part1.mp4",
               thumbnail: "/thumbnails/fatiha-part1.jpg",
             },
             {
               titleEn: "Verse by Verse Memorization - Part 2",
               titleAm: "አንድ ለአንድ ሂፍዝ - ክፍል 2",
               order: 3,
-              video: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+              video: "fatiha-part2.mp4",
               thumbnail: "/thumbnails/fatiha-part2.jpg",
             },
           ],
@@ -626,7 +627,10 @@ import prisma from "@/lib/db";
           ],
         },
       },
-      include: { question: { include: { questionOptions: true } } },
+      include: {
+        question: { include: { questionOptions: true } },
+        subActivity: true,
+      },
     });
 
     // Set correct answers for Activity 1 Quiz
@@ -673,14 +677,14 @@ import prisma from "@/lib/db";
               titleEn: "Introduction to Surah Al-Ikhlas",
               titleAm: "ሱራቱ አልኢኽላስ መግቢያ",
               order: 1,
-              video: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+              video: "ikhlas-intro.mp4",
               thumbnail: "/thumbnails/ikhlas-intro.jpg",
             },
             {
               titleEn: "Complete Memorization of Al-Ikhlas",
               titleAm: "አልኢኽላስን ሙሉ ሂፍዝ",
               order: 2,
-              video: "https://www.youtube.com/embed/dQw4w9WgXcQ",
+              video: "ikhlas-complete.mp4",
               thumbnail: "/thumbnails/ikhlas-complete.jpg",
             },
           ],
@@ -996,6 +1000,204 @@ Perfect for beginners who want to start their Hifz journey with the most commonl
 
     console.log(
       "✅ Quran Memorization Course with Quizzes and Final Exam Created Successfully!"
+    );
+
+    // ========== ORDERS ==========
+    // Create sample orders
+    await prisma.order.create({
+      data: {
+        userId: manager.id,
+        courseId: createdCourses[0].id,
+        date: new Date(),
+        status: "paid",
+        totalPrice: 200,
+        price: 200,
+        paymentType: "chapa",
+        currency: "ETB",
+        instructorIncome: 180,
+        tx_ref: "seed-order-001",
+        img: "/receipts/receipt-001.jpg",
+        reference: "REF-001",
+        code: "CODE-001",
+        income: 20,
+        birrPrice: 1500,
+        dolarPrice: 10,
+      },
+    });
+
+    await prisma.order.create({
+      data: {
+        userId: manager.id,
+        courseId: createdCourses[3].id, // Quran Memorization course
+        date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+        status: "paid",
+        totalPrice: 500,
+        price: 500,
+        paymentType: "free",
+        currency: "ETB",
+        instructorIncome: 450,
+        tx_ref: "seed-order-002",
+        img: "/receipts/receipt-002.jpg",
+        reference: "REF-002",
+        birrPrice: 3000,
+        dolarPrice: 25,
+      },
+    });
+
+    // ========== TRANSFERS ==========
+    // Create sample transfer records
+    await prisma.transfer.create({
+      data: {
+        userId: instructor.id,
+        year: new Date().getFullYear(),
+        month: new Date().getMonth() + 1,
+        income: 630, // Total from two orders: 180 + 450
+        status: "unpaid",
+      },
+    });
+
+    await prisma.transfer.create({
+      data: {
+        userId: seller.id,
+        year: new Date().getFullYear() - 1,
+        month: 12,
+        income: 1000,
+        status: "paid",
+      },
+    });
+
+    // ========== VIDEO QUESTIONS & RESPONSES ==========
+    // Create sample video questions from student
+    const videoQuestion1 = await prisma.videoQuestion.create({
+      data: {
+        studentId: manager.id,
+        courseId: createdCourses[0].id,
+        question:
+          "Can you explain more about the pronunciation of the letter 'ض' (Dad)?",
+        timestamp: 1250, // 20 minutes 50 seconds
+        type: "course",
+      },
+    });
+
+    // Instructor responds to the question
+    await prisma.videoResponse.create({
+      data: {
+        videoQuestionId: videoQuestion1.id,
+        instructorId: instructor.id,
+        response:
+          "Great question! The letter 'ض' (Dad) is one of the heavy letters in Arabic. It's pronounced by placing the tip of the tongue against the upper front teeth, similar to 'd' but with more emphasis and vibration. Practice saying it slowly at first.",
+      },
+    });
+
+    const videoQuestion2 = await prisma.videoQuestion.create({
+      data: {
+        studentId: manager.id,
+        courseId: quranMemorizationCourse.id,
+        question:
+          "What's the best technique for memorizing longer verses without forgetting them?",
+        timestamp: 3420, // 57 minutes
+        type: "activity",
+        subActivityId: hifzActivity1.subActivity[0]?.id,
+      },
+    });
+
+    await prisma.videoResponse.create({
+      data: {
+        videoQuestionId: videoQuestion2.id,
+        instructorId: instructor.id,
+        response:
+          "Excellent question! For longer verses, I recommend the 'chunking' method: break the verse into smaller parts (2-3 words), memorize each chunk, then connect them. Also, recite what you've memorized in your daily prayers to reinforce it. Regular revision is key!",
+      },
+    });
+
+    // ========== ANNOUNCEMENTS ==========
+    // Create course announcements
+    await prisma.announcement.create({
+      data: {
+        courseId: createdCourses[0].id,
+        anouncementDescription:
+          "📢 Welcome to Basic Arabic Letters course! Please complete all activities in order to unlock the next lesson. Good luck!",
+        attachLink: "https://example.com/welcome-resources",
+      },
+    });
+
+    await prisma.announcement.create({
+      data: {
+        courseId: quranMemorizationCourse.id,
+        anouncementDescription:
+          "🎉 Congratulations to all students who completed the first Surah! The final exam will be available next week. Keep practicing!",
+        attachLink: null,
+      },
+    });
+
+    // ========== FEEDBACK ==========
+    // Create course feedback/ratings
+    await prisma.feedback.create({
+      data: {
+        userId: manager.id,
+        courseId: createdCourses[0].id,
+        feedback:
+          "This course is excellent for beginners! The instructor explains everything clearly and the activities are very helpful.",
+        rating: 5,
+      },
+    });
+
+    await prisma.feedback.create({
+      data: {
+        userId: manager.id,
+        courseId: quranMemorizationCourse.id,
+        feedback:
+          "Great memorization course! The step-by-step approach makes it easy to learn. Highly recommended for anyone starting their Hifz journey.",
+        rating: 5,
+      },
+    });
+
+    // ========== PUBLIC ANNOUNCEMENTS ==========
+    // Create public announcements
+    await prisma.publicAnnouncement.create({
+      data: {
+        message:
+          "🌟 New Course Available! Check out our latest course on Advanced Tajweed. Enroll now and get 20% off!",
+        photo: "/announcements/new-course-banner.jpg",
+      },
+    });
+
+    await prisma.publicAnnouncement.create({
+      data: {
+        message:
+          "📚 Ramadan Special: All courses are now available with special discounts. Enhance your knowledge this holy month!",
+        photo: "/announcements/ramadan-special.jpg",
+      },
+    });
+
+    // ========== PERIODIC DISCOUNTS ==========
+    // Create periodic discount for courses
+    const nextMonth = new Date();
+    nextMonth.setMonth(nextMonth.getMonth() + 1);
+
+    await prisma.periodicDiscount.create({
+      data: {
+        courseId: createdCourses[0].id,
+        discountRate: 15,
+        startDate: new Date(),
+        endDate: nextMonth,
+      },
+    });
+
+    const twoMonthsLater = new Date();
+    twoMonthsLater.setMonth(twoMonthsLater.getMonth() + 2);
+
+    await prisma.periodicDiscount.create({
+      data: {
+        courseId: createdCourses[3].id, // Quran Memorization course
+        discountRate: 20,
+        startDate: new Date(),
+        endDate: twoMonthsLater,
+      },
+    });
+
+    console.log(
+      "✅ Additional Seed Data (Orders, Transfers, Video Q&A, Announcements, Feedback, Discounts) Created Successfully!"
     );
     console.log("SEED SUCCESS");
   } catch (error) {

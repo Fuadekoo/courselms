@@ -52,7 +52,7 @@ CREATE TABLE `Course` (
     `birrPrice` INTEGER NOT NULL,
     `level` ENUM('beginner', 'intermediate', 'advanced') NOT NULL,
     `language` VARCHAR(191) NOT NULL DEFAULT 'Amharic',
-    `duration` VARCHAR(191) NOT NULL,
+    `duration` VARCHAR(191) NULL,
     `accessEn` VARCHAR(191) NOT NULL DEFAULT 'Access on mobile, computer',
     `accessAm` VARCHAR(191) NOT NULL DEFAULT 'በሞባይል ፣ በኮምፒተር ላይ መጠቀም',
     `certificate` BOOLEAN NOT NULL DEFAULT false,
@@ -206,7 +206,7 @@ CREATE TABLE `Order` (
     `status` ENUM('paid', 'unpaid') NOT NULL DEFAULT 'unpaid',
     `totalPrice` DECIMAL(65, 30) NOT NULL,
     `price` DECIMAL(65, 30) NOT NULL,
-    `paymentType` ENUM('chapa', 'stripe') NOT NULL,
+    `paymentType` ENUM('chapa', 'stripe', 'free') NOT NULL,
     `currency` VARCHAR(191) NOT NULL,
     `instructorIncome` DECIMAL(65, 30) NOT NULL,
     `tx_ref` VARCHAR(191) NULL,
@@ -304,6 +304,35 @@ CREATE TABLE `Feedback` (
     `feedback` TEXT NOT NULL,
     `rating` INTEGER NOT NULL,
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `publicAnnouncement` (
+    `id` VARCHAR(191) NOT NULL,
+    `message` TEXT NOT NULL,
+    `photo` TEXT NULL,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+
+    PRIMARY KEY (`id`)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+-- CreateTable
+CREATE TABLE `PeriodicDiscount` (
+    `id` VARCHAR(191) NOT NULL,
+    `title` VARCHAR(191) NOT NULL,
+    `description` VARCHAR(191) NULL,
+    `type` ENUM('PERCENT', 'AMOUNT') NOT NULL DEFAULT 'PERCENT',
+    `value` DOUBLE NOT NULL,
+    `currency` VARCHAR(191) NULL,
+    `startDate` DATETIME(3) NOT NULL,
+    `endDate` DATETIME(3) NULL,
+    `frequency` ENUM('NONE', 'DAILY', 'WEEKLY', 'MONTHLY') NOT NULL DEFAULT 'NONE',
+    `daysOfWeek` VARCHAR(191) NULL,
+    `isActive` BOOLEAN NOT NULL DEFAULT true,
+    `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+    `updatedAt` DATETIME(3) NOT NULL,
 
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

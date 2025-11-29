@@ -83,6 +83,11 @@ function Player({
   const checkForHlsMasterPlaylist = React.useCallback(
     async (filePath: string): Promise<string | null> => {
       try {
+        // Skip HLS checking for external URLs or blob URLs
+        if (filePath.startsWith('http://') || filePath.startsWith('https://') || filePath.startsWith('blob:')) {
+          return null;
+        }
+
         // Support paths with directories. Extract filename without extension and optional directory.
         const pathParts = filePath.split("/");
         const fileName = pathParts.pop() || filePath;
@@ -120,6 +125,18 @@ function Player({
   const generateSecureUrl = React.useCallback(
     async (filePath: string, preferHls: boolean = true) => {
       try {
+        // Skip token generation for external URLs (http/https) - use them directly
+        if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
+          console.log("[Player] External URL detected, using directly:", filePath);
+          return filePath;
+        }
+
+        // Skip HLS checking for blob URLs
+        if (filePath.startsWith('blob:')) {
+          console.log("[Player] Blob URL detected, using directly:", filePath);
+          return filePath;
+        }
+
         // First, check if HLS master playlist exists (if preferHls is true)
         if (preferHls && !filePath.endsWith(".m3u8")) {
           const hlsUrl = await checkForHlsMasterPlaylist(filePath);

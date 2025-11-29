@@ -7,17 +7,17 @@ import { queueHlsConversion } from "@/lib/hls-converter";
 
 // Use environment variable if set, otherwise fallback to default path
 const getVideoDirectories = () => {
-  const videoBaseDir = process.env.VIDEO_BASE_DIR || 'fuad/course';
-  if (videoBaseDir.startsWith('/')) {
+  const videoBaseDir = process.env.VIDEO_BASE_DIR || "fuad/course";
+  if (videoBaseDir.startsWith("/")) {
     // Absolute path
     const fullPath = path.resolve(videoBaseDir);
     return {
       uploadDir: path.dirname(fullPath),
-      courseDir: fullPath
+      courseDir: fullPath,
     };
   } else {
     // Relative path from process.cwd()
-    const parts = videoBaseDir.split('/');
+    const parts = videoBaseDir.split("/");
     const uploadDir = path.join(process.cwd(), ...parts.slice(0, -1));
     const courseDir = path.join(process.cwd(), ...parts);
     return { uploadDir, courseDir };
