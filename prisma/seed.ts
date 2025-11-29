@@ -4,14 +4,14 @@ import prisma from "@/lib/db";
   try {
     // Create users (or update if they exist)
     const manager = await prisma.user.upsert({
-      where: { phoneNumber: "0945467891" },
+      where: { phoneNumber: "+251945467891" },
       update: {},
       create: {
         role: "manager",
         firstName: "abdelkerim",
         fatherName: "ahmed",
         lastName: "mohammed",
-        phoneNumber: "0945467891",
+        phoneNumber: "+251945467891",
         password:
           "$2a$12$Wt8Q9Q23DmCEiVPucCrTcOTxtYRkNUhK5MoyaJotYBc1RbJdUbk0W",
         permission: {
@@ -20,14 +20,14 @@ import prisma from "@/lib/db";
       },
     });
     await prisma.user.upsert({
-      where: { phoneNumber: "0942303571" },
+      where: { phoneNumber: "+251942303571" },
       update: {},
       create: {
         role: "student",
         firstName: "mubarek",
         fatherName: "ahmed",
         lastName: "mohammed",
-        phoneNumber: "0942303571",
+        phoneNumber: "+251942303571",
         password:
           "$2a$12$Wt8Q9Q23DmCEiVPucCrTcOTxtYRkNUhK5MoyaJotYBc1RbJdUbk0W",
         status: "active",
@@ -35,14 +35,14 @@ import prisma from "@/lib/db";
     });
 
     const instructor = await prisma.user.upsert({
-      where: { phoneNumber: "0910203040" },
+      where: { phoneNumber: "+251910203040" },
       update: {},
       create: {
         role: "instructor",
         firstName: "Fuad",
         fatherName: "Abdurahaman",
         lastName: "Kalid",
-        phoneNumber: "0910203040",
+        phoneNumber: "+251910203040",
         password:
           "$2a$12$MdcOCCZBmPTAfKFbke.ObOT9gED00eqsdQEfttlrQixjmjJMWR/wW",
         status: "active",
@@ -50,14 +50,14 @@ import prisma from "@/lib/db";
     });
 
     const seller = await prisma.user.upsert({
-      where: { phoneNumber: "0945467893" },
+      where: { phoneNumber: "+251945467893" },
       update: {},
       create: {
         role: "seller",
         firstName: "abubeker",
         fatherName: "ahmed",
         lastName: "mohammed",
-        phoneNumber: "0945467893",
+        phoneNumber: "+251945467893",
         password:
           "$2a$12$MdcOCCZBmPTAfKFbke.ObOT9gED00eqsdQEfttlrQixjmjJMWR/wW",
         status: "active",
@@ -65,14 +65,14 @@ import prisma from "@/lib/db";
     });
 
     const affiliate = await prisma.user.upsert({
-      where: { phoneNumber: "0933807447" },
+      where: { phoneNumber: "+251933807447" },
       update: {},
       create: {
         role: "affiliate",
         firstName: "ahmed",
         fatherName: "ahmed",
         lastName: "mohammed",
-        phoneNumber: "0933807447",
+        phoneNumber: "+251933807447",
         password:
           "$2a$12$XXbCwSgHeM0s63IRM4B6ROYNBWikkPxk3sHsrPRSoO0.EOl6dLvtm",
         status: "active",
