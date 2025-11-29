@@ -51,18 +51,25 @@ function SubActivityVideoUpload({
         formData.append("chunkIndex", i.toString());
         formData.append("totalChunks", total.toString());
 
-        await fetch("/api/upload-video", {
+        const response = await fetch("/api/upload-video", {
           method: "POST",
           body: formData,
         });
+
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+          throw new Error(errorData.error || errorData.details || `Upload failed: ${response.status} ${response.statusText}`);
+        }
 
         setUploadProgress(Math.round(((i + 1) / total) * 100));
       }
 
       // Preserve the original extension (don't force .mp4)
       onVideoSelect(filename);
-    } catch {
-      alert(lang === "en" ? "Upload failed" : "መስቀል አልተሳካም");
+    } catch (error: any) {
+      const errorMessage = error?.message || (lang === "en" ? "Upload failed" : "መስቀል አልተሳካም");
+      console.error("[VideoUpload] Upload error:", error);
+      alert(errorMessage);
     } finally {
       setIsUploading(false);
       setUploadProgress(0);
