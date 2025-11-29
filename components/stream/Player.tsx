@@ -1276,6 +1276,75 @@ function Player({
     setSettingsView("menu");
   };
 
+  // Wrapper to convert string quality from QualitySelector to QualityLevel
+  const handleQualityChangeFromSelector = async (qualityString: string) => {
+    // Map string values to QualityLevel type
+    let qualityLevel: QualityLevel;
+    
+    if (qualityString === "auto") {
+      qualityLevel = "auto";
+    } else if (qualityString === "1080p" || qualityString === "720p" || 
+               qualityString.toLowerCase().includes("hd")) {
+      qualityLevel = "HD";
+    } else if (qualityString === "480p" || qualityString === "360p") {
+      qualityLevel = "360p";
+    } else if (qualityString === "270p" || qualityString === "144p") {
+      qualityLevel = "144p";
+    } else {
+      // Default to auto if unknown
+      qualityLevel = "auto";
+    }
+    
+    // For HLS, handle quality changes directly using the original string
+    if (isHlsSource && hlsRef.current && hlsLevels.length > 0) {
+      const video = videoRef.current;
+      if (video) {
+        // Save playback state for HLS too (even though it's seamless)
+        const wasPlaying = !video.paused;
+        const savedTime = video.currentTime;
+        
+        savedStateRef.current = {
+          time: savedTime,
+          playing: wasPlaying,
+        };
+      }
+      
+      if (qualityString === "auto") {
+        hlsRef.current.currentLevel = -1;
+        setCurrentHlsLevel(-1);
+        setCurrentQuality("auto" as QualityLevel);
+        return;
+      } else {
+        // Find matching HLS level using the original string
+        const levelIndex = hlsLevels.findIndex((level) => {
+          const height = level.height || 0;
+          if (qualityString === "1080p" && height >= 1080) return true;
+          if (qualityString === "720p" && height >= 720 && height < 1080) return true;
+          if (qualityString === "480p" && height >= 480 && height < 720) return true;
+          if (qualityString === "360p" && height >= 360 && height < 480) return true;
+          if (qualityString === "270p" && height >= 270 && height < 360) return true;
+          if (qualityString === "144p" && height >= 144 && height < 270) return true;
+          return false;
+        });
+
+        if (levelIndex !== -1) {
+          hlsRef.current.currentLevel = levelIndex;
+          setCurrentHlsLevel(levelIndex);
+          setCurrentQuality(qualityLevel);
+          return;
+        }
+      }
+    }
+    
+    // For non-HLS videos, we need to check if the qualityString matches an available quality
+    // and use handleQualityChange which expects QualityLevel
+    // But first, update currentQuality to the mapped QualityLevel
+    setCurrentQuality(qualityLevel);
+    
+    // Then use the standard handler which will handle the source change
+    await handleQualityChange(qualityLevel);
+  };
+
   // Close settings when clicking outside
   useEffect(() => {
     if (!showSettings) return;
@@ -2095,7 +2164,7 @@ function Player({
             <QualitySelector
               qualities={qualities}
               currentQuality={currentQuality}
-              onQualityChange={handleQualityChange}
+              onQualityChange={handleQualityChangeFromSelector}
               onBack={handleSettingsBack}
               hlsLevels={hlsLevels}
               currentHlsLevel={currentHlsLevel}
