@@ -10,6 +10,7 @@ import {
 import { Clock, Users, Star } from "lucide-react";
 import { useParams } from "next/navigation";
 import PriceDisplay from "@/components/PriceDisplay";
+import TruncatedDescription from "@/components/TruncatedDescription";
 
 const getCourses = (lang: string) => [
   {
@@ -101,7 +102,11 @@ export function CoursesSection() {
                   </div>
                 </div>
                 <h3 className="text-xl font-bold mb-2">{course.title}</h3>
-                <p className="text-sm text-default-600">{course.description}</p>
+                <TruncatedDescription
+                  text={course.description}
+                  maxLines={3}
+                  lang={lang as "en" | "am"}
+                />
               </CardHeader>
 
               <CardBody className="flex-1 pt-0">

@@ -19,6 +19,7 @@ import { Clock, Users, Star, Search } from "lucide-react";
 import Link from "next/link";
 import { useCourseFilterStore } from "@/stores";
 import PriceDisplay from "@/components/PriceDisplay";
+import TruncatedDescription from "@/components/TruncatedDescription";
 
 export default function Page() {
   const params = useParams<{ lang: string }>(),
@@ -248,9 +249,12 @@ export default function Page() {
                         </div>
                       </div>
 
-                      <p className="text-sm text-default-600 mb-4">
-                        {lang === "en" ? course.aboutEn : course.aboutAm}
-                      </p>
+                      <TruncatedDescription
+                        text={lang === "en" ? course.aboutEn : course.aboutAm}
+                        maxLines={3}
+                        lang={lang as "en" | "am"}
+                        className="mb-4"
+                      />
                     </CardHeader>
 
                     {/* Metadata and Action Section */}

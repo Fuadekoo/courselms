@@ -6,6 +6,7 @@ import { ChartBarIncreasing, Clock, Logs, Play } from "lucide-react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import PriceDisplay from "@/components/PriceDisplay";
+import TruncatedDescription from "@/components/TruncatedDescription";
 
 export default function CourseCardAffiliate({
   id,
@@ -96,17 +97,12 @@ export default function CourseCardAffiliate({
             </span>
           </p>
 
-          <p
-            className="text-sm text-foreground/70 dark:text-foreground/60 overflow-hidden leading-relaxed transition-colors duration-300 min-h-[3.75rem]"
-            style={{
-              display: "-webkit-box",
-              WebkitLineClamp: 3,
-              WebkitBoxOrient: "vertical",
-              textOverflow: "ellipsis",
-            }}
-          >
-            {lang == "en" ? aboutEn : aboutAm}
-          </p>
+          <TruncatedDescription
+            text={lang == "en" ? aboutEn : aboutAm}
+            maxLines={3}
+            lang={lang as "en" | "am"}
+            className="text-foreground/70 dark:text-foreground/60"
+          />
         </div>
 
         <div className="py-4 grid grid-cols-3 gap-3 text-xs flex-shrink-0">

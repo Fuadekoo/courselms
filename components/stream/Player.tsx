@@ -77,6 +77,7 @@ function Player({
   );
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tokenRefreshInterval = useRef<NodeJS.Timeout | null>(null);
+  const originalMp4UrlRef = useRef<string | null>(null); // Store original MP4 URL for fallback
   const hlsRef = useRef<Hls | null>(null);
 
   // Check if HLS master playlist exists for a video file
@@ -99,20 +100,23 @@ function Player({
           ? `${dir}/${nameOnly}/${nameOnly}.m3u8`
           : `${nameOnly}/${nameOnly}.m3u8`;
 
-        // Check if master playlist exists by trying to get a token for it
-        const response = await fetch("/api/video-token", {
+        // First, get a token for the HLS file
+        const tokenResponse = await fetch("/api/video-token", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ file: hlsMasterPath }),
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          console.log(`[Player] HLS master playlist found: ${hlsMasterPath}`);
-          return data.url;
+        if (!tokenResponse.ok) {
+          return null;
         }
 
-        return null;
+        const tokenData = await tokenResponse.json();
+        const hlsUrl = tokenData.url;
+
+        // Return the HLS URL - the error handler will catch 404s and fallback to MP4
+        console.log(`[Player] HLS master playlist token generated: ${hlsMasterPath}`);
+        return hlsUrl;
       } catch {
         // If check fails, return null (will use original file)
         return null;
@@ -235,6 +239,20 @@ function Player({
         if (Object.keys(qualityUrls).length > 0 && qualityUrls["auto"]) {
           setSecureVideoUrl(qualityUrls["auto"]);
         } else {
+          // Store original MP4 URL for fallback
+          originalMp4UrlRef.current = null;
+          
+          // Generate secure URL for original MP4 file (for fallback)
+          generateSecureUrl(src, false)
+            .then((mp4Url) => {
+              if (mp4Url) {
+                originalMp4UrlRef.current = mp4Url;
+              }
+            })
+            .catch(() => {
+              // Ignore errors for MP4 URL generation
+            });
+
           // Check for HLS master playlist first, then fallback to original file
           generateSecureUrl(src, true)
             .then((url) => {
@@ -694,6 +712,53 @@ function Player({
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
+              // Check if it's a 404 (manifest not found)
+              if (data.details === "manifestLoadError" || data.response?.code === 404) {
+                console.warn("[Player] HLS manifest not found (404) - falling back to MP4");
+                // Destroy HLS instance first
+                hls.destroy();
+                hlsRef.current = null;
+                setIsHls(false);
+                
+                // Fallback to original MP4 file
+                const fallbackToMp4 = (mp4Url: string) => {
+                  console.log("[Player] Falling back to MP4:", mp4Url);
+                  setSecureVideoUrl(mp4Url);
+                  setHasError(false);
+                  setIsLoading(true);
+                  // Small delay to ensure state updates propagate
+                  setTimeout(() => {
+                    const video = videoRef.current;
+                    if (video) {
+                      // Remove any HLS-related attributes
+                      video.removeAttribute("src");
+                      video.src = mp4Url;
+                      video.load();
+                    }
+                  }, 100);
+                };
+
+                if (originalMp4UrlRef.current) {
+                  fallbackToMp4(originalMp4UrlRef.current);
+                } else {
+                  // Generate MP4 URL as fallback
+                  generateSecureUrl(src, false).then((mp4Url) => {
+                    if (mp4Url) {
+                      originalMp4UrlRef.current = mp4Url;
+                      fallbackToMp4(mp4Url);
+                    } else {
+                      console.error("[Player] Cannot fallback to MP4 - no URL available");
+                      setHasError(true);
+                      setIsLoading(false);
+                    }
+                  }).catch(() => {
+                    console.error("[Player] Failed to generate MP4 fallback URL");
+                    setHasError(true);
+                    setIsLoading(false);
+                  });
+                }
+                return;
+              }
               console.error("HLS Network Error - attempting recovery:", data);
               hls.startLoad();
               break;

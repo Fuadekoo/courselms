@@ -27,7 +27,9 @@ export function HeroSection() {
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl text-center">
           <Chip color="primary" variant="flat" className="mb-6">
-            {lang === "en" ? "Join 10,000+ students worldwide" : "ከ10,000+ ተማሪዎች ጋር ይቀላቀሉ"}
+            {lang === "en"
+              ? "Join 10,000+ students worldwide"
+              : "ከ10,000+ ተማሪዎች ጋር ይቀላቀሉ"}
           </Chip>
 
           <h1 className="mb-6 text-4xl font-bold tracking-tight text-balance md:text-6xl lg:text-7xl text-foreground">
@@ -39,9 +41,9 @@ export function HeroSection() {
               </>
             ) : (
               <>
-                የእስላም ትምህርትን ይቆጣጠሩ
+                የእስላማዊ ትምህርትዎን
                 <br />
-                <span className="text-primary">ከቤትዎ ምቹነት</span>
+                <span className="text-primary">ከቤትዎ ሆነው ይማሩ</span>
               </>
             )}
           </h1>
@@ -60,7 +62,7 @@ export function HeroSection() {
               endContent={<ArrowRight className="h-5 w-5" />}
               onPress={handleStartJourney}
             >
-              {lang === "en" ? "Start Your Journey" : "ጉዞዎን ይጀምሩ"}
+              {lang === "en" ? "Start Your Journey" : "መማር ይጀምሩ"}
             </Button>
             <Button
               size="lg"
