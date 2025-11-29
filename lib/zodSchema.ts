@@ -69,8 +69,28 @@ export const courseSchema = z.object({
   language: z.string({ message: "" }).nonempty("language is required"),
   duration: z
     .string({ message: "" })
-    .time("duration must be time 00:00")
-    .optional(),
+    .refine(
+      (val) => {
+        if (!val || val.trim() === "") return true; // Allow empty since it's optional
+        // Treat "00:00:00" or "00:00" as empty (optional)
+        if (val === "00:00:00" || val === "00:00") return true;
+        // Accept both HH:MM and HH:MM:SS formats
+        const timeRegex = /^([0-1]?[0-9]|2[0-3]):[0-5][0-9](:[0-5][0-9])?$/;
+        return timeRegex.test(val);
+      },
+      {
+        message:
+          "duration must be in format HH:MM or HH:MM:SS (e.g., 01:09 or 01:09:00)",
+      }
+    )
+    .optional()
+    .transform((val) => {
+      // Transform "00:00:00" or "00:00" to empty string for optional field
+      if (val === "00:00:00" || val === "00:00" || !val || val.trim() === "") {
+        return undefined;
+      }
+      return val;
+    }),
   accessEn: z.string({ message: "" }).nonempty("access is required"),
   accessAm: z.string({ message: "" }).nonempty("access is required"),
   certificate: z.coerce.boolean({

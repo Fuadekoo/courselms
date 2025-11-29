@@ -1074,8 +1074,13 @@ function Player({
       ref={containerRef}
       className="video-player relative"
       style={{
-        height: isFullscreen && isMobile && isLandscape ? "100vh" : "auto",
+        height: isFullscreen && isMobile && isLandscape ? "100vh" : "100%",
         width: isFullscreen && isMobile && isLandscape ? "100vw" : "100%",
+        position: "relative",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        backgroundColor: "#000",
       }}
     >
       {/* Ambient backdrop gradient */}
@@ -1254,7 +1259,7 @@ function Player({
         webkit-playsinline="true"
         x-webkit-airplay="allow"
         width="100%"
-        height="auto"
+        height="100%"
         controlsList="nodownload nofullscreen noremoteplayback" // Disable download button
         disablePictureInPicture // Disable PiP
         disableRemotePlayback // Disable casting
@@ -1262,11 +1267,13 @@ function Player({
         style={{
           borderRadius: isFullscreen && isMobile && isLandscape ? 0 : 8,
           width: "100%",
-          height: isFullscreen && isMobile && isLandscape ? "100vh" : "auto",
+          height: isFullscreen && isMobile && isLandscape ? "100vh" : "100%",
           objectFit:
             isFullscreen && isMobile && isLandscape ? "cover" : "contain",
           display: videoAvailable && !hasError ? "block" : "none",
-          position: "relative",
+          position: "absolute",
+          top: 0,
+          left: 0,
           zIndex: 1,
           WebkitTapHighlightColor: "transparent",
           touchAction: "manipulation",

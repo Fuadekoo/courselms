@@ -1089,7 +1089,7 @@ export default function Page() {
             <div className="flex-shrink-0 bg-black dark:bg-black w-full mx-auto lg:max-w-none">
               {currentVideo && currentVideo.url && (
                 <div className="relative w-full">
-                  <div className="relative w-full aspect-video bg-black">
+                  <div className="relative w-full aspect-video bg-black overflow-hidden">
                     <Player
                       src={currentVideo.url}
                       type="local"

@@ -43,9 +43,9 @@ export default function CourseTopOverview({
           </div>
         </div>
       </div>
-      <div className="relative asrounded-md md:rounded-xl overflow-hidden">
+      <div className="relative rounded-md md:rounded-xl overflow-hidden">
         {video && (
-          <div className="relative w-full aspect-video bg-black">
+          <div className="relative w-full aspect-video bg-black overflow-hidden">
             <Player 
               src={video} 
               type="local"
