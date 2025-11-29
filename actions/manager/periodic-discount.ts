@@ -42,13 +42,13 @@ export async function getPeriodicDiscounts() {
       description: null,
       type: "PERCENT" as const,
       value: discount.discountRate,
-      startDate: discount.startDate,
-      endDate: discount.endDate,
+      startDate: discount.startDate.toISOString(),
+      endDate: discount.endDate.toISOString(),
       frequency: "NONE" as const,
       daysOfWeek: null,
       isActive: true,
-      createdAt: discount.createdAt,
-      updatedAt: discount.createdAt,
+      createdAt: discount.createdAt.toISOString(),
+      updatedAt: discount.createdAt.toISOString(),
       courseId: discount.courseId,
       course: discount.course,
     }));
@@ -89,13 +89,13 @@ export async function getPeriodicDiscountById(id: string) {
       description: null,
       type: "PERCENT" as const,
       value: discount.discountRate,
-      startDate: discount.startDate,
-      endDate: discount.endDate,
+      startDate: discount.startDate.toISOString(),
+      endDate: discount.endDate.toISOString(),
       frequency: "NONE" as const,
       daysOfWeek: null,
       isActive: true,
-      createdAt: discount.createdAt,
-      updatedAt: discount.createdAt,
+      createdAt: discount.createdAt.toISOString(),
+      updatedAt: discount.createdAt.toISOString(),
       courseId: discount.courseId,
       course: discount.course,
     };
@@ -188,8 +188,26 @@ export async function createPeriodicDiscount(
       },
     });
 
+    // Format the discount to match expected interface
+    const formattedDiscount = {
+      id: discount.id,
+      title: `Discount for ${discount.course.titleEn}`,
+      description: null,
+      type: "PERCENT" as const,
+      value: discount.discountRate,
+      startDate: discount.startDate.toISOString(),
+      endDate: discount.endDate.toISOString(),
+      frequency: "NONE" as const,
+      daysOfWeek: null,
+      isActive: true,
+      createdAt: discount.createdAt.toISOString(),
+      updatedAt: discount.createdAt.toISOString(),
+      courseId: discount.courseId,
+      course: discount.course,
+    };
+
     revalidatePath("/periodic-discounts");
-    return { data: discount, error: null };
+    return { data: formattedDiscount, error: null };
   } catch (error) {
     console.error("Error creating periodic discount:", error);
     return {
@@ -270,8 +288,26 @@ export async function updatePeriodicDiscount(
       },
     });
 
+    // Format the updated discount to match expected interface
+    const formattedDiscount = {
+      id: updatedDiscount.id,
+      title: `Discount for ${updatedDiscount.course.titleEn}`,
+      description: null,
+      type: "PERCENT" as const,
+      value: updatedDiscount.discountRate,
+      startDate: updatedDiscount.startDate.toISOString(),
+      endDate: updatedDiscount.endDate.toISOString(),
+      frequency: "NONE" as const,
+      daysOfWeek: null,
+      isActive: true,
+      createdAt: updatedDiscount.createdAt.toISOString(),
+      updatedAt: updatedDiscount.createdAt.toISOString(),
+      courseId: updatedDiscount.courseId,
+      course: updatedDiscount.course,
+    };
+
     revalidatePath("/periodic-discounts");
-    return { data: updatedDiscount, error: null };
+    return { data: formattedDiscount, error: null };
   } catch (error) {
     console.error(`Error updating discount with ID ${id}:`, error);
     return {
