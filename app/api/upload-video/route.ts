@@ -3,8 +3,26 @@ import fs from "fs";
 import path from "path";
 import { queueHlsConversion } from "@/lib/hls-converter";
 
-const UPLOAD_DIR = path.join(process.cwd(), "fuad");
-const COURSE_DIR = path.join(UPLOAD_DIR, "course");
+// Use environment variable if set, otherwise fallback to default path
+const getVideoDirectories = () => {
+  const videoBaseDir = process.env.VIDEO_BASE_DIR || 'fuad/course';
+  if (videoBaseDir.startsWith('/')) {
+    // Absolute path
+    const fullPath = path.resolve(videoBaseDir);
+    return {
+      uploadDir: path.dirname(fullPath),
+      courseDir: fullPath
+    };
+  } else {
+    // Relative path from process.cwd()
+    const parts = videoBaseDir.split('/');
+    const uploadDir = path.join(process.cwd(), ...parts.slice(0, -1));
+    const courseDir = path.join(process.cwd(), ...parts);
+    return { uploadDir, courseDir };
+  }
+};
+
+const { uploadDir: UPLOAD_DIR, courseDir: COURSE_DIR } = getVideoDirectories();
 
 function getTimestampUUID(ext: string) {
   return `${Date.now()}-${Math.floor(Math.random() * 100000)}.${ext}`;

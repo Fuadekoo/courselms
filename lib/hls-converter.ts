@@ -5,14 +5,42 @@ import path from "path";
 import os from "os";
 
 const execAsync = promisify(exec);
-const COURSE_DIR = path.join(process.cwd(), "fuad", "course");
-const JOBS_DIR = path.join(process.cwd(), "fuad", "jobs");
+
+// Use environment variable if set, otherwise fallback to default path
+const getVideoDirectories = () => {
+  const videoBaseDir = process.env.VIDEO_BASE_DIR || 'fuad/course';
+  const jobsBaseDir = process.env.VIDEO_JOBS_DIR || 'fuad/jobs';
+  
+  const courseDir = videoBaseDir.startsWith('/') 
+    ? path.resolve(videoBaseDir) 
+    : path.join(process.cwd(), videoBaseDir);
+    
+  const jobsDir = jobsBaseDir.startsWith('/') 
+    ? path.resolve(jobsBaseDir) 
+    : path.join(process.cwd(), jobsBaseDir);
+    
+  return { courseDir, jobsDir };
+};
+
+const { courseDir: COURSE_DIR, jobsDir: JOBS_DIR } = getVideoDirectories();
 
 /**
  * Find FFmpeg executable path
  * Checks system PATH and common installation locations
+ * Supports FFMPEG_PATH environment variable for custom installation
  */
 async function findFFmpeg(): Promise<string> {
+  // First, check if FFMPEG_PATH environment variable is set
+  if (process.env.FFMPEG_PATH) {
+    const customPath = process.env.FFMPEG_PATH;
+    if (fs.existsSync(customPath)) {
+      console.log(`[FFmpeg] Using custom path from FFMPEG_PATH: ${customPath}`);
+      return customPath;
+    } else {
+      console.warn(`[FFmpeg] FFMPEG_PATH set but file not found: ${customPath}`);
+    }
+  }
+  
   const platform = os.platform();
   
   // Get system PATH dynamically on Windows
@@ -262,17 +290,35 @@ async function processHlsConversion(jobId: string): Promise<void> {
 
     console.log(`[HLS Conversion] Successfully converted ${jobId} to HLS`);
   } catch (error: any) {
-    console.error(`[HLS Conversion] Error converting ${jobId}:`, error);
+    const errorMessage = error?.message || error?.toString() || "Unknown error";
+    const errorStack = error?.stack || "";
+    
+    console.error(`[HLS Conversion] Error converting ${jobId}:`, {
+      message: errorMessage,
+      stack: errorStack,
+      videoPath: job.videoPath,
+      outputDir: job.outputDir,
+    });
 
-    // Update job status to failed
+    // Update job status to failed with detailed error
     job.status = "failed";
-    job.error = error.message || "Unknown error";
+    job.error = errorMessage;
     fs.writeFileSync(jobFilePath, JSON.stringify(job, null, 2));
 
     // Keep original MP4 file if conversion fails
     console.log(
-      `[HLS Conversion] Keeping original MP4 file due to conversion failure`
+      `[HLS Conversion] Keeping original MP4 file due to conversion failure: ${job.videoPath}`
     );
+    
+    // Log specific common issues
+    if (errorMessage.includes("FFmpeg") || errorMessage.includes("not found")) {
+      console.error(`[HLS Conversion] FFmpeg issue detected. Make sure FFmpeg is installed and accessible.`);
+      console.error(`[HLS Conversion] You can set FFMPEG_PATH environment variable to specify FFmpeg location.`);
+    }
+    if (errorMessage.includes("ENOENT") || errorMessage.includes("No such file")) {
+      console.error(`[HLS Conversion] File path issue detected. Check that video file exists: ${job.videoPath}`);
+      console.error(`[HLS Conversion] Make sure VIDEO_BASE_DIR environment variable is set correctly.`);
+    }
   }
 }
 

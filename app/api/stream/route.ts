@@ -40,7 +40,11 @@ export async function GET(request: NextRequest) {
     }
 
     // Construct file path - handle both absolute and relative paths
-    const basePath = resolve(process.cwd(), 'fuad', 'course');
+    // Use environment variable if set, otherwise fallback to default path
+    const videoBaseDir = process.env.VIDEO_BASE_DIR || 'fuad/course';
+    const basePath = videoBaseDir.startsWith('/') 
+      ? resolve(videoBaseDir) 
+      : resolve(process.cwd(), videoBaseDir);
     let filePath: string;
     
     if (decodedFile.startsWith('/')) {
