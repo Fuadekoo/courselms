@@ -85,7 +85,11 @@ function Player({
     async (filePath: string): Promise<string | null> => {
       try {
         // Skip HLS checking for external URLs or blob URLs
-        if (filePath.startsWith('http://') || filePath.startsWith('https://') || filePath.startsWith('blob:')) {
+        if (
+          filePath.startsWith("http://") ||
+          filePath.startsWith("https://") ||
+          filePath.startsWith("blob:")
+        ) {
           return null;
         }
 
@@ -115,7 +119,9 @@ function Player({
         const hlsUrl = tokenData.url;
 
         // Return the HLS URL - the error handler will catch 404s and fallback to MP4
-        console.log(`[Player] HLS master playlist token generated: ${hlsMasterPath}`);
+        console.log(
+          `[Player] HLS master playlist token generated: ${hlsMasterPath}`
+        );
         return hlsUrl;
       } catch {
         // If check fails, return null (will use original file)
@@ -130,13 +136,16 @@ function Player({
     async (filePath: string, preferHls: boolean = true) => {
       try {
         // Skip token generation for external URLs (http/https) - use them directly
-        if (filePath.startsWith('http://') || filePath.startsWith('https://')) {
-          console.log("[Player] External URL detected, using directly:", filePath);
+        if (filePath.startsWith("http://") || filePath.startsWith("https://")) {
+          console.log(
+            "[Player] External URL detected, using directly:",
+            filePath
+          );
           return filePath;
         }
 
         // Skip HLS checking for blob URLs
-        if (filePath.startsWith('blob:')) {
+        if (filePath.startsWith("blob:")) {
           console.log("[Player] Blob URL detected, using directly:", filePath);
           return filePath;
         }
@@ -241,7 +250,7 @@ function Player({
         } else {
           // Store original MP4 URL for fallback
           originalMp4UrlRef.current = null;
-          
+
           // Generate secure URL for original MP4 file (for fallback)
           generateSecureUrl(src, false)
             .then((mp4Url) => {
@@ -477,6 +486,7 @@ function Player({
 
   // Track previous source to detect quality changes
   const prevSrcRef = useRef<string>("");
+  const prevHlsSrcRef = useRef<string>(""); // Track previous HLS source to prevent re-initialization
   const savedStateRef = useRef<{ time: number; playing: boolean } | null>(null);
 
   // Initialize HLS.js for HLS sources
@@ -487,12 +497,23 @@ function Player({
       return;
     }
 
+    // Prevent re-initialization if HLS is already set up for this source
+    if (prevHlsSrcRef.current === currentSrc && hlsRef.current) {
+      console.log(
+        "[Player] HLS already initialized for this source, skipping re-initialization"
+      );
+      return;
+    }
+
     console.log("Initializing HLS for:", currentSrc);
 
     // Check if HLS is supported
     if (Hls.isSupported()) {
-      // Clean up existing HLS instance
-      if (hlsRef.current) {
+      // Only clean up existing HLS instance if the source actually changed
+      if (hlsRef.current && prevHlsSrcRef.current !== currentSrc) {
+        console.log(
+          "[Player] Source changed, cleaning up existing HLS instance"
+        );
         hlsRef.current.destroy();
         hlsRef.current = null;
       }
@@ -607,8 +628,9 @@ function Player({
         maxBufferHole: 0.5,
         highBufferWatchdogPeriod: 2,
         nudgeOffset: 0.1,
-        nudgeMaxRetry: 3,
-        fragLoadingTimeOut: 20000,
+        nudgeMaxRetry: 5, // Increased retries for slow networks
+        fragLoadingTimeOut: 30000, // Increased timeout from 20s to 30s
+        manifestLoadingTimeOut: 30000, // Added manifest timeout
         maxLoadingDelay: 4,
         minAutoBitrate: 0,
         maxStarvationDelay: 4,
@@ -653,6 +675,8 @@ function Player({
       });
 
       hlsRef.current = hls;
+      // Store the source URL to track it and prevent unnecessary re-initialization
+      prevHlsSrcRef.current = currentSrc;
 
       // Load the source
       hls.loadSource(currentSrc);
@@ -713,13 +737,18 @@ function Player({
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
               // Check if it's a 404 (manifest not found)
-              if (data.details === "manifestLoadError" || data.response?.code === 404) {
-                console.warn("[Player] HLS manifest not found (404) - falling back to MP4");
+              if (
+                data.details === "manifestLoadError" ||
+                data.response?.code === 404
+              ) {
+                console.warn(
+                  "[Player] HLS manifest not found (404) - falling back to MP4"
+                );
                 // Destroy HLS instance first
                 hls.destroy();
                 hlsRef.current = null;
                 setIsHls(false);
-                
+
                 // Fallback to original MP4 file
                 const fallbackToMp4 = (mp4Url: string) => {
                   console.log("[Player] Falling back to MP4:", mp4Url);
@@ -742,20 +771,26 @@ function Player({
                   fallbackToMp4(originalMp4UrlRef.current);
                 } else {
                   // Generate MP4 URL as fallback
-                  generateSecureUrl(src, false).then((mp4Url) => {
-                    if (mp4Url) {
-                      originalMp4UrlRef.current = mp4Url;
-                      fallbackToMp4(mp4Url);
-                    } else {
-                      console.error("[Player] Cannot fallback to MP4 - no URL available");
+                  generateSecureUrl(src, false)
+                    .then((mp4Url) => {
+                      if (mp4Url) {
+                        originalMp4UrlRef.current = mp4Url;
+                        fallbackToMp4(mp4Url);
+                      } else {
+                        console.error(
+                          "[Player] Cannot fallback to MP4 - no URL available"
+                        );
+                        setHasError(true);
+                        setIsLoading(false);
+                      }
+                    })
+                    .catch(() => {
+                      console.error(
+                        "[Player] Failed to generate MP4 fallback URL"
+                      );
                       setHasError(true);
                       setIsLoading(false);
-                    }
-                  }).catch(() => {
-                    console.error("[Player] Failed to generate MP4 fallback URL");
-                    setHasError(true);
-                    setIsLoading(false);
-                  });
+                    });
                 }
                 return;
               }
@@ -774,7 +809,32 @@ function Player({
               break;
           }
         } else {
-          console.warn("HLS Non-fatal error:", data);
+          // Handle non-fatal errors
+          if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
+            if (data.details === "fragLoadTimeOut") {
+              // Fragment timeout - HLS.js will automatically retry
+              console.warn(
+                "[Player] Fragment load timeout (non-fatal), HLS will retry"
+              );
+              // Don't log every timeout to reduce console noise
+            } else if (data.details === "keyLoadError") {
+              console.warn("[Player] Key load error (non-fatal):", data);
+            } else {
+              console.warn(
+                "[Player] HLS Network error (non-fatal):",
+                data.details
+              );
+            }
+          } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+            // Media errors are handled by HLS.js automatically
+            console.warn(
+              "[Player] HLS Media error (non-fatal), attempting recovery:",
+              data.details
+            );
+            hls.recoverMediaError();
+          } else {
+            console.warn("[Player] HLS Non-fatal error:", data);
+          }
         }
       });
 
@@ -794,7 +854,7 @@ function Player({
       setHasError(true);
       setIsLoading(false);
     }
-  }, [currentSrc, isHlsSource, currentQuality]);
+  }, [currentSrc, isHlsSource]); // Removed currentQuality - quality changes should only update level, not re-initialize
 
   // Update video source when currentSrc changes (for non-HLS)
   useEffect(() => {
@@ -805,31 +865,173 @@ function Player({
 
     // Only update if the source actually changed
     if (video.src !== currentSrc && currentSrc !== prevSrcRef.current) {
-      // Save current state before switching
-      const wasPlaying = !video.paused;
-      const savedTime = video.currentTime;
-      savedStateRef.current = { time: savedTime, playing: wasPlaying };
+      // Save current state before switching to preserve playback continuity
+      // Only save if not already saved (e.g., from quality change handler)
+      if (!savedStateRef.current) {
+        const wasPlaying = !video.paused;
+        const savedTime = video.currentTime;
+        savedStateRef.current = { time: savedTime, playing: wasPlaying };
+        console.log("[Player] Source change - saved playback state:", {
+          wasPlaying,
+          savedTime,
+          newSrc: currentSrc,
+        });
+      }
 
       prevSrcRef.current = currentSrc;
+
+      // Set loading state to show spinner during quality switch
+      setIsLoading(true);
+
+      // Change video source
       video.src = currentSrc;
       video.load();
 
-      // Restore playback state after loading
+      // Restore playback state after video is ready
       const handleCanPlayAfterLoad = () => {
         const savedState = savedStateRef.current;
         if (savedState) {
-          if (savedState.time > 0 && video.duration) {
-            video.currentTime = Math.min(savedState.time, video.duration);
+          console.log(
+            "[Player] Restoring playback state after quality change:",
+            savedState
+          );
+
+          // Wait a bit for the video to be fully ready
+          const restorePlayback = () => {
+            if (savedState.time > 0) {
+              // Restore time position first
+              video.currentTime = Math.min(
+                savedState.time,
+                video.duration || savedState.time
+              );
+
+              // Wait for seek to complete, then resume playback
+              const handleSeeked = () => {
+                video.removeEventListener("seeked", handleSeeked);
+
+                // Wait a bit more for buffering, then resume
+                const tryResumePlayback = () => {
+                  // Resume playback if it was playing before quality change
+                  if (savedState.playing) {
+                    console.log(
+                      "[Player] Resuming playback after quality change"
+                    );
+                    video
+                      .play()
+                      .then(() => {
+                        setIsLoading(false);
+                        setPlaying(true);
+                        console.log("[Player] Playback resumed successfully");
+                      })
+                      .catch((err) => {
+                        console.warn(
+                          "[Player] Autoplay prevented after quality change:",
+                          err
+                        );
+                        setIsLoading(false);
+                        // User may need to manually play
+                      });
+                  } else {
+                    setIsLoading(false);
+                  }
+                };
+
+                // Try to resume immediately if enough data is buffered
+                if (video.readyState >= 3) {
+                  tryResumePlayback();
+                } else {
+                  // Wait for more data to be buffered
+                  const handleCanPlayThrough = () => {
+                    video.removeEventListener(
+                      "canplaythrough",
+                      handleCanPlayThrough
+                    );
+                    tryResumePlayback();
+                  };
+                  video.addEventListener(
+                    "canplaythrough",
+                    handleCanPlayThrough,
+                    { once: true }
+                  );
+
+                  // Fallback: resume after short delay even if canplaythrough doesn't fire
+                  setTimeout(() => {
+                    video.removeEventListener(
+                      "canplaythrough",
+                      handleCanPlayThrough
+                    );
+                    tryResumePlayback();
+                  }, 500);
+                }
+              };
+
+              video.addEventListener("seeked", handleSeeked, { once: true });
+
+              // Fallback: if seeked doesn't fire quickly, try to resume anyway
+              const fallbackTimeout = setTimeout(() => {
+                video.removeEventListener("seeked", handleSeeked);
+                if (savedState.playing && video.paused) {
+                  video.play().catch(() => {});
+                }
+                setIsLoading(false);
+              }, 1000);
+
+              // Clear fallback if seeked fires
+              video.addEventListener(
+                "seeked",
+                () => clearTimeout(fallbackTimeout),
+                { once: true }
+              );
+            } else {
+              // No time to restore, just resume if it was playing
+              if (savedState.playing) {
+                video.play().catch(() => {});
+              }
+              setIsLoading(false);
+            }
+
+            savedStateRef.current = null; // Clear saved state
+          };
+
+          // Small delay to ensure video metadata is loaded
+          if (video.readyState >= 2) {
+            restorePlayback();
+          } else {
+            // Wait for loadedmetadata if not ready yet
+            const handleLoadedMetadata = () => {
+              video.removeEventListener("loadedmetadata", handleLoadedMetadata);
+              restorePlayback();
+            };
+            video.addEventListener("loadedmetadata", handleLoadedMetadata, {
+              once: true,
+            });
+
+            // Fallback timeout
+            setTimeout(restorePlayback, 500);
           }
-          if (savedState.playing) {
-            video.play().catch(() => {});
-          }
-          savedStateRef.current = null; // Clear saved state
+        } else {
+          setIsLoading(false);
         }
         video.removeEventListener("canplay", handleCanPlayAfterLoad);
       };
 
-      video.addEventListener("canplay", handleCanPlayAfterLoad, { once: true });
+      // Handle case where video is already ready
+      if (video.readyState >= 2) {
+        handleCanPlayAfterLoad();
+      } else {
+        video.addEventListener("canplay", handleCanPlayAfterLoad, {
+          once: true,
+        });
+      }
+
+      // Handle loading errors
+      const handleError = () => {
+        setIsLoading(false);
+        setHasError(true);
+        video.removeEventListener("error", handleError);
+      };
+
+      video.addEventListener("error", handleError, { once: true });
     }
   }, [currentSrc, isHlsSource]);
 
@@ -1044,11 +1246,54 @@ function Player({
     setMuted((prev) => !prev);
   };
 
-  // Handle quality change
-  const handleQualityChange = (quality: QualityLevel) => {
+  // Handle quality change - video continues from same position without stopping
+  const handleQualityChange = async (quality: QualityLevel) => {
+    const video = videoRef.current;
+
+    // Save playback state BEFORE changing quality to ensure we preserve it
+    if (video && !isHlsSource) {
+      const wasPlaying = !video.paused;
+      const savedTime = video.currentTime;
+
+      // Save state for restoration after quality change
+      savedStateRef.current = {
+        time: savedTime,
+        playing: wasPlaying,
+      };
+
+      console.log("[Player] Quality change - saving state:", {
+        quality,
+        wasPlaying,
+        savedTime,
+      });
+
+      // For non-HLS, ensure quality URL is available before switching
+      const cq = toQualityValue(quality);
+      if (cq !== "auto" && type === "local" && qualities.length > 0) {
+        const selectedQuality = qualities.find((q) => q.value === cq);
+        if (selectedQuality && !qualityUrls[cq]) {
+          // Generate secure URL if not cached
+          console.log("[Player] Generating secure URL for quality:", cq);
+          try {
+            const secureUrl = await generateSecureUrl(selectedQuality.url);
+            if (secureUrl) {
+              setQualityUrls((prev) => ({ ...prev, [cq]: secureUrl }));
+              // URL will be available on next render, source change will happen automatically
+            }
+          } catch (error) {
+            console.error(
+              "[Player] Failed to generate secure URL for quality:",
+              error
+            );
+          }
+        }
+      }
+    }
+
     setCurrentQuality(quality);
 
     // If HLS, update the HLS level
+    // Note: HLS quality changes are seamless - video continues from same position automatically
     if (isHlsSource && hlsRef.current && hlsLevels.length > 0) {
       const cq = toQualityValue(quality);
       if (cq === "auto") {
@@ -1058,18 +1303,25 @@ function Player({
         // Find matching level
         const levelIndex = hlsLevels.findIndex((level) => {
           const height = level.height || 0;
-          if (cq === "HD" && height >= 1080) return true;
-          if (cq === "360p" && height >= 360 && height < 720) return true;
-          if (cq === "144p" && height >= 144 && height < 360) return true;
+          if (cq === "1080p" && height >= 1080) return true;
+          if (cq === "720p" && height >= 720 && height < 1080) return true;
+          if (cq === "480p" && height >= 480 && height < 720) return true;
+          if (cq === "360p" && height >= 360 && height < 480) return true;
+          if (cq === "270p" && height >= 270 && height < 360) return true;
+          if (cq === "144p" && height >= 144 && height < 270) return true;
           return false;
         });
 
         if (levelIndex !== -1) {
+          // HLS.js seamlessly switches quality without interrupting playback
+          // Video continues from the same time position automatically
           hlsRef.current.currentLevel = levelIndex;
           setCurrentHlsLevel(levelIndex);
         }
       }
     }
+    // For non-HLS videos, the source change is handled by the useEffect below
+    // which will use savedStateRef to restore playback position and state
   };
 
   // Determine available quality levels
