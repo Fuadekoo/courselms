@@ -21,13 +21,24 @@ export async function GET(req: Request) {
     : undefined;
 
   const [items, total] = await Promise.all([
-    (prisma as any).PeriodicDiscount.findMany({
-      where,
+    prisma.periodicDiscount.findMany({
+      where: where ? { courseId: { contains: q } } : undefined,
       orderBy: { createdAt: "desc" },
       skip,
       take: pageSize,
+      include: {
+        course: {
+          select: {
+            id: true,
+            titleEn: true,
+            titleAm: true,
+          },
+        },
+      },
     }),
-    (prisma as any).PeriodicDiscount.count({ where }),
+    prisma.periodicDiscount.count({
+      where: where ? { courseId: { contains: q } } : undefined,
+    }),
   ]);
 
     return NextResponse.json({ items, total, page, pageSize });
@@ -55,7 +66,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const created = await (prisma as any).PeriodicDiscount.create({
+    const created = await prisma.periodicDiscount.create({
       data: {
         discountRate,
         startDate: new Date(startDate),
