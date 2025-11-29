@@ -409,12 +409,12 @@ export async function getActiveDiscountForCourse(courseId: string) {
         type: "PERCENT" as const,
         value: discount.discountRate, // discountRate is the percentage (e.g., 15 for 15%)
         currency: null,
-        startDate: discount.startDate,
-        endDate: discount.endDate,
+        startDate: discount.startDate.toISOString(),
+        endDate: discount.endDate.toISOString(),
         frequency: "NONE" as const,
         daysOfWeek: null,
         isActive: true,
-        createdAt: discount.createdAt,
+        createdAt: discount.createdAt.toISOString(),
       },
       error: null,
     };
