@@ -256,36 +256,43 @@ export async function toggleDiscountStatus(id: string) {
 }
 
 // Get active discount for a specific course
+// Uses the periodicDiscount model (lowercase) which is course-specific
 export async function getActiveDiscountForCourse(courseId: string) {
   try {
     const now = new Date();
-    const discounts = await (prisma as any).PeriodicDiscount.findMany({
+    
+    // Use the lowercase periodicDiscount model which is course-specific
+    const discount = await prisma.periodicDiscount.findFirst({
       where: {
-        isActive: true,
+        courseId: courseId,
         startDate: { lte: now },
-        OR: [{ endDate: null }, { endDate: { gte: now } }],
+        endDate: { gte: now },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    // Find discount that includes this course
-    for (const discount of discounts) {
-      try {
-        if (discount.description) {
-          const parsed = JSON.parse(discount.description);
-          if (parsed.courseIds && Array.isArray(parsed.courseIds)) {
-            if (parsed.courseIds.includes(courseId)) {
-              return { data: discount, error: null };
-            }
-          }
-        }
-      } catch {
-        // Skip if parsing fails
-        continue;
-      }
+    if (!discount) {
+      return { data: null, error: null };
     }
 
-    return { data: null, error: null };
+    // Convert to the expected format for the hook
+    // The periodicDiscount model uses discountRate as Int (percentage)
+    return {
+      data: {
+        id: discount.id,
+        title: `Course Discount`,
+        type: "PERCENT" as const,
+        value: discount.discountRate, // discountRate is the percentage (e.g., 15 for 15%)
+        currency: null,
+        startDate: discount.startDate,
+        endDate: discount.endDate,
+        frequency: "NONE" as const,
+        daysOfWeek: null,
+        isActive: true,
+        createdAt: discount.createdAt,
+      },
+      error: null,
+    };
   } catch (error) {
     console.error(`Error fetching discount for course ${courseId}:`, error);
     return {
