@@ -7,22 +7,49 @@ import os from "os";
 const execAsync = promisify(exec);
 
 // Use environment variable if set, otherwise fallback to default path
+// This function is called lazily to avoid executing during build time
 const getVideoDirectories = () => {
   const videoBaseDir = process.env.VIDEO_BASE_DIR || 'fuad/course';
   const jobsBaseDir = process.env.VIDEO_JOBS_DIR || 'fuad/jobs';
   
+  // Always resolve relative to process.cwd() unless explicitly absolute
   const courseDir = videoBaseDir.startsWith('/') 
     ? path.resolve(videoBaseDir) 
-    : path.join(process.cwd(), videoBaseDir);
+    : path.resolve(process.cwd(), videoBaseDir);
     
   const jobsDir = jobsBaseDir.startsWith('/') 
     ? path.resolve(jobsBaseDir) 
-    : path.join(process.cwd(), jobsBaseDir);
+    : path.resolve(process.cwd(), jobsBaseDir);
     
   return { courseDir, jobsDir };
 };
 
-const { courseDir: COURSE_DIR, jobsDir: JOBS_DIR } = getVideoDirectories();
+// Lazy getters to avoid executing during build time
+let _COURSE_DIR: string | null = null;
+let _JOBS_DIR: string | null = null;
+
+const getCourseDir = () => {
+  if (!_COURSE_DIR) {
+    _COURSE_DIR = getVideoDirectories().courseDir;
+  }
+  return _COURSE_DIR;
+};
+
+const getJobsDir = () => {
+  if (!_JOBS_DIR) {
+    _JOBS_DIR = getVideoDirectories().jobsDir;
+    // Ensure directory exists only when actually needed (runtime, not build time)
+    if (!fs.existsSync(_JOBS_DIR)) {
+      try {
+        fs.mkdirSync(_JOBS_DIR, { recursive: true });
+      } catch (error: any) {
+        // Only log error, don't throw - directory might be created later
+        console.warn(`[HLS Converter] Could not create jobs directory: ${_JOBS_DIR}`, error.message);
+      }
+    }
+  }
+  return _JOBS_DIR;
+};
 
 /**
  * Find FFmpeg executable path
@@ -145,10 +172,7 @@ async function findFFmpeg(): Promise<string> {
   }
 }
 
-// Ensure jobs directory exists
-if (!fs.existsSync(JOBS_DIR)) {
-  fs.mkdirSync(JOBS_DIR, { recursive: true });
-}
+// Directory creation is now lazy - happens only when needed at runtime
 
 export interface HlsConversionJob {
   id: string;
@@ -169,7 +193,7 @@ export async function queueHlsConversion(
   baseName: string
 ): Promise<string> {
   const jobId = `${baseName}-${Date.now()}`;
-  const outputDir = path.join(COURSE_DIR, baseName);
+  const outputDir = path.join(getCourseDir(), baseName);
   const manifestPath = path.join(outputDir, `${baseName}.m3u8`);
 
   const job: HlsConversionJob = {
@@ -182,7 +206,7 @@ export async function queueHlsConversion(
     createdAt: Date.now(),
   };
 
-  const jobFilePath = path.join(JOBS_DIR, `${jobId}.json`);
+  const jobFilePath = path.join(getJobsDir(), `${jobId}.json`);
   fs.writeFileSync(jobFilePath, JSON.stringify(job, null, 2));
 
   // Trigger background processing (non-blocking)
@@ -197,7 +221,7 @@ export async function queueHlsConversion(
  * Process HLS conversion in the background
  */
 async function processHlsConversion(jobId: string): Promise<void> {
-  const jobFilePath = path.join(JOBS_DIR, `${jobId}.json`);
+  const jobFilePath = path.join(getJobsDir(), `${jobId}.json`);
 
   if (!fs.existsSync(jobFilePath)) {
     console.error(`Job file not found: ${jobFilePath}`);
@@ -326,7 +350,7 @@ async function processHlsConversion(jobId: string): Promise<void> {
  * Get job status
  */
 export function getJobStatus(jobId: string): HlsConversionJob | null {
-  const jobFilePath = path.join(JOBS_DIR, `${jobId}.json`);
+  const jobFilePath = path.join(getJobsDir(), `${jobId}.json`);
 
   if (!fs.existsSync(jobFilePath)) {
     return null;
@@ -344,15 +368,16 @@ export function getJobStatus(jobId: string): HlsConversionJob | null {
  * Process pending jobs (can be called periodically)
  */
 export async function processPendingJobs(): Promise<void> {
-  if (!fs.existsSync(JOBS_DIR)) {
+  const jobsDir = getJobsDir();
+  if (!fs.existsSync(jobsDir)) {
     return;
   }
 
-  const files = fs.readdirSync(JOBS_DIR);
+  const files = fs.readdirSync(jobsDir);
   const jobFiles = files.filter((f) => f.endsWith(".json"));
 
   for (const file of jobFiles) {
-    const jobFilePath = path.join(JOBS_DIR, file);
+    const jobFilePath = path.join(jobsDir, file);
     try {
       const jobData = fs.readFileSync(jobFilePath, "utf-8");
       const job: HlsConversionJob = JSON.parse(jobData);
