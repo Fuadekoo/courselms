@@ -49,21 +49,39 @@ export default function SettingsMenu({
 
   return (
     <div
+      data-settings-menu
       style={{
         position: "absolute",
         bottom: "60px",
         right: "16px",
-        background: "rgba(255, 255, 255, 0.95)",
+        background: "rgba(255, 255, 255, 0.98)",
         borderRadius: "8px",
         padding: "8px 0",
         minWidth: "200px",
-        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
         zIndex: 200,
       }}
     >
+      {/* Triangular tail pointing to settings icon */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "-8px",
+          right: "20px",
+          width: 0,
+          height: 0,
+          borderLeft: "8px solid transparent",
+          borderRight: "8px solid transparent",
+          borderTop: "8px solid rgba(255, 255, 255, 0.98)",
+          filter: "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))",
+        }}
+      />
       {/* Quality Option */}
       <div
-        onClick={onQualityClick}
+        onClick={(e) => {
+          e.stopPropagation();
+          onQualityClick();
+        }}
         style={{
           display: "flex",
           alignItems: "center",
@@ -80,10 +98,10 @@ export default function SettingsMenu({
         }}
       >
         <div>
-          <div style={{ fontSize: "14px", fontWeight: 500, marginBottom: "2px" }}>
+          <div style={{ fontSize: "14px", fontWeight: 500, marginBottom: "2px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
             Quality
           </div>
-          <div style={{ fontSize: "12px", color: "rgba(0, 0, 0, 0.6)" }}>
+          <div style={{ fontSize: "12px", color: "rgba(0, 0, 0, 0.6)", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
             {getQualityLabel()}
           </div>
         </div>
@@ -92,7 +110,10 @@ export default function SettingsMenu({
 
       {/* Speed Option */}
       <div
-        onClick={onSpeedClick}
+        onClick={(e) => {
+          e.stopPropagation();
+          onSpeedClick();
+        }}
         style={{
           display: "flex",
           alignItems: "center",
@@ -109,10 +130,10 @@ export default function SettingsMenu({
         }}
       >
         <div>
-          <div style={{ fontSize: "14px", fontWeight: 500, marginBottom: "2px" }}>
+          <div style={{ fontSize: "14px", fontWeight: 500, marginBottom: "2px", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
             Speed
           </div>
-          <div style={{ fontSize: "12px", color: "rgba(0, 0, 0, 0.6)" }}>
+          <div style={{ fontSize: "12px", color: "rgba(0, 0, 0, 0.6)", fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>
             {getSpeedLabel(currentSpeed)}
           </div>
         </div>

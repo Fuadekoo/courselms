@@ -1,6 +1,6 @@
 "use client";
 import React, { useRef, useState, useEffect, memo } from "react";
-import { Play, Pause } from "lucide-react";
+import { Play, Pause, Settings } from "lucide-react";
 import Playlist from "./Playlist";
 import ProgressBar from "./ProgressBar";
 import VolumeControl from "./VolumeControl";
@@ -9,6 +9,9 @@ import CustomSpinner from "./CustomSpinner";
 import DynamicWatermark from "./DynamicWatermark";
 import { QualityOption } from "./QualitySelector";
 import QualityControl from "./QualityControl";
+import SettingsMenu from "./SettingsMenu";
+import SpeedSelector from "./SpeedSelector";
+import QualitySelector from "./QualitySelector";
 import { VideoItem } from "../../types";
 import { cn } from "@/lib/utils";
 import "./VideoProtection.css";
@@ -1246,6 +1249,50 @@ function Player({
     setMuted((prev) => !prev);
   };
 
+  // Handle speed change
+  const handleSpeedChange = (newSpeed: number) => {
+    setSpeed(newSpeed);
+    console.log("[Player] Speed changed to:", newSpeed);
+  };
+
+  // Handle settings toggle
+  const handleSettingsToggle = () => {
+    setShowSettings((prev) => !prev);
+    if (!showSettings) {
+      setSettingsView("menu");
+    }
+  };
+
+  // Handle settings navigation
+  const handleSettingsQualityClick = () => {
+    setSettingsView("quality");
+  };
+
+  const handleSettingsSpeedClick = () => {
+    setSettingsView("speed");
+  };
+
+  const handleSettingsBack = () => {
+    setSettingsView("menu");
+  };
+
+  // Close settings when clicking outside
+  useEffect(() => {
+    if (!showSettings) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // Don't close if clicking inside settings menu or settings button
+      if (!target.closest("[data-settings-menu]") && !target.closest("button[title='Settings']")) {
+        setShowSettings(false);
+        setSettingsView("menu");
+      }
+    };
+
+    document.addEventListener("click", handleClickOutside);
+    return () => document.removeEventListener("click", handleClickOutside);
+  }, [showSettings]);
+
   // Handle quality change - video continues from same position without stopping
   const handleQualityChange = async (quality: QualityLevel) => {
     const video = videoRef.current;
@@ -1868,21 +1915,42 @@ function Player({
             onMuteToggle={handleMuteToggle}
           />
 
+          {/* Settings Button (Mobile) */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSettingsToggle();
+            }}
+            title="Settings"
+            data-settings-menu
+            style={{
+              background: showSettings
+                ? "rgba(255, 255, 255, 0.2)"
+                : "rgba(0, 0, 0, 0.3)",
+              border: "none",
+              color: "#fff",
+              fontSize: 20,
+              borderRadius: "8px",
+              width: 40,
+              height: 40,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "all 0.2s",
+              minHeight: "44px",
+              minWidth: "44px",
+              marginLeft: 8,
+            }}
+          >
+            <Settings size={20} />
+          </button>
+
           {/* Fullscreen Button */}
           <FullscreenButton
             onClick={handleFullscreen}
             isFullscreen={isFullscreen}
           />
-
-          {/* Quality Control (Mobile) */}
-          <div style={{ marginLeft: 8 }}>
-            <QualityControl
-              currentQuality={currentQuality}
-              availableLevels={availableLevels}
-              onQualityChange={handleQualityChange}
-              networkSpeed={networkSpeedMbps}
-            />
-          </div>
         </div>
       )}
 
@@ -1962,13 +2030,43 @@ function Player({
             onMuteToggle={handleMuteToggle}
           />
 
-          {/* Quality Control */}
-          <QualityControl
-            currentQuality={currentQuality}
-            availableLevels={availableLevels}
-            onQualityChange={handleQualityChange}
-            networkSpeed={networkSpeedMbps}
-          />
+          {/* Settings Button */}
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleSettingsToggle();
+            }}
+            title="Settings"
+            data-settings-menu
+            style={{
+              background: showSettings
+                ? "rgba(255, 255, 255, 0.2)"
+                : "rgba(0, 0, 0, 0.3)",
+              border: "none",
+              color: "#fff",
+              fontSize: 20,
+              borderRadius: "8px",
+              width: 40,
+              height: 40,
+              cursor: "pointer",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              transition: "all 0.2s",
+            }}
+            onMouseEnter={(e) => {
+              if (!showSettings) {
+                e.currentTarget.style.background = "rgba(0, 0, 0, 0.5)";
+              }
+            }}
+            onMouseLeave={(e) => {
+              if (!showSettings) {
+                e.currentTarget.style.background = "rgba(0, 0, 0, 0.3)";
+              }
+            }}
+          >
+            <Settings size={20} />
+          </button>
 
           {/* Fullscreen Button */}
           <FullscreenButton
@@ -1978,7 +2076,42 @@ function Player({
         </div>
       )}
 
-      {/* Settings overlay removed: using inline QualityControl */}
+      {/* Settings Menu System */}
+      {showSettings && (
+        <div data-settings-menu>
+          {settingsView === "menu" && (
+            <SettingsMenu
+              currentQuality={currentQuality}
+              currentSpeed={speed}
+              onQualityClick={handleSettingsQualityClick}
+              onSpeedClick={handleSettingsSpeedClick}
+              isHls={isHls}
+              hlsLevels={hlsLevels}
+              currentHlsLevel={currentHlsLevel}
+            />
+          )}
+
+          {settingsView === "quality" && (
+            <QualitySelector
+              qualities={qualities}
+              currentQuality={currentQuality}
+              onQualityChange={handleQualityChange}
+              onBack={handleSettingsBack}
+              hlsLevels={hlsLevels}
+              currentHlsLevel={currentHlsLevel}
+              isHls={isHls}
+            />
+          )}
+
+          {settingsView === "speed" && (
+            <SpeedSelector
+              currentSpeed={speed}
+              onSpeedChange={handleSpeedChange}
+              onBack={handleSettingsBack}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

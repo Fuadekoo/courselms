@@ -91,16 +91,6 @@ export default function QualitySelector({
     ? getHlsQualityOptions()
     : [{ label: "Auto", value: "auto", url: "" }, ...qualities];
 
-  // Debug: Log quality options
-  React.useEffect(() => {
-    console.log("[QualitySelector] Quality Options:", {
-      isHls,
-      optionsCount: qualityOptions.length,
-      options: qualityOptions,
-      hlsLevelsCount: hlsLevels.length,
-    });
-  }, [isHls, qualityOptions, hlsLevels.length]);
-
   // Determine current quality display
   const getCurrentQualityValue = () => {
     if (isHls) {
@@ -123,19 +113,34 @@ export default function QualitySelector({
 
   return (
     <div
+      data-settings-menu
       style={{
         position: "absolute",
         bottom: "60px",
         right: "16px",
-        background: "rgba(255, 255, 255, 0.95)",
+        background: "rgba(255, 255, 255, 0.98)",
         borderRadius: "8px",
         padding: "8px 0",
         minWidth: "200px",
-        boxShadow: "0 4px 12px rgba(0, 0, 0, 0.3)",
+        boxShadow: "0 4px 16px rgba(0, 0, 0, 0.15)",
         zIndex: 200,
       }}
     >
-      {/* Header */}
+      {/* Triangular tail pointing to settings icon */}
+      <div
+        style={{
+          position: "absolute",
+          bottom: "-8px",
+          right: "20px",
+          width: 0,
+          height: 0,
+          borderLeft: "8px solid transparent",
+          borderRight: "8px solid transparent",
+          borderTop: "8px solid rgba(255, 255, 255, 0.98)",
+          filter: "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1))",
+        }}
+      />
+      {/* Header with Back Button */}
       <div
         style={{
           display: "flex",
@@ -143,11 +148,21 @@ export default function QualitySelector({
           padding: "8px 16px",
           borderBottom: "1px solid rgba(0, 0, 0, 0.1)",
           cursor: "pointer",
+          transition: "background 0.2s",
         }}
-        onClick={onBack}
+        onClick={(e) => {
+          e.stopPropagation();
+          onBack();
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "rgba(0, 0, 0, 0.05)";
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "transparent";
+        }}
       >
-        <ChevronLeft size={16} style={{ marginRight: "8px" }} />
-        <span style={{ fontSize: "14px", fontWeight: 500 }}>Quality</span>
+        <ChevronLeft size={16} style={{ marginRight: "8px", color: "rgba(0, 0, 0, 0.7)" }} />
+        <span style={{ fontSize: "14px", fontWeight: 500, fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif" }}>Quality</span>
       </div>
 
       {/* Quality Options */}
@@ -164,13 +179,16 @@ export default function QualitySelector({
       ) : (
         qualityOptions
           .filter((q) => q.value !== "loading") // Filter out loading option
-          .map((quality) => (
+          .map((quality) => {
+            const isSelected = displayQuality === quality.value;
+            return (
             <div
               key={quality.value}
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 if (quality.value !== "loading") {
                   onQualityChange(quality.value);
-                  onBack();
+                  // Stay on the selector menu to show the selection
                 }
               }}
               style={{
@@ -179,39 +197,51 @@ export default function QualitySelector({
                 padding: "12px 16px",
                 cursor: "pointer",
                 transition: "background 0.2s",
+                backgroundColor: "transparent",
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.background = "rgba(0, 0, 0, 0.05)";
+                if (!isSelected) {
+                  e.currentTarget.style.background = "rgba(0, 0, 0, 0.05)";
+                }
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.background = "transparent";
               }}
             >
-              {/* Radio Button */}
+              {/* Radio Button - Always visible, YouTube-style */}
               <div
                 style={{
                   width: "18px",
                   height: "18px",
+                  minWidth: "18px",
+                  minHeight: "18px",
                   borderRadius: "50%",
-                  border: "2px solid",
-                  borderColor:
-                    displayQuality === quality.value
-                      ? "rgba(59, 130, 246, 1)"
-                      : "rgba(0, 0, 0, 0.3)",
+                  border: isSelected
+                    ? "2px solid rgba(59, 130, 246, 1)"
+                    : "2px solid rgba(0, 0, 0, 0.3)",
                   marginRight: "12px",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
                   position: "relative",
+                  backgroundColor: isSelected
+                    ? "rgba(59, 130, 246, 1)"
+                    : "transparent",
+                  flexShrink: 0,
+                  transition: "all 0.2s ease",
+                  boxSizing: "border-box",
                 }}
               >
-                {displayQuality === quality.value && (
+                {isSelected && (
                   <div
                     style={{
-                      width: "10px",
-                      height: "10px",
+                      width: "8px",
+                      height: "8px",
+                      minWidth: "8px",
+                      minHeight: "8px",
                       borderRadius: "50%",
-                      background: "rgba(59, 130, 246, 1)",
+                      background: "#ffffff",
+                      display: "block",
                     }}
                   />
                 )}
@@ -219,17 +249,18 @@ export default function QualitySelector({
               <span
                 style={{
                   fontSize: "14px",
-                  color:
-                    displayQuality === quality.value
-                      ? "#000"
-                      : "rgba(0, 0, 0, 0.7)",
-                  fontWeight: displayQuality === quality.value ? 500 : 400,
+                  color: isSelected
+                    ? "rgba(0, 0, 0, 0.9)"
+                    : "rgba(0, 0, 0, 0.7)",
+                  fontWeight: isSelected ? 500 : 400,
+                  fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 }}
               >
                 {quality.label}
               </span>
             </div>
-          ))
+            );
+          })
       )}
     </div>
   );
