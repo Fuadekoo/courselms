@@ -116,11 +116,44 @@ You can force specific settings:
 
 ```bash
 # Force software encoding (disable hardware detection)
+# Use this in production if hardware encoding fails
 FFMPEG_FORCE_SOFTWARE=1
 
 # Custom FFmpeg path
 FFMPEG_PATH=/path/to/ffmpeg
 ```
+
+## 🐛 Production Troubleshooting
+
+### Hardware Encoding Fails in Production
+
+If you see errors like:
+```
+⚠️ Hardware encoding (h264_nvenc) failed. Falling back to software encoding...
+```
+
+This typically happens when:
+- FFmpeg was compiled with hardware encoder support, but the server doesn't have GPU access
+- NVIDIA drivers are not installed or configured
+- Running on a headless server without GPU
+
+**Solution:** Set the environment variable to force software encoding:
+
+```bash
+# In your production environment (.env or system environment)
+FFMPEG_FORCE_SOFTWARE=1
+```
+
+This will skip hardware detection entirely and use optimized software encoding.
+
+### Browser Extension Error
+
+If you see:
+```
+Uncaught (in promise) Error: Could not establish connection. Receiving end does not exist.
+```
+
+This is **not related to your code** - it's a browser extension trying to communicate with a content script. You can safely ignore this error, or suppress it in your browser console filters.
 
 ## 📝 Notes
 

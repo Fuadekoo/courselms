@@ -413,6 +413,17 @@ async function processHlsConversion(jobId: string): Promise<void> {
     }> => {
       const platform = os.platform();
 
+      // Check if software encoding is forced via environment variable
+      if (process.env.FFMPEG_FORCE_SOFTWARE === "1" || process.env.FFMPEG_FORCE_SOFTWARE === "true") {
+        console.log(
+          "[HLS Conversion] Software encoding forced via FFMPEG_FORCE_SOFTWARE environment variable"
+        );
+        return {
+          encoder: "libx264",
+          extraArgs: "-preset veryfast -tune fastdecode -threads 0",
+        };
+      }
+
       try {
         // Get list of available encoders
         const { stdout } = await execAsync(
@@ -424,14 +435,28 @@ async function processHlsConversion(jobId: string): Promise<void> {
         const encoderList = stdout.toLowerCase();
 
         // Test NVIDIA NVENC (Windows/Linux) - 5-10x faster than software
+        // Only use if not in a headless/server environment without GPU access
         if (encoderList.includes("h264_nvenc")) {
-          console.log(
-            "[HLS Conversion] ✅ Using NVIDIA NVENC hardware acceleration (5-10x faster)"
-          );
-          return {
-            encoder: "h264_nvenc",
-            extraArgs: "-preset p4 -tune ll", // p4 = fast, ll = low latency
-          };
+          // In production servers, NVENC might be listed but not functional
+          // Skip if we're on Linux and likely a headless server
+          const isLikelyHeadlessServer = 
+            platform === "linux" && 
+            !process.env.DISPLAY && 
+            !process.env.WAYLAND_DISPLAY;
+          
+          if (isLikelyHeadlessServer) {
+            console.log(
+              "[HLS Conversion] ⚠️ NVENC detected but skipping (likely headless server without GPU access)"
+            );
+          } else {
+            console.log(
+              "[HLS Conversion] ✅ Using NVIDIA NVENC hardware acceleration (5-10x faster)"
+            );
+            return {
+              encoder: "h264_nvenc",
+              extraArgs: "-preset p4 -tune ll", // p4 = fast, ll = low latency
+            };
+          }
         }
 
         // Test Intel QuickSync (Windows/Linux) - 3-5x faster than software
@@ -615,21 +640,34 @@ async function processHlsConversion(jobId: string): Promise<void> {
         const errorOutput = error?.stderr || error?.stdout || "";
 
         // Check if this is a hardware encoding error
-        if (
+        // Expanded error detection for various hardware encoding failures
+        const isHardwareError = 
           useHardware &&
           (errorMessage.includes("nvEncodeAPI64.dll") ||
             errorMessage.includes("Nvidia driver") ||
             errorMessage.includes("Error while opening encoder") ||
+            errorMessage.includes("No capable devices found") ||
+            errorMessage.includes("Cannot initialize") ||
+            errorMessage.includes("Command failed") ||
             errorOutput.includes("Cannot load nvEncodeAPI64.dll") ||
             errorOutput.includes("minimum required Nvidia driver") ||
             errorOutput.includes("Error while opening encoder") ||
-            errorOutput.includes("Nothing was written into output file"))
-        ) {
+            errorOutput.includes("No capable devices found") ||
+            errorOutput.includes("Cannot initialize") ||
+            errorOutput.includes("Nothing was written into output file") ||
+            errorOutput.includes("Invalid data found") ||
+            errorOutput.includes("failed to initialize"));
+
+        if (isHardwareError) {
           console.warn(
             `[HLS Conversion] ⚠️ Hardware encoding (${hwAccel.encoder}) failed. Falling back to software encoding...`
           );
+          const reason = errorMessage || errorOutput || "Unknown error";
           console.warn(
-            `[HLS Conversion] Reason: ${errorMessage.substring(0, 200)}`
+            `[HLS Conversion] Reason: ${reason.substring(0, 300)}`
+          );
+          console.log(
+            `[HLS Conversion] 💡 Tip: Set FFMPEG_FORCE_SOFTWARE=1 to skip hardware detection in production`
           );
 
           // Switch to software encoding
@@ -640,7 +678,7 @@ async function processHlsConversion(jobId: string): Promise<void> {
           };
           encoderArgs = buildEncoderArgs("libx264");
 
-          // Retry with software encoding
+          // Retry with software encoding (only once)
           return executeConversion();
         }
 
@@ -735,6 +773,44 @@ export function getJobStatus(jobId: string): HlsConversionJob | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Get all jobs mapped by baseName
+ * Returns a map of baseName -> job (most recent job for each baseName)
+ */
+export function getAllJobsByBaseName(): Map<string, HlsConversionJob> {
+  const jobsDir = getJobsDir();
+  const jobsMap = new Map<string, HlsConversionJob>();
+
+  if (!fs.existsSync(jobsDir)) {
+    return jobsMap;
+  }
+
+  try {
+    const files = fs.readdirSync(jobsDir);
+    const jobFiles = files.filter((f) => f.endsWith(".json"));
+
+    for (const file of jobFiles) {
+      const jobFilePath = path.join(jobsDir, file);
+      try {
+        const jobData = fs.readFileSync(jobFilePath, "utf-8");
+        const job: HlsConversionJob = JSON.parse(jobData);
+
+        // Keep the most recent job for each baseName
+        const existingJob = jobsMap.get(job.baseName);
+        if (!existingJob || job.createdAt > existingJob.createdAt) {
+          jobsMap.set(job.baseName, job);
+        }
+      } catch (error) {
+        console.error(`[HLS] Error reading job file ${file}:`, error);
+      }
+    }
+  } catch (error) {
+    console.error(`[HLS] Error reading jobs directory:`, error);
+  }
+
+  return jobsMap;
 }
 
 /**

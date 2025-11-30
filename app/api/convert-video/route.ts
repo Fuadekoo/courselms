@@ -5,6 +5,7 @@ import {
   queueHlsConversion,
   processPendingJobs,
   isFFmpegAvailable,
+  getAllJobsByBaseName,
 } from "@/lib/hls-converter";
 
 // Get video directories
@@ -32,29 +33,118 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get all MP4 files
+    // Get all jobs mapped by baseName
+    const jobsMap = getAllJobsByBaseName();
+
+    // Get all files and directories
     const files = fs.readdirSync(courseDir);
-    const mp4Files = files
-      .filter((file) => {
-        const filePath = path.join(courseDir, file);
-        return (
-          fs.statSync(filePath).isFile() &&
-          file.toLowerCase().endsWith(".mp4") &&
-          !file.includes("_chunks")
-        );
-      })
-      .map((file) => {
+    
+    // Track all video baseNames we've seen (from MP4 files and HLS directories)
+    const videoMap = new Map<string, {
+      filename: string;
+      baseName: string;
+      hasMp4: boolean;
+      hasHls: boolean;
+      hlsDir: string | null;
+      manifestPath: string | null;
+    }>();
+
+    // First, scan for MP4 files
+    files.forEach((file) => {
+      const filePath = path.join(courseDir, file);
+      if (
+        fs.statSync(filePath).isFile() &&
+        file.toLowerCase().endsWith(".mp4") &&
+        !file.includes("_chunks")
+      ) {
         const baseName = file.replace(/\.[^/.]+$/, "");
         const hlsDir = path.join(courseDir, baseName);
         const manifestPath = path.join(hlsDir, `${baseName}.m3u8`);
-        const isConverted = fs.existsSync(manifestPath);
+        const hasHls = fs.existsSync(manifestPath);
 
-        return {
+        videoMap.set(baseName, {
           filename: file,
           baseName,
+          hasMp4: true,
+          hasHls,
+          hlsDir: hasHls ? hlsDir : null,
+          manifestPath: hasHls ? manifestPath : null,
+        });
+      }
+    });
+
+    // Then, scan for HLS directories (converted videos where MP4 was deleted)
+    files.forEach((item) => {
+      const itemPath = path.join(courseDir, item);
+      if (fs.statSync(itemPath).isDirectory() && !item.includes("_chunks")) {
+        const baseName = item;
+        const manifestPath = path.join(itemPath, `${baseName}.m3u8`);
+        
+        // If this directory has a manifest, it's a converted video
+        if (fs.existsSync(manifestPath)) {
+          const existing = videoMap.get(baseName);
+          if (existing) {
+            // Update existing entry
+            existing.hasHls = true;
+            existing.hlsDir = itemPath;
+            existing.manifestPath = manifestPath;
+          } else {
+            // New entry for converted video (MP4 was deleted)
+            videoMap.set(baseName, {
+              filename: `${baseName}.mp4`, // Reconstruct filename
+              baseName,
+              hasMp4: false,
+              hasHls: true,
+              hlsDir: itemPath,
+              manifestPath,
+            });
+          }
+        }
+      }
+    });
+
+    // Convert map to array and process
+    const mp4Files = Array.from(videoMap.values()).map((video) => {
+        const isConverted = video.hasHls;
+
+        // Get job information for this video
+        const job = jobsMap.get(video.baseName);
+        let status: "pending" | "queued" | "processing" | "completed" | "failed" | undefined;
+        let jobId: string | undefined;
+
+        // If converted, status is always completed
+        if (isConverted) {
+          status = "completed";
+          if (job) {
+            jobId = job.id;
+          }
+        } else if (job) {
+          // Video not converted yet, use job status
+          jobId = job.id;
+          // Map job status to video status
+          if (job.status === "failed") {
+            status = "failed";
+          } else if (job.status === "processing") {
+            status = "processing";
+          } else if (job.status === "pending") {
+            status = "pending";
+          } else if (job.status === "completed") {
+            // Job says completed but manifest doesn't exist - might be in progress
+            status = "processing";
+          }
+        } else {
+          // No job and not converted - it's pending
+          status = "pending";
+        }
+
+        return {
+          filename: video.filename,
+          baseName: video.baseName,
           isConverted,
-          hlsDir: isConverted ? hlsDir : null,
-          manifestPath: isConverted ? manifestPath : null,
+          hlsDir: video.hlsDir,
+          manifestPath: video.manifestPath,
+          jobId,
+          status,
         };
       });
 
