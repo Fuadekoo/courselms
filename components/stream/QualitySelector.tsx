@@ -60,18 +60,13 @@ export default function QualitySelector({
         else if (height >= 480) label = "480p";
         else if (height >= 360) label = "360p";
         else if (height >= 270) label = "270p";
+        else if (height >= 144) label = "144p";
         else if (height > 0) label = `${height}p`;
         else label = `Level ${index + 1}`;
 
-        // Add bitrate info if available
-        if (level.bitrate) {
-          const bitrateMbps = (level.bitrate / 1000000).toFixed(1);
-          label += ` (${bitrateMbps} Mbps)`;
-        }
-
         options.push({
           label,
-          value: label.split(" ")[0], // Use just the resolution part (e.g., "1080p")
+          value: label, // Use the label directly as value (no bitrate info)
           url: "",
         });
       });
@@ -103,6 +98,7 @@ export default function QualitySelector({
         if (height >= 480) return "480p";
         if (height >= 360) return "360p";
         if (height >= 270) return "270p";
+        if (height >= 144) return "144p";
       }
       return "auto";
     }

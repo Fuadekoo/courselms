@@ -1318,11 +1318,13 @@ function Player({
         // Find matching HLS level using the original string
         const levelIndex = hlsLevels.findIndex((level) => {
           const height = level.height || 0;
+          // Exact match first
           if (qualityString === "1080p" && height >= 1080) return true;
           if (qualityString === "720p" && height >= 720 && height < 1080) return true;
           if (qualityString === "480p" && height >= 480 && height < 720) return true;
           if (qualityString === "360p" && height >= 360 && height < 480) return true;
           if (qualityString === "270p" && height >= 270 && height < 360) return true;
+          // For 144p, check for heights between 144 and 270 (including 256 which is common for 144p)
           if (qualityString === "144p" && height >= 144 && height < 270) return true;
           return false;
         });
@@ -1330,6 +1332,12 @@ function Player({
         if (levelIndex !== -1) {
           hlsRef.current.currentLevel = levelIndex;
           setCurrentHlsLevel(levelIndex);
+          setCurrentQuality(qualityLevel);
+          return;
+        } else {
+          // If exact match not found, log for debugging and keep current quality
+          console.warn(`[Player] HLS level not found for quality: ${qualityString}. Available heights:`, hlsLevels.map(l => l.height));
+          // Don't fall back to auto - keep the selected quality
           setCurrentQuality(qualityLevel);
           return;
         }
@@ -1433,6 +1441,10 @@ function Player({
           // Video continues from the same time position automatically
           hlsRef.current.currentLevel = levelIndex;
           setCurrentHlsLevel(levelIndex);
+        } else {
+          // If exact level not found, log for debugging but keep the selected quality
+          console.warn(`[Player] HLS level not found for quality: ${cq}. Available heights:`, hlsLevels.map(l => l.height));
+          // Don't fall back to auto - keep the selected quality even if level not found
         }
       }
     }
