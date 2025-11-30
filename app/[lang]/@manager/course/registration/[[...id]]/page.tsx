@@ -222,7 +222,12 @@ export default function Page() {
             (activity: any, index: number) => ({
               titleEn: activity.titleEn,
               titleAm: activity.titleAm,
-              subActivity: activity.subActivity,
+              subActivity: (activity.subActivity || []).map(
+                (sub: any, subIndex: number) => ({
+                  ...sub,
+                  order: sub.order ?? subIndex + 1, // Assign sequential order if missing
+                })
+              ),
               order: activity.order ?? index + 1, // Assign sequential order if missing
               questions:
                 activity.questions?.map((q: any) => ({
@@ -238,6 +243,8 @@ export default function Page() {
 
         if (data.video) {
           setVideoPreviewUrl(data.video);
+          // Also set the video field in the form so it's preserved when updating
+          setValue("video", data.video, { shouldValidate: false });
         }
 
         // Load final exam questions if they exist
@@ -300,7 +307,6 @@ export default function Page() {
     );
 
     setIsVideoUploading(true);
-    setIsVideoUploading(true);
     try {
       if (selectedVideoFile) {
         console.log("📹 Processing new video file:", selectedVideoFile.name);
@@ -311,6 +317,8 @@ export default function Page() {
         const CHUNK_SIZE = 512 * 1024;
         const chunkSize = CHUNK_SIZE;
         const total = Math.ceil(selectedVideoFile.size / chunkSize);
+
+        console.log(`📤 Uploading ${total} chunks for video: ${uuidName}`);
 
         for (let i = 0; i < total; i++) {
           const start = i * chunkSize;
@@ -323,16 +331,43 @@ export default function Page() {
           formData.append("chunkIndex", i.toString());
           formData.append("totalChunks", total.toString());
 
-          await fetch("/api/upload-video", {
+          const response = await fetch("/api/upload-video", {
             method: "POST",
             body: formData,
           });
+
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(
+              errorData.error ||
+                errorData.details ||
+                `Upload failed at chunk ${i + 1}/${total}`
+            );
+          }
+
+          const result = await response.json().catch(() => ({}));
+          if (!result.success && result.error) {
+            throw new Error(
+              result.error ||
+                result.details ||
+                `Upload failed at chunk ${i + 1}/${total}`
+            );
+          }
+
+          console.log(`✅ Chunk ${i + 1}/${total} uploaded successfully`);
         }
         // Preserve original file extension (important for HLS .m3u8 files)
         data.video = uuidName;
         console.log("✅ Video processed:", data.video);
       } else {
-        console.log("📹 No new video file selected, keeping existing video");
+        // No new video selected - preserve existing video from form
+        const existingVideo = watch("video") || data.video;
+        if (existingVideo) {
+          data.video = existingVideo;
+          console.log("📹 Preserving existing video:", existingVideo);
+        } else {
+          console.log("📹 No video file available");
+        }
       }
 
       data.finalExamQuestions =
@@ -420,9 +455,28 @@ export default function Page() {
     } catch (error) {
       console.error("❌ Form submission error:", error);
       toast.dismiss(loadingToast);
-      toast.error(
-        lang === "en" ? "An unexpected error occurred" : "ያልተጠበቀ ስህተት ተፈጥሯል"
-      );
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+
+      // Check if it's a video upload error
+      if (
+        errorMessage.includes("Upload failed") ||
+        errorMessage.includes("chunk")
+      ) {
+        toast.error(
+          lang === "en"
+            ? `Video upload failed: ${errorMessage}`
+            : `ቪዲዮ መላክ አልተሳካም: ${errorMessage}`
+        );
+      } else {
+        toast.error(
+          lang === "en"
+            ? `An unexpected error occurred: ${errorMessage}`
+            : `ያልተጠበቀ ስህተት ተፈጥሯል: ${errorMessage}`
+        );
+      }
+
+      setIsVideoUploading(false);
       throw error;
     } finally {
       setIsVideoUploading(false);
@@ -993,14 +1047,40 @@ export default function Page() {
                   setValue("activity", reorderedActivities);
                 }}
                 reorderSubActivities={(activityIndex, fromIndex, toIndex) => {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const activities = watch("activity") as any[];
+                  // First sort activities to get correct indices
+                  const sortedActivities = [...activities].sort(
+                    (a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)
+                  );
+
                   setValue(
                     "activity",
-                    watch("activity").map((activity, index) => {
+                    sortedActivities.map((activity, index) => {
                       if (index === activityIndex) {
-                        const subActivities = [...activity.subActivity];
-                        const [moved] = subActivities.splice(fromIndex, 1);
-                        subActivities.splice(toIndex, 0, moved);
-                        return { ...activity, subActivity: subActivities };
+                        // Sort subactivities first by order
+                        const sortedSubActivities = [
+                          ...activity.subActivity,
+                        ].sort(
+                          (a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)
+                        );
+                        // Reorder the subactivities
+                        const [moved] = sortedSubActivities.splice(
+                          fromIndex,
+                          1
+                        );
+                        sortedSubActivities.splice(toIndex, 0, moved);
+                        // Update order field for all subactivities based on their new position
+                        const reorderedSubActivities = sortedSubActivities.map(
+                          (sub: any, subIndex: number) => ({
+                            ...sub,
+                            order: subIndex + 1,
+                          })
+                        );
+                        return {
+                          ...activity,
+                          subActivity: reorderedSubActivities,
+                        };
                       }
                       return activity;
                     })

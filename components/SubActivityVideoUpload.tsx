@@ -1,13 +1,19 @@
 "use client";
-import { useState, memo } from "react";
+import { useState, memo, useEffect } from "react";
 import { Button } from "@heroui/react";
 import { Upload, Video, Trash } from "lucide-react";
+import {
+  useSubActivityVideoStore,
+  useSubActivityVideoUploadState,
+} from "@/stores/subActivityVideoStore";
 
 interface SubActivityVideoUploadProps {
   lang: string;
   onVideoSelect: (filename: string) => void;
   onVideoRemove: () => void;
   hasVideo: boolean;
+  activityIndex: number;
+  subActivityIndex: number;
 }
 
 function SubActivityVideoUpload({
@@ -15,10 +21,24 @@ function SubActivityVideoUpload({
   onVideoSelect,
   onVideoRemove,
   hasVideo,
+  activityIndex,
+  subActivityIndex,
 }: SubActivityVideoUploadProps) {
-  const [isUploading, setIsUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
   const inputId = `video-upload-${Math.random().toString(36).substr(2, 9)}`;
+  const { setUploading, clearUploadState } = useSubActivityVideoStore();
+  const uploadState = useSubActivityVideoUploadState(activityIndex, subActivityIndex);
+  const isUploading = uploadState?.isUploading ?? false;
+  const uploadProgress = uploadState?.progress ?? 0;
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      // Don't clear if still uploading - let it continue in background
+      if (!isUploading) {
+        clearUploadState(activityIndex, subActivityIndex);
+      }
+    };
+  }, [activityIndex, subActivityIndex, clearUploadState, isUploading]);
 
   const handleFileSelect = async (file: File) => {
     // Allow video files and HLS manifest files (.m3u8)
@@ -30,8 +50,7 @@ function SubActivityVideoUpload({
       return;
     }
 
-    setIsUploading(true);
-    setUploadProgress(0);
+    setUploading(activityIndex, subActivityIndex, true, 0);
 
     try {
       // Preserve original extension (important for HLS .m3u8 files)
@@ -61,18 +80,20 @@ function SubActivityVideoUpload({
           throw new Error(errorData.error || errorData.details || `Upload failed: ${response.status} ${response.statusText}`);
         }
 
-        setUploadProgress(Math.round(((i + 1) / total) * 100));
+        // Update progress in store (persists across unmounts)
+        setUploading(activityIndex, subActivityIndex, true, Math.round(((i + 1) / total) * 100));
       }
 
       // Preserve the original extension (don't force .mp4)
       onVideoSelect(filename);
+      // Clear upload state after successful completion
+      setUploading(activityIndex, subActivityIndex, false);
     } catch (error: any) {
       const errorMessage = error?.message || (lang === "en" ? "Upload failed" : "መስቀል አልተሳካም");
       console.error("[VideoUpload] Upload error:", error);
       alert(errorMessage);
-    } finally {
-      setIsUploading(false);
-      setUploadProgress(0);
+      // Clear upload state on error
+      setUploading(activityIndex, subActivityIndex, false);
     }
   };
 

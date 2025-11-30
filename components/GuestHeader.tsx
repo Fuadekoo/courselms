@@ -79,16 +79,12 @@ export default function GuestHeader() {
     <>
       {/* Header/Navbar */}
       <header
-        className="sticky top-0 z-40 w-full border-b backdrop-blur supports-[backdrop-filter]:bg-background/60 transition-colors"
-        style={{
-          background:
-            "linear-gradient(90deg, rgba(15,23,42,0.85) 0%, rgba(30,58,138,0.85) 50%, rgba(15,23,42,0.85) 100%)",
-        }}
+        className="sticky top-0 z-40 w-full border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-all duration-300"
         data-lang={lang}
       >
         <div className="container flex h-16 items-center justify-between px-4 mx-auto max-w-7xl">
           {/* Left: Menu Toggle (Mobile) + Logo */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 lg:ml-12">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="md:hidden p-2 hover:bg-default-100 rounded-lg transition-colors"

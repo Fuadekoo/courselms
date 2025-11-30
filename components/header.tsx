@@ -2,10 +2,9 @@
 
 import React, { useEffect, useState } from "react";
 import { usePathname, useParams, useRouter } from "next/navigation";
-import { ChevronRight, ShoppingCart, Search, Sun, Moon } from "lucide-react";
+import { ShoppingCart, Search, Sun, Moon } from "lucide-react";
 import User from "./user";
 import { Button, Input } from "@heroui/react";
-import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { getUserName } from "@/actions/user/header";
 import Logo from "./Logo";
@@ -48,7 +47,7 @@ export default function Header({
     >
       <div className="relative flex h-16 items-center justify-between px-4 md:px-6 gap-4">
         {/* Left Side: Logo */}
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 lg:ml-12">
           <Logo />
         </div>
 
@@ -75,7 +74,7 @@ export default function Header({
         </form>
 
         {/* Right Side: Cart, User */}
-        <div className="flex items-center gap-3">
+        <div className="items-center gap-3 hidden lg:flex">
           {/* Shopping Cart */}
           <Button
             isIconOnly

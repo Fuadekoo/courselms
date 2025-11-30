@@ -18,11 +18,9 @@ function UserLayoutContent({
   return (
     <div className={cn(
       "min-h-screen relative",
-      isHomePage 
-        ? "bg-background" 
-        : "bg-gradient-to-br from-gray-50 via-gray-50/50 to-white dark:from-gray-950 dark:via-gray-900/50 dark:to-gray-900"
+      "bg-gradient-to-br from-gray-50 via-gray-50/50 to-white dark:from-gray-950 dark:via-gray-900/50 dark:to-gray-900"
     )}>
-      {!isHomePage && (
+      {/* Background layers - applied to all pages */}
         <>
           {/* Layer 1 - Top: Minimal blur (1px) */}
           <div
@@ -97,7 +95,6 @@ function UserLayoutContent({
           {/* Overlay for better content readability */}
           <div className="absolute inset-0 bg-white/20 dark:bg-gray-900/25 pointer-events-none" />
         </>
-      )}
       
       {/* Sidebar removed - navigation moved to profile dropdown */}
       <Header navItems={list} />

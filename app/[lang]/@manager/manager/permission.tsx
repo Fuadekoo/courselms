@@ -65,8 +65,8 @@ export function Permission({
                 "courseMaterials",
                 "publicAnnouncment",
                 "periodicDiscount",
+                "videoConversion",
               ].map((v, i) => {
-                console.log(input.includes(v));
                 return (
                   <Switch
                     key={i + ""}

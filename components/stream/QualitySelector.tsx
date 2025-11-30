@@ -201,7 +201,7 @@ export default function QualitySelector({
               }}
               onMouseEnter={(e) => {
                 if (!isSelected) {
-                  e.currentTarget.style.background = "rgba(0, 0, 0, 0.05)";
+                e.currentTarget.style.background = "rgba(0, 0, 0, 0.05)";
                 }
               }}
               onMouseLeave={(e) => {
@@ -251,7 +251,7 @@ export default function QualitySelector({
                   fontSize: "14px",
                   color: isSelected
                     ? "rgba(0, 0, 0, 0.9)"
-                    : "rgba(0, 0, 0, 0.7)",
+                      : "rgba(0, 0, 0, 0.7)",
                   fontWeight: isSelected ? 500 : 400,
                   fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
                 }}

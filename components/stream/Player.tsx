@@ -871,9 +871,9 @@ function Player({
       // Save current state before switching to preserve playback continuity
       // Only save if not already saved (e.g., from quality change handler)
       if (!savedStateRef.current) {
-        const wasPlaying = !video.paused;
-        const savedTime = video.currentTime;
-        savedStateRef.current = { time: savedTime, playing: wasPlaying };
+      const wasPlaying = !video.paused;
+      const savedTime = video.currentTime;
+      savedStateRef.current = { time: savedTime, playing: wasPlaying };
         console.log("[Player] Source change - saved playback state:", {
           wasPlaying,
           savedTime,
@@ -987,13 +987,13 @@ function Player({
               );
             } else {
               // No time to restore, just resume if it was playing
-              if (savedState.playing) {
-                video.play().catch(() => {});
-              }
+          if (savedState.playing) {
+            video.play().catch(() => {});
+          }
               setIsLoading(false);
             }
 
-            savedStateRef.current = null; // Clear saved state
+          savedStateRef.current = null; // Clear saved state
           };
 
           // Small delay to ensure video metadata is loaded

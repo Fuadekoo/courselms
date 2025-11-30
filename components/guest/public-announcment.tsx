@@ -22,7 +22,10 @@ export default function PublicAnnouncement() {
   const [isVisible, setIsVisible] = useState(true);
 
   useEffect(() => {
-    fetchAnnouncements();
+    // Only fetch on client side and ensure we're not in an error state
+    if (typeof window !== "undefined") {
+      fetchAnnouncements();
+    }
   }, []);
 
   const fetchAnnouncements = async () => {
@@ -32,12 +35,14 @@ export default function PublicAnnouncement() {
         activeOnly: true,
         limit: 5,
       });
-      if (result.data && result.data.length > 0) {
+      if (result?.data && result.data.length > 0) {
         setAnnouncements(result.data);
         setCurrentIndex(0);
       }
     } catch (error) {
       console.error("Error fetching announcements:", error);
+      // Silently fail - don't show announcements if there's an error
+      setAnnouncements([]);
     } finally {
       setLoading(false);
     }

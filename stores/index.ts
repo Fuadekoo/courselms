@@ -12,6 +12,10 @@ export { useUploadStore } from "./uploadStore";
 export { useUIStore } from "./uiStore";
 export { useSubActivityThumbnailStore } from "./subActivityThumbnailStore";
 export {
+  useSubActivityVideoStore,
+  useSubActivityVideoUploadState,
+} from "./subActivityVideoStore";
+export {
   useStudentProgressStore,
   useCurrentVideo,
   useOverallProgress,
@@ -32,6 +36,23 @@ export {
   usePaymentProcessing,
   usePaymentStatus,
 } from "./paymentStore";
+export {
+  useVideoConversionStore,
+  useVideoConversionVideos,
+  useVideoConversionStats,
+  useVideoConversionLoading,
+  useVideoConversionConverting,
+  useVideoConversionSetVideos,
+  useVideoConversionSetStats,
+  useVideoConversionSetLoading,
+  useVideoConversionAddConverting,
+  useVideoConversionRemoveConverting,
+  useVideoConversionUpdateVideoStatus,
+  useVideoConversionRefresh,
+  useVideoConversionClear,
+  useVideoConversionIsFresh,
+} from "./videoConversionStore";
+export type { VideoFile } from "./videoConversionStore";
 
 // Export all hooks
 export {

@@ -16,6 +16,7 @@ import {
   UserPen,
   Bell,
   Percent,
+  Video,
 } from "lucide-react";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import useData from "@/hooks/useData";
@@ -99,6 +100,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           label: lang === "en" ? "Periodic Discounts" : "ወቅታዊ ቅናሾች",
           url: "periodicDiscount",
           icon: <Percent className="size-5" />,
+        },
+        {
+          label: lang === "en" ? "Video Conversion" : "የቪዲዮ መለወጥ",
+          url: "videoConversion",
+          icon: <Video className="size-5" />,
         },
         // { label: "Student", url: "student" },
         // { label: "Ustaz", url: "ustaz" },

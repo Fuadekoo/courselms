@@ -6,43 +6,54 @@ import { queueHlsConversion } from "@/lib/hls-converter";
 // Use environment variable if set, otherwise fallback to default path
 // Lazy initialization to avoid executing during build time
 const getVideoDirectories = () => {
-  const videoBaseDir = process.env.VIDEO_BASE_DIR || 'fuad/course';
+  const videoBaseDir = process.env.VIDEO_BASE_DIR || "fuad/course";
   const cwd = process.cwd();
-  
+
   console.log(`[Upload] process.cwd(): ${cwd}`);
-  console.log(`[Upload] VIDEO_BASE_DIR: ${process.env.VIDEO_BASE_DIR || 'not set (using default)'}`);
+  console.log(
+    `[Upload] VIDEO_BASE_DIR: ${
+      process.env.VIDEO_BASE_DIR || "not set (using default)"
+    }`
+  );
   console.log(`[Upload] videoBaseDir: ${videoBaseDir}`);
-  
-  if (videoBaseDir.startsWith('/')) {
+
+  if (videoBaseDir.startsWith("/")) {
     // Absolute path - use as is
     const fullPath = path.resolve(videoBaseDir);
     console.log(`[Upload] Using absolute path: ${fullPath}`);
     return {
       uploadDir: path.dirname(fullPath),
-      courseDir: fullPath
+      courseDir: fullPath,
     };
   } else {
     // Relative path from process.cwd()
     // Ensure we're not at root - if cwd is /, something is wrong
-    if (cwd === '/' || cwd === '') {
-      console.error(`[Upload] WARNING: process.cwd() is '${cwd}'. This is likely wrong.`);
+    if (cwd === "/" || cwd === "") {
+      console.error(
+        `[Upload] WARNING: process.cwd() is '${cwd}'. This is likely wrong.`
+      );
       // Try to use a more reliable path - look for package.json or .next directory
       const possiblePaths = [
-        path.join(__dirname, '../../..'), // Go up from .next/server/app/api/upload-video
-        path.join(process.env.PWD || '', videoBaseDir), // Use PWD if available
+        path.join(__dirname, "../../.."), // Go up from .next/server/app/api/upload-video
+        path.join(process.env.PWD || "", videoBaseDir), // Use PWD if available
       ];
       for (const possiblePath of possiblePaths) {
-        if (fs.existsSync(path.join(possiblePath, 'package.json')) || fs.existsSync(path.join(possiblePath, '.next'))) {
+        if (
+          fs.existsSync(path.join(possiblePath, "package.json")) ||
+          fs.existsSync(path.join(possiblePath, ".next"))
+        ) {
           const resolvedPath = path.resolve(possiblePath, videoBaseDir);
-          console.log(`[Upload] Using fallback path resolution: ${resolvedPath}`);
+          console.log(
+            `[Upload] Using fallback path resolution: ${resolvedPath}`
+          );
           return {
             uploadDir: path.dirname(resolvedPath),
-            courseDir: resolvedPath
+            courseDir: resolvedPath,
           };
         }
       }
     }
-    
+
     const courseDir = path.resolve(cwd, videoBaseDir);
     const uploadDir = path.dirname(courseDir);
     console.log(`[Upload] Resolved relative path: ${courseDir}`);
@@ -64,38 +75,54 @@ const getUploadDir = () => {
 const getCourseDir = () => {
   if (!_COURSE_DIR) {
     _COURSE_DIR = getVideoDirectories().courseDir;
-    
+
     // Safety check: if path starts with /fuad (absolute from root), it's likely wrong
     // This happens when process.cwd() is / instead of project root
-    if (_COURSE_DIR.startsWith('/fuad/') && !process.env.VIDEO_BASE_DIR?.startsWith('/')) {
+    if (
+      _COURSE_DIR.startsWith("/fuad/") &&
+      !process.env.VIDEO_BASE_DIR?.startsWith("/")
+    ) {
       console.warn(`[Upload] Detected incorrect absolute path: ${_COURSE_DIR}`);
-      console.warn(`[Upload] Attempting to fix by using project root detection...`);
-      
+      console.warn(
+        `[Upload] Attempting to fix by using project root detection...`
+      );
+
       // Try to find project root by looking for .next or package.json
       let projectRoot = process.cwd();
       const maxDepth = 10;
       let depth = 0;
-      
-      while (depth < maxDepth && projectRoot !== '/' && projectRoot !== '') {
-        if (fs.existsSync(path.join(projectRoot, '.next')) || fs.existsSync(path.join(projectRoot, 'package.json'))) {
+
+      while (depth < maxDepth && projectRoot !== "/" && projectRoot !== "") {
+        if (
+          fs.existsSync(path.join(projectRoot, ".next")) ||
+          fs.existsSync(path.join(projectRoot, "package.json"))
+        ) {
           break;
         }
         projectRoot = path.dirname(projectRoot);
         depth++;
       }
-      
-      if (projectRoot && projectRoot !== '/' && fs.existsSync(path.join(projectRoot, '.next'))) {
-        const correctedPath = path.resolve(projectRoot, 'fuad/course');
-        console.log(`[Upload] Corrected path from ${_COURSE_DIR} to ${correctedPath}`);
+
+      if (
+        projectRoot &&
+        projectRoot !== "/" &&
+        fs.existsSync(path.join(projectRoot, ".next"))
+      ) {
+        const correctedPath = path.resolve(projectRoot, "fuad/course");
+        console.log(
+          `[Upload] Corrected path from ${_COURSE_DIR} to ${correctedPath}`
+        );
         _COURSE_DIR = correctedPath;
       } else {
-        console.error(`[Upload] Could not determine project root. Using: ${_COURSE_DIR}`);
+        console.error(
+          `[Upload] Could not determine project root. Using: ${_COURSE_DIR}`
+        );
       }
     }
-    
+
     console.log(`[Upload] Final course directory: ${_COURSE_DIR}`);
     console.log(`[Upload] Directory exists: ${fs.existsSync(_COURSE_DIR)}`);
-    
+
     // Check permissions
     try {
       fs.accessSync(_COURSE_DIR, fs.constants.R_OK | fs.constants.W_OK);
@@ -103,22 +130,27 @@ const getCourseDir = () => {
     } catch (permError: any) {
       console.error(`[Upload] Permission check failed:`, {
         error: permError.message,
-        code: permError.code
+        code: permError.code,
       });
     }
-    
+
     // Ensure directory exists with proper error handling
     if (!fs.existsSync(_COURSE_DIR)) {
       try {
         fs.mkdirSync(_COURSE_DIR, { recursive: true });
         console.log(`[Upload] Created course directory: ${_COURSE_DIR}`);
       } catch (error: any) {
-        console.error(`[Upload] Failed to create course directory: ${_COURSE_DIR}`, {
-          error: error.message,
-          code: error.code,
-          errno: error.errno
-        });
-        throw new Error(`Cannot create video directory: ${_COURSE_DIR}. ${error.message}`);
+        console.error(
+          `[Upload] Failed to create course directory: ${_COURSE_DIR}`,
+          {
+            error: error.message,
+            code: error.code,
+            errno: error.errno,
+          }
+        );
+        throw new Error(
+          `Cannot create video directory: ${_COURSE_DIR}. ${error.message}`
+        );
       }
     } else {
       console.log(`[Upload] Using existing directory: ${_COURSE_DIR}`);
@@ -135,7 +167,7 @@ export async function POST(req: NextRequest) {
   try {
     // Get course directory (lazy initialization)
     const COURSE_DIR = getCourseDir();
-    
+
     const formData = await req.formData();
     const chunk = formData.get("chunk") as File;
     const filename = formData.get("filename") as string;
@@ -151,7 +183,7 @@ export async function POST(req: NextRequest) {
 
     let finalFilename = filename;
     if (!finalFilename || finalFilename === "") {
-      const ext = chunk.name.split('.').pop() || "mp4";
+      const ext = chunk.name.split(".").pop() || "mp4";
       finalFilename = getTimestampUUID(ext);
     }
 
@@ -159,7 +191,7 @@ export async function POST(req: NextRequest) {
       COURSE_DIR,
       finalFilename.replace(/\.[^/.]+$/, "") + "_chunks"
     );
-    
+
     try {
       if (!fs.existsSync(chunkFolder)) {
         fs.mkdirSync(chunkFolder, { recursive: true });
@@ -168,13 +200,13 @@ export async function POST(req: NextRequest) {
       console.error(`[Upload] Failed to create chunk folder: ${chunkFolder}`, {
         error: dirError.message,
         code: dirError.code,
-        courseDir: COURSE_DIR
+        courseDir: COURSE_DIR,
       });
       return NextResponse.json(
-        { 
+        {
           error: "Failed to create upload directory",
           details: dirError.message,
-          path: chunkFolder
+          path: chunkFolder,
         },
         { status: 500 }
       );
@@ -189,24 +221,24 @@ export async function POST(req: NextRequest) {
         error: writeError.message,
         code: writeError.code,
         chunkIndex,
-        totalChunks
+        totalChunks,
       });
       return NextResponse.json(
-        { 
+        {
           error: "Failed to write chunk file",
           details: writeError.message,
-          chunkIndex
+          chunkIndex,
         },
         { status: 500 }
       );
     }
 
     if (parseInt(chunkIndex) + 1 === parseInt(totalChunks)) {
-      // Preserve original file extension (support HLS .m3u8 and other formats)
-      const fileExtension = finalFilename.split('.').pop() || 'mp4';
+      // This is the last chunk - combine all chunks into final file
+      const fileExtension = finalFilename.split(".").pop() || "mp4";
       const baseName = finalFilename.replace(/\.[^/.]+$/, "");
       const videoPath = path.join(COURSE_DIR, `${baseName}.${fileExtension}`);
-      
+
       try {
         const chunks = [];
         for (let i = 0; i < parseInt(totalChunks); i++) {
@@ -215,39 +247,51 @@ export async function POST(req: NextRequest) {
             chunks.push(fs.readFileSync(chunkFilePath));
           }
         }
-        
+
         const finalBuffer = Buffer.concat(chunks);
         fs.writeFileSync(videoPath, finalBuffer);
+        console.log(
+          `[Upload] Video file written: ${videoPath} (${finalBuffer.length} bytes)`
+        );
+
+        // Clean up chunks
         fs.rmSync(chunkFolder, { recursive: true, force: true });
-        
+        console.log(`[Upload] Chunk folder cleaned up`);
+
         // If uploaded file is MP4, queue it for HLS conversion in background
-        if (fileExtension.toLowerCase() === 'mp4') {
-          try {
-            const jobId = await queueHlsConversion(videoPath, baseName);
-            console.log(`[Upload] Queued HLS conversion job: ${jobId}`);
-            
-            // Return immediately with job ID and original filename
-            // The conversion will happen in the background
-            return NextResponse.json({ 
-              success: true, 
-              filename: `${baseName}.${fileExtension}`, // Keep original for now
-              jobId: jobId,
-              converting: true,
-              message: "Video uploaded. HLS conversion in progress..."
+        // Don't await - let it run asynchronously so we can return immediately
+        if (fileExtension.toLowerCase() === "mp4") {
+          // Queue conversion in background without blocking response
+          queueHlsConversion(videoPath, baseName)
+            .then((jobId) => {
+              if (jobId.includes("ffmpeg-unavailable")) {
+                console.warn(
+                  `[Upload] HLS conversion skipped for ${baseName} - FFmpeg not available`
+                );
+              } else {
+                console.log(
+                  `[Upload] Queued HLS conversion job: ${jobId} for ${baseName}`
+                );
+              }
+            })
+            .catch((conversionError: any) => {
+              console.error("Error queueing HLS conversion:", conversionError);
+              // Log error but don't fail the upload - MP4 file is still saved
             });
-          } catch (conversionError: any) {
-            console.error("Error queueing HLS conversion:", conversionError);
-            // If queueing fails, return original file
-            return NextResponse.json({ 
-              success: true, 
-              filename: `${baseName}.${fileExtension}`,
-              converting: false,
-              error: conversionError.message || "Failed to queue HLS conversion"
-            });
-          }
+
+          // Return immediately - conversion happens in background
+          return NextResponse.json({
+            success: true,
+            filename: `${baseName}.${fileExtension}`,
+            message:
+              "Video uploaded successfully. HLS conversion will be processed in background.",
+          });
         }
-        
-        return NextResponse.json({ success: true, filename: `${baseName}.${fileExtension}` });
+
+        return NextResponse.json({
+          success: true,
+          filename: `${baseName}.${fileExtension}`,
+        });
       } catch (err: any) {
         console.error("[Upload] Error joining chunks:", {
           error: err.message,
@@ -255,32 +299,32 @@ export async function POST(req: NextRequest) {
           code: err.code,
           videoPath,
           chunkFolder,
-          totalChunks
+          totalChunks,
         });
         return NextResponse.json(
-          { 
+          {
             error: "Error joining chunks",
             details: err.message,
-            code: err.code
+            code: err.code,
           },
           { status: 500 }
         );
       }
     }
-    
+
     return NextResponse.json({ success: true, filename: finalFilename });
   } catch (error: any) {
     console.error("[Upload] Upload error:", {
       error: error.message,
       stack: error.stack,
       code: error.code,
-      name: error.name
+      name: error.name,
     });
     return NextResponse.json(
-      { 
+      {
         error: "Upload failed",
         details: error.message || "Unknown error",
-        code: error.code
+        code: error.code,
       },
       { status: 500 }
     );
