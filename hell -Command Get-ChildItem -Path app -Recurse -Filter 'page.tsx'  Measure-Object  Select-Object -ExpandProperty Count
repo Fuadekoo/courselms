@@ -1,0 +1,59 @@
+warning: in the working copy of 'app/api/upload-video/route.ts', LF will be replaced by CRLF the next time Git touches it
+[1mdiff --git a/app/api/upload-video/route.ts b/app/api/upload-video/route.ts[m
+[1mindex 78531d5..3389954 100644[m
+[1m--- a/app/api/upload-video/route.ts[m
+[1m+++ b/app/api/upload-video/route.ts[m
+[36m@@ -1,7 +1,6 @@[m
+ import { NextRequest, NextResponse } from "next/server";[m
+ import fs from "fs";[m
+ import path from "path";[m
+[31m-import { queueHlsConversion } from "@/lib/hls-converter";[m
+ [m
+ // Use environment variable if set, otherwise fallback to default path[m
+ // Lazy initialization to avoid executing during build time[m
+[36m@@ -202,7 +201,7 @@[m [mexport async function POST(req: NextRequest) {[m
+     }[m
+ [m
+     if (parseInt(chunkIndex) + 1 === parseInt(totalChunks)) {[m
+[31m-      // Preserve original file extension (support HLS .m3u8 and other formats)[m
+[32m+[m[32m      // This is the last chunk - combine all chunks into final file[m
+       const fileExtension = finalFilename.split('.').pop() || 'mp4';[m
+       const baseName = finalFilename.replace(/\.[^/.]+$/, "");[m
+       const videoPath = path.join(COURSE_DIR, `${baseName}.${fileExtension}`);[m
+[36m@@ -218,34 +217,9 @@[m [mexport async function POST(req: NextRequest) {[m
+         [m
+         const finalBuffer = Buffer.concat(chunks);[m
+         fs.writeFileSync(videoPath, finalBuffer);[m
+[31m-        fs.rmSync(chunkFolder, { recursive: true, force: true });[m
+         [m
+[31m-        // If uploaded file is MP4, queue it for HLS conversion in background[m
+[31m-        if (fileExtension.toLowerCase() === 'mp4') {[m
+[31m-          try {[m
+[31m-            const jobId = await queueHlsConversion(videoPath, baseName);[m
+[31m-            console.log(`[Upload] Queued HLS conversion job: ${jobId}`);[m
+[31m-            [m
+[31m-            // Return immediately with job ID and original filename[m
+[31m-            // The conversion will happen in the background[m
+[31m-            return NextResponse.json({ [m
+[31m-              success: true, [m
+[31m-              filename: `${baseName}.${fileExtension}`, // Keep original for now[m
+[31m-              jobId: jobId,[m
+[31m-              converting: true,[m
+[31m-              message: "Video uploaded. HLS conversion in progress..."[m
+[31m-            });[m
+[31m-          } catch (conversionError: any) {[m
+[31m-            console.error("Error queueing HLS conversion:", conversionError);[m
+[31m-            // If queueing fails, return original file[m
+[31m-            return NextResponse.json({ [m
+[31m-              success: true, [m
+[31m-              filename: `${baseName}.${fileExtension}`,[m
+[31m-              converting: false,[m
+[31m-              error: conversionError.message || "Failed to queue HLS conversion"[m
+[31m-            });[m
+[31m-          }[m
+[31m-        }[m
+[32m+[m[32m        // Clean up chunks[m
+[32m+[m[32m        fs.rmSync(chunkFolder, { recursive: true, force: true });[m
+         [m
+         return NextResponse.json({ success: true, filename: `${baseName}.${fileExtension}` });[m
+       } catch (err: any) {[m
