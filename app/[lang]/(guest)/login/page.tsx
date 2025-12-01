@@ -184,7 +184,7 @@ export default function Page() {
                       inputWrapper: "bg-white/50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-600 hover:border-primary-400 dark:hover:border-primary-500 focus-within:border-primary-500 dark:focus-within:border-primary-400 transition-colors",
                     }}
                     {...register("userName")}
-                    placeholder={lang == "en" ? "Phone number or username" : "የስልክ ቁጥር ወይም የተጠቃሚ ስም"}
+                    placeholder={lang == "en" ? "Phone number or email" : "የስልክ ቁጥር ወይም ኢሜይል"}
                     
                   />
                 </div>

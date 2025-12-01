@@ -5,6 +5,8 @@ import { StateType } from "../definations";
 import { redirect } from "next/navigation";
 import prisma from "../db";
 import { auth } from "../auth";
+import { SESClient, SendEmailCommand } from "@aws-sdk/client-ses";
+import { getVerificationEmailHTML, getVerificationEmailText } from "../email";
 
 export async function setLang(
   prevState: StateType,
@@ -18,6 +20,76 @@ export async function setLang(
   } catch (error) {
     console.log("ERROR :: ", error);
     return { status: false, cause: "", message: "" };
+  }
+}
+
+// AWS SES Email Sending Function
+export async function sendEmail(
+  to: string,
+  subject: string,
+  body: string,
+  htmlBody?: string
+) {
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+  const region = process.env.AWS_REGION;
+
+  if (!accessKeyId || !secretAccessKey || !region) {
+    console.error(
+      "❌ AWS credentials are not configured in environment variables"
+    );
+    throw new Error("AWS credentials not configured");
+  }
+
+  console.log("📧 Sending email to:", to);
+
+  try {
+    const sesClient = new SESClient({
+      region,
+      credentials: {
+        accessKeyId,
+        secretAccessKey,
+      },
+    });
+
+    const messageBody: {
+      Text: { Data: string; Charset: string };
+      Html?: { Data: string; Charset: string };
+    } = {
+      Text: {
+        Data: body,
+        Charset: "UTF-8",
+      },
+    };
+
+    // Add HTML body if provided
+    if (htmlBody) {
+      messageBody.Html = {
+        Data: htmlBody,
+        Charset: "UTF-8",
+      };
+    }
+
+    const command = new SendEmailCommand({
+      Source: process.env.AWS_SES_FROM_EMAIL || "noreply@darulkubra.com",
+      Destination: {
+        ToAddresses: [to],
+      },
+      Message: {
+        Subject: {
+          Data: subject,
+          Charset: "UTF-8",
+        },
+        Body: messageBody,
+      },
+    });
+
+    const response = await sesClient.send(command);
+    console.log("✅ Email sent successfully:", response.MessageId);
+    return response;
+  } catch (error) {
+    console.error("❌ Failed to send email:", error);
+    throw error;
   }
 }
 
@@ -128,6 +200,81 @@ export async function getCurrentUserPhoneNumber() {
   } catch (error) {
     console.error("Error getting current user phone number:", error);
     return { status: false, message: "Failed to get user phone number" };
+  }
+}
+
+export async function sendEmailOTP(
+  prevState: StateType,
+  data: { email: string } | undefined
+): Promise<StateType> {
+  try {
+    if (!data) {
+      console.error("❌ No data provided to sendEmailOTP");
+      return { status: false, cause: "no_data", message: "No data provided" };
+    }
+
+    // Generate OTP
+    const otpCode = Math.floor(100000 + Math.random() * 900000);
+    console.log("📧 Generating email OTP for:", data.email);
+
+    // Find or create email OTP record
+    let emailOtp = await prisma.emailOtp.findUnique({
+      where: { email: data.email },
+    });
+
+    if (emailOtp) {
+      emailOtp = await prisma.emailOtp.update({
+        where: { id: emailOtp.id },
+        data: { code: otpCode },
+      });
+      console.log("✅ Email OTP updated in database");
+    } else {
+      emailOtp = await prisma.emailOtp.create({
+        data: {
+          email: data.email,
+          code: otpCode,
+        },
+      });
+      console.log("✅ Email OTP created in database");
+    }
+
+    // Try to send email
+    try {
+      const htmlBody = getVerificationEmailHTML(emailOtp.code.toString());
+      const textBody = getVerificationEmailText(emailOtp.code.toString());
+
+      await sendEmail(
+        emailOtp.email,
+        "Your Verification Code - Darulkubra",
+        textBody,
+        htmlBody
+      );
+      console.log("✅ Email OTP sent successfully to:", emailOtp.email);
+      console.log("🔑 Email OTP Code:", emailOtp.code);
+      return { status: true, message: "Verification code sent to your email" };
+    } catch (emailError) {
+      console.error("❌ Failed to send email:", emailError);
+      // Still return success because OTP is generated and saved
+      console.log(
+        "⚠️ Email failed but OTP is saved. Email OTP Code:",
+        emailOtp.code
+      );
+      return {
+        status: true,
+        message:
+          "Verification code generated (Email may not have been sent - check console for code)",
+      };
+    }
+  } catch (error) {
+    console.error("❌ Error in sendEmailOTP:", error);
+    return {
+      status: false,
+      cause: "unknown_error",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to send verification code",
+    };
   }
 }
 

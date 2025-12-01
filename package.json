@@ -11,6 +11,7 @@
     "check:ffmpeg": "node scripts/check-ffmpeg.cjs"
   },
   "dependencies": {
+    "@aws-sdk/client-ses": "^3.940.0",
     "@aws-sdk/client-sns": "^3.906.0",
     "@google/generative-ai": "^0.24.1",
     "@heroui/react": "^2.7.10",

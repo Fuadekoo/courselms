@@ -81,6 +81,7 @@ model User {
   role            Role
   username        String?           @unique
   phoneNumber     String            @unique
+  email           String?           @unique
   password        String            @default("")
   firstName       String            @default("")
   fatherName      String            @default("")
@@ -333,6 +334,16 @@ model otp {
   code        Int
 }
 
+model emailOtp {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  code      Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([email])
+}
+
 // Video Q&A Models
 model VideoQuestion {
   id            String          @id @default(cuid())
@@ -403,5 +414,3 @@ model periodicDiscount {
   createdAt    DateTime @default(now())
   course       Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
 }
-
-

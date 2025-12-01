@@ -93,11 +93,19 @@ const authConfig = {
               userName: z.string(),
               password: z.string(),
             })
-            .parse(credentials),
-          user = await prisma.user.findFirst({
-            where: { phoneNumber: userName },
-            select: { id: true, role: true, code: true, password: true },
-          });
+            .parse(credentials);
+        
+        // Try to find user by phone number or email
+        const user = await prisma.user.findFirst({
+          where: {
+            OR: [
+              { phoneNumber: userName },
+              { email: userName },
+            ],
+          },
+          select: { id: true, role: true, code: true, password: true },
+        });
+        
         if (user) {
           if (await bcryptjs.compare(password, user.password)) {
             if (user.role === "employee") {
