@@ -101,13 +101,11 @@ export default function Page() {
     return () => clearInterval(interval);
   }, [otpTimer]);
 
-
   // Handle OTP change
   const handleOtpChange = (otpValue: string) => {
     setOtp(otpValue);
     setValue("otp", otpValue);
   };
-
 
   // Handle phone number change with universal formatting
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -147,9 +145,7 @@ export default function Page() {
 
     if (!phoneNumber) {
       alert(
-        lang === "en"
-          ? "Please enter phone number first"
-          : "እባክዎ የስልክ ቁጥር ያስገቡ"
+        lang === "en" ? "Please enter phone number first" : "እባክዎ የስልክ ቁጥር ያስገቡ"
       );
       return;
     }
@@ -320,7 +316,12 @@ export default function Page() {
 
         {/* Form Steps */}
         <Form
-          onSubmit={handleSubmit(action)}
+          onSubmit={handleSubmit((data) => {
+            action({
+              ...data,
+              countryCode: "+251",
+            });
+          })}
           validationErrors={Object.entries(formState.errors).reduce(
             (a, [key, { message }]) => {
               return { ...a, [key]: message };
