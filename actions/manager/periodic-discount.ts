@@ -35,23 +35,62 @@ export async function getPeriodicDiscounts() {
       },
     });
 
-    // Convert to expected format for compatibility
-    const formattedDiscounts = discounts.map((discount) => ({
-      id: discount.id,
-      title: `Discount for ${discount.course.titleEn}`,
-      description: null,
-      type: "PERCENT" as const,
-      value: discount.discountRate,
-      startDate: discount.startDate.toISOString(),
-      endDate: discount.endDate.toISOString(),
-      frequency: "NONE" as const,
-      daysOfWeek: null,
-      isActive: true,
-      createdAt: discount.createdAt.toISOString(),
-      updatedAt: discount.createdAt.toISOString(),
-      courseId: discount.courseId,
-      course: discount.course,
-    }));
+    // Group discounts by dates + rate + createdAt (within 2 seconds) to group related discounts
+    // This groups discounts created together (for multi-course discounts)
+    const groupedDiscounts = new Map<string, typeof discounts>();
+    
+    discounts.forEach((discount) => {
+      // Round createdAt to nearest 2 seconds to group discounts created together
+      const createdAtRounded = Math.floor(
+        discount.createdAt.getTime() / 2000
+      ) * 2000;
+      
+      // Create a unique key based on dates, rate, and creation time
+      const groupKey = `${discount.startDate.toISOString()}_${discount.endDate.toISOString()}_${discount.discountRate}_${createdAtRounded}`;
+      
+      if (!groupedDiscounts.has(groupKey)) {
+        groupedDiscounts.set(groupKey, []);
+      }
+      groupedDiscounts.get(groupKey)!.push(discount);
+    });
+
+    // Convert grouped discounts to expected format
+    const formattedDiscounts: any[] = [];
+    
+    groupedDiscounts.forEach((group) => {
+      // Use the most recent discount as the base
+      const baseDiscount = group[0];
+      const courseIds = group.map((d) => d.courseId);
+      
+      // Construct a default title from courses
+      const courseNames = group
+        .map((d) => d.course.titleEn)
+        .slice(0, 3)
+        .join(", ");
+      const defaultTitle = group.length > 3 
+        ? `${courseNames} and ${group.length - 3} more`
+        : courseNames;
+
+      // Use default title (actual title will be stored in description when creating/updating)
+      formattedDiscounts.push({
+        id: baseDiscount.id, // Use first discount ID as the main ID
+        title: defaultTitle,
+        description: JSON.stringify({ courseIds, title: defaultTitle }), // Store all course IDs and title
+        type: "PERCENT" as const,
+        value: baseDiscount.discountRate,
+        startDate: baseDiscount.startDate.toISOString(),
+        endDate: baseDiscount.endDate.toISOString(),
+        frequency: "NONE" as const,
+        daysOfWeek: null,
+        isActive: true,
+        createdAt: baseDiscount.createdAt.toISOString(),
+        updatedAt: baseDiscount.createdAt.toISOString(),
+        courseId: baseDiscount.courseId,
+        course: baseDiscount.course,
+        allDiscountIds: group.map((d) => d.id), // Store all related discount IDs
+        allCourses: group.map((d) => d.course), // Store all courses
+      });
+    });
 
     return { data: formattedDiscounts, error: null };
   } catch (error) {
@@ -114,32 +153,27 @@ export async function createPeriodicDiscount(
   data: Omit<PeriodicDiscountInput, "id">
 ) {
   try {
-    // Note: The current schema only supports course-specific discounts
-    // Extract courseId from description if provided (for backwards compatibility)
-    let courseId: string | undefined;
+    // Extract courseIds from description
+    let courseIds: string[] = [];
 
     if (data.description) {
       try {
         const parsed = JSON.parse(data.description);
-        if (parsed.courseId) {
-          courseId = parsed.courseId;
-        } else if (
-          parsed.courseIds &&
-          Array.isArray(parsed.courseIds) &&
-          parsed.courseIds.length > 0
-        ) {
-          courseId = parsed.courseIds[0]; // Use first course ID
+        if (parsed.courseIds && Array.isArray(parsed.courseIds)) {
+          courseIds = parsed.courseIds;
+        } else if (parsed.courseId) {
+          courseIds = [parsed.courseId];
         }
       } catch {
         // Ignore parsing errors
       }
     }
 
-    if (!courseId) {
+    if (courseIds.length === 0) {
       return {
         data: null,
         error:
-          "Course ID is required. Please provide courseId in description field.",
+          "At least one course ID is required. Please provide courseIds in description field.",
       };
     }
 
@@ -169,41 +203,48 @@ export async function createPeriodicDiscount(
       };
     }
 
-    // Create discount using the lowercase periodicDiscount model
-    const discount = await prisma.periodicDiscount.create({
-      data: {
-        courseId: courseId,
-        discountRate: Math.round(data.value), // Convert to Int
-        startDate: startDate,
-        endDate: endDate,
-      },
-      include: {
-        course: {
-          select: {
-            id: true,
-            titleEn: true,
-            titleAm: true,
+    // Create one discount record for each course
+    // Use a small delay to ensure they're created within the same 2-second window for grouping
+    const createdDiscounts = await Promise.all(
+      courseIds.map((courseId) =>
+        prisma.periodicDiscount.create({
+          data: {
+            courseId: courseId,
+            discountRate: Math.round(data.value),
+            startDate: startDate,
+            endDate: endDate,
           },
-        },
-      },
-    });
+          include: {
+            course: {
+              select: {
+                id: true,
+                titleEn: true,
+                titleAm: true,
+              },
+            },
+          },
+        })
+      )
+    );
 
-    // Format the discount to match expected interface
+    // Format the first discount to match expected interface
     const formattedDiscount = {
-      id: discount.id,
-      title: `Discount for ${discount.course.titleEn}`,
-      description: null,
+      id: createdDiscounts[0].id,
+      title: data.title,
+      description: JSON.stringify({ courseIds, title: data.title }), // Store title and courseIds
       type: "PERCENT" as const,
-      value: discount.discountRate,
-      startDate: discount.startDate.toISOString(),
-      endDate: discount.endDate.toISOString(),
+      value: createdDiscounts[0].discountRate,
+      startDate: createdDiscounts[0].startDate.toISOString(),
+      endDate: createdDiscounts[0].endDate.toISOString(),
       frequency: "NONE" as const,
       daysOfWeek: null,
       isActive: true,
-      createdAt: discount.createdAt.toISOString(),
-      updatedAt: discount.createdAt.toISOString(),
-      courseId: discount.courseId,
-      course: discount.course,
+      createdAt: createdDiscounts[0].createdAt.toISOString(),
+      updatedAt: createdDiscounts[0].createdAt.toISOString(),
+      courseId: createdDiscounts[0].courseId,
+      course: createdDiscounts[0].course,
+      allDiscountIds: createdDiscounts.map((d) => d.id),
+      allCourses: createdDiscounts.map((d) => d.course),
     };
 
     revalidatePath("/periodic-discounts");
@@ -232,6 +273,40 @@ export async function updatePeriodicDiscount(
         data: null,
         error: "Discount not found",
       };
+    }
+
+    // Find all related discounts (same dates and rate)
+    const relatedDiscounts = await prisma.periodicDiscount.findMany({
+      where: {
+        startDate: existingDiscount.startDate,
+        endDate: existingDiscount.endDate,
+        discountRate: existingDiscount.discountRate,
+      },
+      include: {
+        course: {
+          select: {
+            id: true,
+            titleEn: true,
+            titleAm: true,
+          },
+        },
+      },
+    });
+
+    // Extract courseIds from description if provided
+    let courseIds: string[] = [];
+    if (data.description) {
+      try {
+        const parsed = JSON.parse(data.description);
+        if (parsed.courseIds && Array.isArray(parsed.courseIds)) {
+          courseIds = parsed.courseIds;
+        }
+      } catch {
+        // If parsing fails, use existing courseIds
+        courseIds = relatedDiscounts.map((d) => d.courseId);
+      }
+    } else {
+      courseIds = relatedDiscounts.map((d) => d.courseId);
     }
 
     // Validate value if being updated - must be between 1 and 100
@@ -263,47 +338,57 @@ export async function updatePeriodicDiscount(
       };
     }
 
-    // Update discount using the lowercase periodicDiscount model
-    const updatedDiscount = await prisma.periodicDiscount.update({
-      where: { id },
-      data: {
-        ...(data.value !== undefined && {
-          discountRate: Math.round(data.value),
-        }),
-        ...(data.startDate && { startDate: new Date(data.startDate) }),
-        ...(data.endDate !== undefined && {
-          endDate: data.endDate
-            ? new Date(data.endDate)
-            : existingDiscount.endDate,
-        }),
-      },
-      include: {
-        course: {
-          select: {
-            id: true,
-            titleEn: true,
-            titleAm: true,
-          },
-        },
+    // Delete all related discounts first
+    await prisma.periodicDiscount.deleteMany({
+      where: {
+        id: { in: relatedDiscounts.map((d) => d.id) },
       },
     });
 
-    // Format the updated discount to match expected interface
+    // Create new discounts with updated data
+    const updatedDiscounts = await Promise.all(
+      courseIds.map((courseId) =>
+        prisma.periodicDiscount.create({
+          data: {
+            courseId: courseId,
+            discountRate: data.value !== undefined 
+              ? Math.round(data.value) 
+              : existingDiscount.discountRate,
+            startDate: startDate,
+            endDate: endDate!,
+          },
+          include: {
+            course: {
+              select: {
+                id: true,
+                titleEn: true,
+                titleAm: true,
+              },
+            },
+          },
+        })
+      )
+    );
+
+    // Format the first discount to match expected interface
+    const title = data.title || `Discount ${updatedDiscounts[0].id}`;
     const formattedDiscount = {
-      id: updatedDiscount.id,
-      title: `Discount for ${updatedDiscount.course.titleEn}`,
-      description: null,
+      id: updatedDiscounts[0].id,
+      title: title,
+      description: JSON.stringify({ courseIds, title }), // Store title and courseIds
       type: "PERCENT" as const,
-      value: updatedDiscount.discountRate,
-      startDate: updatedDiscount.startDate.toISOString(),
-      endDate: updatedDiscount.endDate.toISOString(),
+      value: updatedDiscounts[0].discountRate,
+      startDate: updatedDiscounts[0].startDate.toISOString(),
+      endDate: updatedDiscounts[0].endDate.toISOString(),
       frequency: "NONE" as const,
       daysOfWeek: null,
       isActive: true,
-      createdAt: updatedDiscount.createdAt.toISOString(),
-      updatedAt: updatedDiscount.createdAt.toISOString(),
-      courseId: updatedDiscount.courseId,
-      course: updatedDiscount.course,
+      createdAt: updatedDiscounts[0].createdAt.toISOString(),
+      updatedAt: updatedDiscounts[0].createdAt.toISOString(),
+      courseId: updatedDiscounts[0].courseId,
+      course: updatedDiscounts[0].course,
+      allDiscountIds: updatedDiscounts.map((d) => d.id),
+      allCourses: updatedDiscounts.map((d) => d.course),
     };
 
     revalidatePath("/periodic-discounts");
@@ -331,8 +416,13 @@ export async function deletePeriodicDiscount(id: string) {
       };
     }
 
-    await prisma.periodicDiscount.delete({
-      where: { id },
+    // Find all related discounts (same dates and rate) and delete them all
+    await prisma.periodicDiscount.deleteMany({
+      where: {
+        startDate: existingDiscount.startDate,
+        endDate: existingDiscount.endDate,
+        discountRate: existingDiscount.discountRate,
+      },
     });
 
     revalidatePath("/periodic-discounts");

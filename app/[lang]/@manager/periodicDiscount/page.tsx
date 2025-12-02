@@ -52,6 +52,8 @@ interface Discount {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  allDiscountIds?: string[];
+  allCourses?: Course[];
 }
 
 interface Course {
@@ -245,8 +247,22 @@ export default function PeriodicDiscountsPage() {
 
   const handleEdit = (discount: Discount) => {
     setEditingId(discount.id);
+    
+    // Get title from description if available, otherwise use discount.title
+    let title = discount.title;
+    try {
+      if (discount.description) {
+        const parsed = JSON.parse(discount.description);
+        if (parsed.title) {
+          title = parsed.title;
+        }
+      }
+    } catch {
+      // Use default title if parsing fails
+    }
+    
     setFormData({
-      title: discount.title,
+      title: title,
       type: discount.type,
       value: discount.value,
       startDate: new Date(discount.startDate).toISOString().slice(0, 16),
@@ -258,17 +274,29 @@ export default function PeriodicDiscountsPage() {
       isActive: discount.isActive,
     });
 
-    // Parse course IDs from description
+    // Parse course IDs from description or use allCourses
     try {
       if (discount.description) {
         const parsed = JSON.parse(discount.description);
         if (parsed.courseIds && Array.isArray(parsed.courseIds)) {
           setSelectedCourses(new Set(parsed.courseIds));
+        } else if (discount.allCourses && Array.isArray(discount.allCourses)) {
+          // Fallback to allCourses if courseIds not in description
+          setSelectedCourses(new Set(discount.allCourses.map((c) => c.id)));
         }
+      } else if (discount.allCourses && Array.isArray(discount.allCourses)) {
+        // Use allCourses if description is not available
+        setSelectedCourses(new Set(discount.allCourses.map((c) => c.id)));
+      } else {
+        setSelectedCourses(new Set());
       }
     } catch {
-      // If parsing fails, treat description as plain text
-      setSelectedCourses(new Set());
+      // If parsing fails, try to use allCourses
+      if (discount.allCourses && Array.isArray(discount.allCourses)) {
+        setSelectedCourses(new Set(discount.allCourses.map((c) => c.id)));
+      } else {
+        setSelectedCourses(new Set());
+      }
     }
 
     setIsDialogOpen(true);
@@ -321,6 +349,16 @@ export default function PeriodicDiscountsPage() {
 
   const getCourseNames = (discount: Discount) => {
     try {
+      // First try to use allCourses if available
+      if (discount.allCourses && Array.isArray(discount.allCourses)) {
+        return discount.allCourses
+          .map((course: Course) =>
+            lang === "en" ? course.titleEn : course.titleAm
+          )
+          .join(", ");
+      }
+
+      // Fallback to parsing description
       if (discount.description) {
         const parsed = JSON.parse(discount.description);
         if (parsed.courseIds && Array.isArray(parsed.courseIds)) {
