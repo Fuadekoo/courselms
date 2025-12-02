@@ -21,6 +21,7 @@ import {
   Button,
   Dropdown,
   DropdownItem,
+  DropdownMenu,
   DropdownTrigger,
   Modal,
   ModalBody,
@@ -31,7 +32,6 @@ import {
 } from "@heroui/react";
 import UserStatusToggle from "@/components/userStatusToggle";
 import CustomDatePicker from "@/components/ui/custom-date-picker";
-import { CDropdownMenu } from "@/components/heroui";
 // import ScrollablePageWrapper from "@/components/layout/ScrollablePageWrapper";
 // import { startOfMonth, endOfMonth, today, getLocalTimeZone } from "@internationalized/date";
 
@@ -223,7 +223,7 @@ export default function Page() {
                   )}
                 </Button>
               </DropdownTrigger>
-              <CDropdownMenu
+              <DropdownMenu
                 variant="flat"
                 color="primary"
                 selectionMode="multiple"
@@ -239,7 +239,7 @@ export default function Page() {
                     {v}
                   </DropdownItem>
                 ))}
-              </CDropdownMenu>
+              </DropdownMenu>
             </Dropdown>
             <CustomDatePicker
               date={tableData.date}

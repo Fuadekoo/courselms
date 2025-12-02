@@ -1,6 +1,7 @@
 import NextAuth, { CredentialsSignin, NextAuthConfig } from "next-auth";
 import { DefaultJWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
 import { z } from "zod";
 import bcryptjs from "bcryptjs";
 import prisma from "./db";
@@ -66,14 +67,61 @@ const authConfig = {
       // Allow all other routes
       return true;
     },
-    jwt: async ({ token, user }) => {
+    signIn: async ({ user, account, profile }) => {
+      // Handle Google OAuth sign-in
+      if (account?.provider === "google" && user.email) {
+        try {
+          // Check if user exists by email
+          const existingUser = await prisma.user.findUnique({
+            where: { email: user.email },
+          });
+
+          if (existingUser) {
+            // Update user info if needed
+            user.id = existingUser.id;
+            user.role = existingUser.role;
+            user.code = existingUser.code;
+            return true;
+          }
+
+          // Create new user for Google OAuth
+          // Generate a unique phone number for OAuth users (format: oauth_google_{timestamp}_{random})
+          const uniquePhoneNumber = `oauth_google_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+          
+          // Extract name from Google profile
+          const nameParts = user.name?.split(" ") || [];
+          const firstName = nameParts[0] || "";
+          const lastName = nameParts.slice(1).join(" ") || "";
+
+          const newUser = await prisma.user.create({
+            data: {
+              email: user.email,
+              phoneNumber: uniquePhoneNumber,
+              firstName: firstName,
+              lastName: lastName,
+              password: "", // OAuth users don't need password
+              role: "student", // Default role for OAuth users
+            },
+          });
+
+          user.id = newUser.id;
+          user.role = newUser.role;
+          user.code = newUser.code;
+          return true;
+        } catch (error) {
+          console.error("Error in Google OAuth sign-in:", error);
+          return false;
+        }
+      }
+      return true;
+    },
+    jwt: async ({ token, user, account }) => {
       if (user) {
         token.id = user.id;
         token.role = user.role;
         token.code = user.code;
       }
       return token;
-      // return { ...token, ...user };
     },
     session: async ({ session, token }) => {
       if (token.id && token.role) {
@@ -82,10 +130,20 @@ const authConfig = {
         session.user.code = token.code;
       }
       return session;
-      // return { ...session, user: { ...session.user, ...token } };
     },
   },
   providers: [
+    Google({
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || "",
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code",
+        },
+      },
+    }),
     Credentials({
       authorize: async (credentials) => {
         const { userName, password } = z

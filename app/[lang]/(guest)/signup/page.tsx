@@ -2,15 +2,14 @@
 
 import React, { useEffect, useState } from "react";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
-import { useSession } from "next-auth/react";
+import { useSession, signIn } from "next-auth/react";
 import Logo from "@/components/Logo";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import useAction from "@/hooks/useAction";
 import { signupWithOTP } from "@/lib/action/user";
-import { sendOTP, sendEmailOTP } from "@/lib/action";
-import CountrySelector from "@/components/CountrySelector";
+import { sendOTP } from "@/lib/action";
 import OTPInput from "@/components/OTPInput";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Loading from "@/components/loading";
@@ -21,32 +20,12 @@ import { CButton } from "@/components/heroui";
 import { Form, Input, Button, Progress } from "@heroui/react";
 
 const formSchema = z.object({
-  countryCode: z.string({ message: "" }).nonempty("Country code is required"),
   phoneNumber: z.string({ message: "" }).nonempty("Phone number is required"),
-  email: z
-    .string({ message: "" })
-    .email("Invalid email address")
-    .optional()
-    .or(z.literal("")),
-  emailOtp: z
-    .string({ message: "" })
-    .optional()
-    .refine(
-      (val) => !val || val.length === 6,
-      "Email OTP must be exactly 6 digits"
-    )
-    .refine(
-      (val) => !val || /^\d{6}$/.test(val),
-      "Email OTP must contain only numbers"
-    ),
   otp: z
     .string({ message: "" })
-    .optional()
-    .refine((val) => !val || val.length === 6, "OTP must be exactly 6 digits")
-    .refine(
-      (val) => !val || /^\d{6}$/.test(val),
-      "OTP must contain only numbers"
-    ),
+    .nonempty("OTP is required")
+    .length(6, "OTP must be exactly 6 digits")
+    .regex(/^\d{6}$/, "OTP must contain only numbers"),
   password: z.string({ message: "" }).nonempty("Password is required"),
   confirmPassword: z
     .string({ message: "" })
@@ -60,22 +39,15 @@ export default function Page() {
     router = useRouter(),
     { data: session, status } = useSession(),
     [currentStep, setCurrentStep] = useState(1),
-    [selectedCountry, setSelectedCountry] = useState("+251"),
     [otp, setOtp] = useState(""),
-    [emailOtp, setEmailOtp] = useState(""),
     [isOtpSent, setIsOtpSent] = useState(false),
-    [isEmailOtpSent, setIsEmailOtpSent] = useState(false),
     [otpTimer, setOtpTimer] = useState(0),
-    [emailOtpTimer, setEmailOtpTimer] = useState(0),
     { handleSubmit, register, formState, setValue, watch } = useForm<
       z.infer<typeof formSchema>
     >({
       resolver: zodResolver(formSchema),
       defaultValues: {
-        countryCode: "+251",
         phoneNumber: "",
-        email: "",
-        emailOtp: "",
         otp: "",
         password: "",
         confirmPassword: "",
@@ -97,20 +69,6 @@ export default function Page() {
       {
         success: lang == "en" ? "OTP sent successfully!" : "OTP በተሳካ ሁኔታ ተልኳል!",
         error: lang == "en" ? "Failed to send OTP" : "OTP መላክ አልተሳካም",
-      }
-    ),
-    { action: emailOtpAction, isPending: emailOtpPending } = useAction(
-      sendEmailOTP,
-      undefined,
-      {
-        success:
-          lang == "en"
-            ? "Verification code sent to your email!"
-            : "ማረጋገጫ ኮድ ወደ ኢሜይልዎ ተልኳል!",
-        error:
-          lang == "en"
-            ? "Failed to send verification code"
-            : "ማረጋገጫ ኮድ መላክ አልተሳካም",
       }
     );
 
@@ -143,32 +101,6 @@ export default function Page() {
     return () => clearInterval(interval);
   }, [otpTimer]);
 
-  // Email OTP Timer effect
-  useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (emailOtpTimer > 0) {
-      interval = setInterval(() => {
-        setEmailOtpTimer((prev) => prev - 1);
-      }, 1000);
-    }
-    return () => clearInterval(interval);
-  }, [emailOtpTimer]);
-
-  // Handle country selection
-  const handleCountryChange = (countryCode: string) => {
-    setSelectedCountry(countryCode);
-    setValue("countryCode", countryCode);
-
-    // Reset phone number when country changes to avoid formatting issues
-    let currentPhone = watch("phoneNumber");
-    if (currentPhone) {
-      // Remove all leading zeros for international format
-      while (currentPhone.startsWith("0")) {
-        currentPhone = currentPhone.substring(1);
-      }
-      setValue("phoneNumber", currentPhone);
-    }
-  };
 
   // Handle OTP change
   const handleOtpChange = (otpValue: string) => {
@@ -176,14 +108,6 @@ export default function Page() {
     setValue("otp", otpValue);
   };
 
-  // Handle Email OTP change
-  const handleEmailOtpChange = (otpValue: string) => {
-    setEmailOtp(otpValue);
-    setValue("emailOtp", otpValue);
-  };
-
-  // Check if country is Ethiopia
-  const isEthiopia = selectedCountry === "+251";
 
   // Handle phone number change with universal formatting
   const handlePhoneNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -219,73 +143,34 @@ export default function Page() {
   // Handle Get OTP
   const handleGetOtp = () => {
     let phoneNumber = watch("phoneNumber");
-    const countryCode = watch("countryCode");
-    const email = watch("email");
+    const countryCode = "+251"; // Fixed to Ethiopia
 
-    if (isEthiopia) {
-      // Ethiopia users: phone OTP only
-      if (!phoneNumber) {
-        alert(
-          lang === "en"
-            ? "Please enter phone number first"
-            : "እባክዎ የስልክ ቁጥር ያስገቡ"
-        );
-        return;
-      }
-
-      // Remove all leading zeros (universal international format)
-      while (phoneNumber.startsWith("0")) {
-        phoneNumber = phoneNumber.substring(1);
-      }
-
-      // Update the form value to reflect the cleaned number
-      setValue("phoneNumber", phoneNumber);
-
-      // Combine country code with phone number
-      const fullPhoneNumber = `${countryCode}${phoneNumber}`;
-
-      // Send phone OTP
-      otpAction({ phoneNumber: fullPhoneNumber });
-
-      // Set UI state
-      setIsOtpSent(true);
-      setOtpTimer(60); // 60 seconds timer
-    } else {
-      // Non-Ethiopia users: email OTP only
-      if (!email) {
-        alert(
-          lang === "en"
-            ? "Please enter your email address"
-            : "እባክዎ የኢሜይል አድራሻዎን ያስገቡ"
-        );
-        return;
-      }
-
-      // Still require phone number for registration, but don't verify with OTP
-      if (!phoneNumber) {
-        alert(
-          lang === "en" ? "Please enter phone number" : "እባክዎ የስልክ ቁጥር ያስገቡ"
-        );
-        return;
-      }
-
-      // Remove all leading zeros (universal international format)
-      while (phoneNumber.startsWith("0")) {
-        phoneNumber = phoneNumber.substring(1);
-      }
-
-      // Update the form value to reflect the cleaned number
-      setValue("phoneNumber", phoneNumber);
-
-      // Send email OTP only
-      emailOtpAction({ email });
-      setIsEmailOtpSent(true);
-      setEmailOtpTimer(60);
-
-      // Skip phone OTP for non-Ethiopia users
-      setIsOtpSent(true); // Set to true so validation passes, but we won't verify it
-      setOtpTimer(0);
+    if (!phoneNumber) {
+      alert(
+        lang === "en"
+          ? "Please enter phone number first"
+          : "እባክዎ የስልክ ቁጥር ያስገቡ"
+      );
+      return;
     }
+
+    // Remove all leading zeros (universal international format)
+    while (phoneNumber.startsWith("0")) {
+      phoneNumber = phoneNumber.substring(1);
+    }
+
+    // Update the form value to reflect the cleaned number
+    setValue("phoneNumber", phoneNumber);
+
+    // Combine country code with phone number
+    const fullPhoneNumber = `${countryCode}${phoneNumber}`;
+
+    // Send phone OTP
+    otpAction({ phoneNumber: fullPhoneNumber });
+
+    // Set UI state
+    setIsOtpSent(true);
+    setOtpTimer(60); // 60 seconds timer
 
     // Move to next step
     nextStep();
@@ -296,20 +181,9 @@ export default function Page() {
     switch (step) {
       case 1:
         const phoneNumber = watch("phoneNumber");
-        const email = watch("email");
-        const phoneValid = phoneNumber && phoneNumber.length > 0;
-        // If not Ethiopia, email is required (phone still needed for registration)
-        if (!isEthiopia) {
-          return phoneValid && email && email.includes("@");
-        }
-        return phoneValid;
+        return phoneNumber && phoneNumber.length > 0;
       case 2:
-        // Ethiopia users: phone OTP required
-        if (isEthiopia) {
-          return isOtpSent && otp.length === 6;
-        }
-        // Non-Ethiopia users: email OTP only
-        return isEmailOtpSent && emailOtp.length === 6;
+        return isOtpSent && otp.length === 6;
       case 3:
         const password = watch("password");
         const confirmPassword = watch("confirmPassword");
@@ -325,10 +199,9 @@ export default function Page() {
       confirmPassword = searchParams?.get("cp");
     if (phoneNumber && password && confirmPassword) {
       action({
-        countryCode: selectedCountry,
+        countryCode: "+251",
         phoneNumber,
         otp: "",
-        emailOtp: "",
         password,
         confirmPassword,
       });
@@ -395,6 +268,56 @@ export default function Page() {
           </p>
         </div>
 
+        {/* Google Sign In Option */}
+        <div className="mb-6">
+          <CButton
+            type="button"
+            color="default"
+            size="lg"
+            variant="bordered"
+            className="w-full font-semibold border-2 hover:bg-gray-50 dark:hover:bg-gray-800 transition-all duration-200"
+            onPress={() => {
+              signIn("google", {
+                callbackUrl: `/${lang}/course`,
+              });
+            }}
+            startContent={
+              <svg className="w-5 h-5" viewBox="0 0 24 24">
+                <path
+                  fill="#4285F4"
+                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                />
+                <path
+                  fill="#34A853"
+                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                />
+                <path
+                  fill="#FBBC05"
+                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                />
+                <path
+                  fill="#EA4335"
+                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                />
+              </svg>
+            }
+          >
+            {lang == "en" ? "Sign up with Google" : "በ Google ይመዝገቡ"}
+          </CButton>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-300 dark:border-gray-600"></div>
+            </div>
+            <div className="relative flex justify-center text-sm">
+              <span className="px-2 bg-background text-gray-500 dark:text-gray-400">
+                {lang == "en" ? "OR" : "ወይም"}
+              </span>
+            </div>
+          </div>
+        </div>
+
         {/* Form Steps */}
         <Form
           onSubmit={handleSubmit(action)}
@@ -409,13 +332,6 @@ export default function Page() {
           {/* Step 1: Phone Number */}
           {currentStep === 1 && (
             <div className="grid gap-4">
-              <CountrySelector
-                value={selectedCountry}
-                onChange={handleCountryChange}
-                placeholder={lang == "en" ? "Select Country" : "አገር ይምረጡ"}
-                label={lang == "en" ? "Country" : "አገር"}
-              />
-
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
                   {lang == "en" ? "Phone Number" : "የስልክ ቁጥር"}
@@ -424,7 +340,7 @@ export default function Page() {
                   <div className="w-20">
                     <Input
                       color="primary"
-                      value={selectedCountry}
+                      value="+251"
                       readOnly
                       className="text-center font-semibold"
                       variant="bordered"
@@ -446,37 +362,14 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* Email field for non-Ethiopia users */}
-              {!isEthiopia && (
-                <Input
-                  color="primary"
-                  {...register("email")}
-                  type="email"
-                  placeholder={lang == "en" ? "Email address" : "የኢሜይል አድራሻ"}
-                  variant="bordered"
-                  label={lang == "en" ? "Email Address" : "የኢሜይል አድራሻ"}
-                  description={
-                    lang == "en"
-                      ? "Required for non-Ethiopia users"
-                      : "ለኢትዮጵያ ውጭ ተጠቃሚዎች ያስፈልጋል"
-                  }
-                />
-              )}
-
               <CButton
                 color="primary"
                 onPress={handleGetOtp}
-                isLoading={isEthiopia ? otpPending : emailOtpPending}
+                isLoading={otpPending}
                 isDisabled={!validateStep(1)}
                 className="mt-4"
               >
-                {isEthiopia
-                  ? lang == "en"
-                    ? "Get OTP"
-                    : "OTP ያግኙ"
-                  : lang == "en"
-                  ? "Send Verification Code"
-                  : "ማረጋገጫ ኮድ ላክ"}
+                {lang == "en" ? "Get OTP" : "OTP ያግኙ"}
               </CButton>
             </div>
           )}
@@ -484,107 +377,43 @@ export default function Page() {
           {/* Step 2: OTP Verification */}
           {currentStep === 2 && (
             <div className="grid gap-4">
-              {isEthiopia ? (
-                <>
-                  {/* Ethiopia users: Phone OTP only */}
-                  <div className="text-center mb-4">
-                    <p className="text-sm text-gray-600 mb-2">
-                      {lang == "en"
-                        ? "We sent a 6-digit code to your phone"
-                        : "6-ዲጂት ኮድ ወደ ስልክዎ ላክን"}
-                    </p>
-                    <p className="text-xs text-gray-500 font-semibold">
-                      {selectedCountry}
-                      {watch("phoneNumber")}
-                    </p>
-                  </div>
+              <div className="text-center mb-4">
+                <p className="text-sm text-gray-600 mb-2">
+                  {lang == "en"
+                    ? "We sent a 6-digit code to your phone"
+                    : "6-ዲጂት ኮድ ወደ ስልክዎ ላክን"}
+                </p>
+                <p className="text-xs text-gray-500 font-semibold">
+                  +251{watch("phoneNumber")}
+                </p>
+              </div>
 
-                  <OTPInput
-                    value={otp}
-                    onChange={handleOtpChange}
-                    onComplete={handleOtpChange}
-                    disabled={!isOtpSent}
-                    placeholder={
-                      lang == "en" ? "Enter 6-digit OTP" : "6-ዲጂት OTP ያስገቡ"
-                    }
-                    label={lang == "en" ? "Phone OTP" : "የስልክ OTP"}
-                    length={6}
-                  />
+              <OTPInput
+                value={otp}
+                onChange={handleOtpChange}
+                onComplete={handleOtpChange}
+                disabled={!isOtpSent}
+                placeholder={
+                  lang == "en" ? "Enter 6-digit OTP" : "6-ዲጂት OTP ያስገቡ"
+                }
+                label={lang == "en" ? "Phone OTP" : "የስልክ OTP"}
+                length={6}
+              />
 
-                  {otpTimer > 0 && (
-                    <div className="text-center">
-                      <Button
-                        size="sm"
-                        color="primary"
-                        variant="flat"
-                        onPress={handleGetOtp}
-                        isDisabled={otpTimer > 0}
-                        isLoading={otpPending}
-                        className="text-xs"
-                      >
-                        {lang == "en" ? "Resend OTP" : "OTP እንደገና ላክ"} (
-                        {otpTimer}s)
-                      </Button>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <>
-                  {/* Non-Ethiopia users: Email OTP only */}
-                  <div className="text-center mb-4">
-                    <p className="text-sm text-gray-600 mb-2">
-                      {lang == "en"
-                        ? "We sent a 6-digit verification code to your email"
-                        : "6-ዲጂት ማረጋገጫ ኮድ ወደ ኢሜይልዎ ላክን"}
-                    </p>
-                    <p className="text-xs text-gray-500 font-semibold">
-                      {watch("email")}
-                    </p>
-                  </div>
-
-                  <OTPInput
-                    value={emailOtp}
-                    onChange={handleEmailOtpChange}
-                    onComplete={handleEmailOtpChange}
-                    disabled={!isEmailOtpSent}
-                    placeholder={
-                      lang == "en"
-                        ? "Enter 6-digit Email OTP"
-                        : "6-ዲጂት የኢሜይል OTP ያስገቡ"
-                    }
-                    label={
-                      lang == "en"
-                        ? "Email Verification Code"
-                        : "የኢሜይል ማረጋገጫ ኮድ"
-                    }
-                    length={6}
-                  />
-
-                  {emailOtpTimer > 0 && (
-                    <div className="text-center">
-                      <Button
-                        size="sm"
-                        color="primary"
-                        variant="flat"
-                        onPress={() => {
-                          const email = watch("email");
-                          if (email) {
-                            emailOtpAction({ email });
-                            setEmailOtpTimer(60);
-                          }
-                        }}
-                        isDisabled={emailOtpTimer > 0}
-                        isLoading={emailOtpPending}
-                        className="text-xs"
-                      >
-                        {lang == "en"
-                          ? "Resend Email OTP"
-                          : "የኢሜይል OTP እንደገና ላክ"}{" "}
-                        ({emailOtpTimer}s)
-                      </Button>
-                    </div>
-                  )}
-                </>
+              {otpTimer > 0 && (
+                <div className="text-center">
+                  <Button
+                    size="sm"
+                    color="primary"
+                    variant="flat"
+                    onPress={handleGetOtp}
+                    isDisabled={otpTimer > 0}
+                    isLoading={otpPending}
+                    className="text-xs"
+                  >
+                    {lang == "en" ? "Resend OTP" : "OTP እንደገና ላክ"} ({otpTimer}s)
+                  </Button>
+                </div>
               )}
 
               <div className="flex gap-3">

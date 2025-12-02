@@ -24,7 +24,7 @@ const nextConfig: NextConfig = {
     ];
   },
   // Optimize build output
-  output: "standalone",
+  // output: "standalone",
   // Compiler optimizations (SWC is already default in Next.js 15)
   compiler: {
     removeConsole: process.env.NODE_ENV === "production" ? {

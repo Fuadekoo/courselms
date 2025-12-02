@@ -107,8 +107,6 @@ export async function signupWithOTP(
     | {
         countryCode: string;
         phoneNumber: string;
-        email?: string;
-        emailOtp?: string;
         otp: string;
         password: string;
         confirmPassword: string;
@@ -123,10 +121,8 @@ export async function signupWithOTP(
         message: "No data provided",
       };
 
-    const { countryCode, otp, password, confirmPassword, email, emailOtp } =
-      data;
+    const { countryCode, otp, password, confirmPassword } = data;
     let { phoneNumber } = data;
-    const isEthiopia = countryCode === "+251";
 
     // Check if passwords match
     if (password !== confirmPassword) {
@@ -147,93 +143,38 @@ export async function signupWithOTP(
     // Combine country code with phone number
     const fullPhoneNumber = `${countryCode}${phoneNumber}`;
 
-    if (isEthiopia) {
-      // Ethiopia users: Verify Phone OTP
-      const otpRecord = await prisma.otp.findFirst({
-        where: { phoneNumber: fullPhoneNumber },
-      });
+    // Verify Phone OTP
+    const otpRecord = await prisma.otp.findFirst({
+      where: { phoneNumber: fullPhoneNumber },
+    });
 
-      if (!otpRecord) {
-        return {
-          status: false,
-          cause: "OTP not found",
-          message: "Please request OTP first",
-        };
-      }
-
-      if (otpRecord.code !== parseInt(otp)) {
-        return {
-          status: false,
-          cause: "Invalid OTP",
-          message: "Invalid OTP code",
-        };
-      }
-    } else {
-      // Non-Ethiopia users: Verify Email OTP only (skip phone OTP)
-      if (!email) {
-        return {
-          status: false,
-          cause: "Email required",
-          message: "Email is required for non-Ethiopia users",
-        };
-      }
-
-      if (!emailOtp) {
-        return {
-          status: false,
-          cause: "Email OTP required",
-          message: "Email verification code is required",
-        };
-      }
-
-      // Verify Email OTP
-      const emailOtpRecord = await prisma.emailOtp.findUnique({
-        where: { email },
-      });
-
-      if (!emailOtpRecord) {
-        return {
-          status: false,
-          cause: "Email OTP not found",
-          message: "Please request email verification code first",
-        };
-      }
-
-      if (emailOtpRecord.code !== parseInt(emailOtp)) {
-        return {
-          status: false,
-          cause: "Invalid Email OTP",
-          message: "Invalid email verification code",
-        };
-      }
+    if (!otpRecord) {
+      return {
+        status: false,
+        cause: "OTP not found",
+        message: "Please request OTP first",
+      };
     }
 
-    // Check if user already exists (by phone or email)
-    const existingUserByPhone = await prisma.user.findFirst({
+    if (otpRecord.code !== parseInt(otp)) {
+      return {
+        status: false,
+        cause: "Invalid OTP",
+        message: "Invalid OTP code",
+      };
+    }
+
+    // Check if user already exists
+    const existingUser = await prisma.user.findFirst({
       where: { phoneNumber: fullPhoneNumber, role: "student" },
     });
 
-    if (existingUserByPhone) {
+    if (existingUser) {
       return {
         status: false,
         cause: "User already exist",
         message: "User with this phone number already exists",
       };
-    }
-
-    // If not Ethiopia, also check by email
-    if (!isEthiopia && email) {
-      const existingUserByEmail = await prisma.user.findFirst({
-        where: { email, role: "student" },
-      });
-
-      if (existingUserByEmail) {
-        return {
-          status: false,
-          cause: "User already exist",
-          message: "User with this email already exists",
-        };
-      }
     }
 
     // Hash the password
@@ -243,31 +184,15 @@ export async function signupWithOTP(
     await prisma.user.create({
       data: {
         phoneNumber: fullPhoneNumber,
-        email: !isEthiopia && email ? email : undefined,
         password: hashedPassword,
         role: "student",
       },
     });
 
-    // Delete the used OTPs
-    if (isEthiopia) {
-      // Delete phone OTP for Ethiopia users
-      const otpRecord = await prisma.otp.findFirst({
-        where: { phoneNumber: fullPhoneNumber },
-      });
-      if (otpRecord) {
-        await prisma.otp.delete({
-          where: { id: otpRecord.id },
-        });
-      }
-    } else {
-      // Delete email OTP for non-Ethiopia users
-      if (email) {
-        await prisma.emailOtp.delete({
-          where: { email },
-        });
-      }
-    }
+    // Delete the used OTP
+    await prisma.otp.delete({
+      where: { id: otpRecord.id },
+    });
 
     // Auto login after signup
     await signIn("credentials", {
