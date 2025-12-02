@@ -38,7 +38,7 @@ import {
   FileText,
   File,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import FinalExamManager from "@/components/FinalExamManager";
 import { toast } from "sonner";
 import { useCourseRegistrationStore } from "@/stores";
@@ -278,23 +278,45 @@ export default function Page() {
   // Sync store with form data on load
   useEffect(() => {
     if (isDataLoaded) {
-      const formData = watch();
-      // Update store with form data if needed
+      // Form data is already synced via setValue calls in onSuccess
+      // No additional sync needed here
     }
-  }, [isDataLoaded, watch]);
+  }, [isDataLoaded]);
 
   const handleFormSubmit = async (data: TCourse) => {
-    console.log("🚀 Form submission started", {
+    console.group("🚀 ========== COURSE FORM SUBMISSION STARTED ==========");
+    console.log("📋 Submission Details:", {
       isEditing,
-      data: {
-        ...data,
-      },
-      formState: {
-        isValid: formState.isValid,
-        isDirty: formState.isDirty,
-        errors: formState.errors,
-      },
+      courseId: id,
+      timestamp: new Date().toISOString(),
     });
+    console.log("📝 Form State:", {
+      isValid: formState.isValid,
+      isDirty: formState.isDirty,
+      errors: formState.errors,
+      errorCount: Object.keys(formState.errors).length,
+    });
+    console.log("📦 Form Data Summary:", {
+      titleEn: data.titleEn,
+      titleAm: data.titleAm,
+      instructorId: data.instructorId,
+      channelId: data.channelId,
+      video: data.video ? "✅ Present" : "❌ Missing",
+      thumbnail: data.thumbnail ? "✅ Present" : "❌ Missing",
+      activityCount: data.activity?.length || 0,
+      finalExamQuestionsCount: finalExamQuestions.length,
+      courseMaterialsCount: Array.isArray(data.courseMaterials)
+        ? data.courseMaterials.length
+        : 0,
+      dolarPrice: data.dolarPrice,
+      birrPrice: data.birrPrice,
+    });
+    console.log("🎬 Video State:", {
+      hasSelectedVideoFile: !!selectedVideoFile,
+      videoPreviewUrl: videoPreviewUrl || "None",
+      formVideoValue: watch("video") || "None",
+    });
+    console.groupEnd();
 
     const loadingToast = toast.loading(
       lang === "en"
@@ -361,7 +383,8 @@ export default function Page() {
         console.log("✅ Video processed:", data.video);
       } else {
         // No new video selected - preserve existing video from form
-        const existingVideo = watch("video") || data.video;
+        // Priority: form value > videoPreviewUrl (from database) > data.video
+        const existingVideo = watch("video") || videoPreviewUrl || data.video;
         if (existingVideo) {
           data.video = existingVideo;
           console.log("📹 Preserving existing video:", existingVideo);
@@ -391,7 +414,50 @@ export default function Page() {
         data.id = id;
       }
 
-      console.log("📤 Calling server action with data:", {
+      // Validate critical data before sending to server
+      console.group("🔍 Pre-submission Validation");
+      const validationErrors: string[] = [];
+
+      if (!data.titleEn || !data.titleAm) {
+        validationErrors.push("Course title is missing");
+      }
+      if (!data.instructorId) {
+        validationErrors.push("Instructor is not selected");
+      }
+      if (data.dolarPrice === null || data.dolarPrice === undefined) {
+        validationErrors.push("Dollar price is missing");
+      }
+      if (data.birrPrice === null || data.birrPrice === undefined) {
+        validationErrors.push("Birr price is missing");
+      }
+      if (!data.video && !selectedVideoFile) {
+        validationErrors.push("Video is missing");
+      }
+
+      if (validationErrors.length > 0) {
+        console.error("❌ Validation failed:", validationErrors);
+        console.groupEnd();
+        toast.error(
+          lang === "en"
+            ? "Please fill in all required fields"
+            : "እባክዎ ሁሉንም የሚፈለጉ መስኮች ይሙሉ",
+          {
+            description: validationErrors.join(", "),
+          }
+        );
+        setIsVideoUploading(false);
+        return {
+          status: false,
+          cause: "Validation Error",
+          message: validationErrors.join(", "),
+        };
+      }
+
+      console.log("✅ All validations passed");
+      console.groupEnd();
+
+      console.group("📤 Calling Server Action");
+      console.log("📋 Data Summary:", {
         id: data.id,
         isEditing,
         titleEn: data.titleEn,
@@ -400,18 +466,46 @@ export default function Page() {
         channelId: data.channelId,
         dolarPrice: data.dolarPrice,
         birrPrice: data.birrPrice,
+        video: data.video,
+        thumbnail: data.thumbnail,
+        activityCount: data.activity?.length || 0,
         finalExamQuestionsCount: finalExamQuestions.length,
+        courseMaterials: Array.isArray(data.courseMaterials)
+          ? `${data.courseMaterials.length} items`
+          : typeof data.courseMaterials,
       });
+      console.log("📦 Full Data Object:", JSON.stringify(data, null, 2));
+      console.groupEnd();
 
       // First, register/update the course
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      console.log("📤 About to call action with data:", data);
-      const result: any = await courseRegistration(
-        { status: false, cause: "", message: "" },
-        data
-      );
-
-      console.log("📥 Server action result:", result);
+      let result: any;
+      try {
+        console.log("⏳ Calling courseRegistration server action...");
+        result = await courseRegistration(
+          { status: false, cause: "", message: "" },
+          data
+        );
+        console.group("📥 Server Action Response");
+        console.log("✅ Response received:", {
+          status: result.status,
+          cause: result.cause,
+          message: result.message,
+        });
+        if (!result.status) {
+          console.error("❌ Server action failed:", result);
+        }
+        console.groupEnd();
+      } catch (actionError) {
+        console.group("❌ Server Action Exception");
+        console.error("Exception caught:", actionError);
+        if (actionError instanceof Error) {
+          console.error("Error message:", actionError.message);
+          console.error("Error stack:", actionError.stack);
+        }
+        console.groupEnd();
+        throw actionError;
+      }
 
       toast.dismiss(loadingToast);
 
@@ -437,23 +531,55 @@ export default function Page() {
         }, 500);
       } else {
         // Error
+        console.group("❌ Server Action Failed");
+        console.error("Error Details:", {
+          status: result.status,
+          cause: result.cause,
+          message: result.message,
+          fullResult: result,
+        });
+        console.groupEnd();
+
+        const errorDescription =
+          result.message || result.cause || "Unknown error";
         toast.error(
           lang === "en"
             ? isEditing
-              ? "Failed to update course. Please try again."
-              : "Failed to create course. Please try again."
+              ? "Failed to update course"
+              : "Failed to create course"
             : isEditing
-            ? "ኮርስ ማዘመን አልተሳካም። እባክዎ እንደገና ይሞክሩ።"
-            : "ኮርስ መፍጠር አልተሳካም። እባክዎ እንደገና ይሞክሩ።",
+            ? "ኮርስ ማዘመን አልተሳካም"
+            : "ኮርስ መፍጠር አልተሳካም",
           {
-            description: result.message || result.cause,
+            description: errorDescription,
+            duration: 10000, // Show for 10 seconds
           }
         );
       }
 
       return result;
     } catch (error) {
-      console.error("❌ Form submission error:", error);
+      console.group("❌ ========== FORM SUBMISSION ERROR ==========");
+      console.error(
+        "Error Type:",
+        error instanceof Error ? error.constructor.name : typeof error
+      );
+      console.error(
+        "Error Message:",
+        error instanceof Error ? error.message : String(error)
+      );
+      if (error instanceof Error) {
+        console.error("Error Stack:", error.stack);
+      }
+      console.error("Error Object:", error);
+      console.log("Context:", {
+        isEditing,
+        courseId: id,
+        hasSelectedVideoFile: !!selectedVideoFile,
+        videoPreviewUrl: videoPreviewUrl || "None",
+      });
+      console.groupEnd();
+
       toast.dismiss(loadingToast);
       const errorMessage =
         error instanceof Error ? error.message : String(error);
@@ -461,25 +587,47 @@ export default function Page() {
       // Check if it's a video upload error
       if (
         errorMessage.includes("Upload failed") ||
-        errorMessage.includes("chunk")
+        errorMessage.includes("chunk") ||
+        errorMessage.includes("upload")
       ) {
         toast.error(
           lang === "en"
             ? `Video upload failed: ${errorMessage}`
-            : `ቪዲዮ መላክ አልተሳካም: ${errorMessage}`
+            : `ቪዲዮ መላክ አልተሳካም: ${errorMessage}`,
+          {
+            duration: 10000,
+          }
+        );
+      } else if (
+        errorMessage.includes("network") ||
+        errorMessage.includes("fetch")
+      ) {
+        toast.error(
+          lang === "en"
+            ? "Network error. Please check your connection and try again."
+            : "የአውታረ መረብ ስህተት። እባክዎ ግንኙነትዎን ይፈትሹ እና እንደገና ይሞክሩ።",
+          {
+            duration: 10000,
+          }
         );
       } else {
         toast.error(
           lang === "en"
             ? `An unexpected error occurred: ${errorMessage}`
-            : `ያልተጠበቀ ስህተት ተፈጥሯል: ${errorMessage}`
+            : `ያልተጠበቀ ስህተት ተፈጥሯል: ${errorMessage}`,
+          {
+            description: "Check the browser console for more details",
+            duration: 10000,
+          }
         );
       }
 
       setIsVideoUploading(false);
-      throw error;
+      // Don't throw - let the form stay so user can fix issues
+      return { status: false, cause: "Exception", message: errorMessage };
     } finally {
       setIsVideoUploading(false);
+      console.log("🏁 Form submission process completed");
     }
   };
 

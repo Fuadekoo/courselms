@@ -17,11 +17,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           className="absolute inset-0 opacity-55 dark:opacity-45"
           style={{
             backgroundImage: `url('/darulkubra.png')`,
-            backgroundSize: "cover",
+            backgroundSize: "40%",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
             filter: "blur(12px) brightness(1.05)",
-            transform: "scale(1.02)",
+            transform: "scale(1)",
           }}
         />
         {/* Layer 2 - Second blur layer (24px) */}
@@ -29,11 +29,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           className="absolute inset-0 opacity-50 dark:opacity-40"
           style={{
             backgroundImage: `url('/darulkubra.png')`,
-            backgroundSize: "cover",
+            backgroundSize: "35%",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
             filter: "blur(24px) brightness(1.05)",
-            transform: "scale(1.03)",
+            transform: "scale(1)",
           }}
         />
         {/* Layer 3 - Third blur layer (40px) - deep blur */}
@@ -41,11 +41,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           className="absolute inset-0 opacity-40 dark:opacity-30"
           style={{
             backgroundImage: `url('/darulkubra.png')`,
-            backgroundSize: "cover",
+            backgroundSize: "30%",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
             filter: "blur(40px) brightness(1.05)",
-            transform: "scale(1.04)",
+            transform: "scale(1)",
           }}
         />
         {/* Overlay for better content readability */}

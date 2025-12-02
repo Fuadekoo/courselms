@@ -50,7 +50,11 @@ function SubActivityVideoUpload({
       return;
     }
 
+    // Set uploading state immediately to show progress bar
     setUploading(activityIndex, subActivityIndex, true, 0);
+    
+    // Allow UI to update before starting upload
+    await new Promise(resolve => setTimeout(resolve, 50));
 
     try {
       // Preserve original extension (important for HLS .m3u8 files)
@@ -163,17 +167,26 @@ function SubActivityVideoUpload({
       )}
       
       {isUploading && (
-        <div className="flex flex-col gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex flex-col gap-2 p-4 bg-blue-50 dark:bg-blue-950/30 border-2 border-blue-300 dark:border-blue-700 rounded-lg animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex justify-between items-center">
-            <span className="text-sm text-primary font-medium">
-              {lang === "en" ? "Uploading" : "ስቀል በሂደት ላይ"}: {uploadProgress}%
+            <span className="text-sm font-semibold text-primary">
+              {lang === "en" ? "Uploading video..." : "ቪዲዮ ስቀል በሂደት ላይ..."}
+            </span>
+            <span className="text-sm font-bold text-primary">
+              {uploadProgress}%
             </span>
           </div>
-          <progress
-            value={uploadProgress}
-            max={100}
-            className="w-full h-2 rounded bg-gray-200"
-          />
+          <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
+            <div
+              className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-300 ease-out"
+              style={{ width: `${uploadProgress}%` }}
+            />
+          </div>
+          {uploadProgress === 0 && (
+            <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
+              {lang === "en" ? "Preparing upload..." : "ስቀል በመዘጋጀት ላይ..."}
+            </p>
+          )}
         </div>
       )}
     </div>

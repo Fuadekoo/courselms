@@ -9,15 +9,20 @@ export async function courseRegistration(
   prevState: StateType,
   data: TCourse | undefined | null
 ): Promise<StateType> {
+  const startTime = Date.now();
   try {
-    console.log("🔧 Server action started", {
+    console.group("🔧 ========== SERVER ACTION: courseRegistration ==========");
+    console.log("📥 Action called at:", new Date().toISOString());
+    console.log("📋 Input Summary:", {
       hasData: !!data,
       isUpdate: !!data?.id,
       dataKeys: data ? Object.keys(data) : [],
+      dataType: typeof data,
     });
 
     if (!data || data === null) {
-      console.log("❌ No data provided to courseRegistration");
+      console.error("❌ No data provided to courseRegistration");
+      console.groupEnd();
       return {
         status: false,
         cause: "No data provided",
@@ -25,59 +30,78 @@ export async function courseRegistration(
       };
     }
 
-    console.log("📋 Course registration data received:", {
+    console.log("📋 Course Data Summary:", {
       id: data.id,
-      titleEn: data.titleEn,
-      titleAm: data.titleAm,
-      instructorId: data.instructorId,
-      channelId: data.channelId,
+      titleEn: data.titleEn || "❌ MISSING",
+      titleAm: data.titleAm || "❌ MISSING",
+      instructorId: data.instructorId || "❌ MISSING",
+      channelId: data.channelId || "Not set (optional)",
       price: data.price,
       dolarPrice: data.dolarPrice,
       birrPrice: data.birrPrice,
+      video: data.video || "❌ MISSING",
+      thumbnail: data.thumbnail || "❌ MISSING",
       finalExamQuestionsCount: data.finalExamQuestions?.length || 0,
       activityCount: data.activity?.length || 0,
+      courseMaterials: data.courseMaterials
+        ? Array.isArray(data.courseMaterials)
+          ? `${data.courseMaterials.length} items`
+          : typeof data.courseMaterials
+        : "Not set",
     });
 
     // Validate required fields
+    console.group("✅ Validation Checks");
+    const validationErrors: string[] = [];
+
     if (!data.titleEn || !data.titleAm) {
-      return {
-        status: false,
-        cause: "Validation Error",
-        message: "Course title is required",
-      };
+      validationErrors.push("Course title is required");
+      console.error("❌ Missing course title");
+    } else {
+      console.log("✅ Course title present");
     }
 
     if (!data.instructorId) {
-      return {
-        status: false,
-        cause: "Validation Error",
-        message: "Instructor is required",
-      };
+      validationErrors.push("Instructor is required");
+      console.error("❌ Missing instructor");
+    } else {
+      console.log("✅ Instructor selected");
     }
 
     // Allow 0 for free courses, but ensure values are not null/undefined
     if (data.dolarPrice === null || data.dolarPrice === undefined) {
-      return {
-        status: false,
-        cause: "Validation Error",
-        message: "Dollar price is required",
-      };
+      validationErrors.push("Dollar price is required");
+      console.error("❌ Missing dollar price");
+    } else {
+      console.log("✅ Dollar price:", data.dolarPrice);
     }
+
     if (data.birrPrice === null || data.birrPrice === undefined) {
-      return {
-        status: false,
-        cause: "Validation Error",
-        message: "Birr price is required",
-      };
+      validationErrors.push("Birr price is required");
+      console.error("❌ Missing birr price");
+    } else {
+      console.log("✅ Birr price:", data.birrPrice);
     }
+
     // Prevent negative prices
     if (data.dolarPrice < 0 || data.birrPrice < 0) {
+      validationErrors.push("Prices cannot be negative");
+      console.error("❌ Negative prices detected");
+    }
+
+    if (validationErrors.length > 0) {
+      console.error("❌ Validation failed:", validationErrors);
+      console.groupEnd();
+      console.groupEnd();
       return {
         status: false,
         cause: "Validation Error",
-        message: "Prices cannot be negative",
+        message: validationErrors.join("; "),
       };
     }
+
+    console.log("✅ All validations passed");
+    console.groupEnd();
 
     const {
       id,
@@ -566,10 +590,81 @@ export async function courseRegistration(
       }
     }
 
+    const duration = Date.now() - startTime;
+    console.group("✅ ========== SUCCESS ==========");
     console.log("🎉 Course registration completed successfully");
+    console.log("⏱️ Duration:", `${duration}ms`);
+    console.log("📊 Summary:", {
+      operation: id ? "UPDATE" : "CREATE",
+      courseId: id || "NEW",
+      activityCount: activity.length,
+      finalExamQuestionsCount: finalExamQuestions?.length || 0,
+    });
+    console.groupEnd();
+    console.groupEnd();
+
     return { status: true } as const;
   } catch (error) {
-    console.error("💥 Course registration error:", error);
+    const duration = Date.now() - startTime;
+    console.group("❌ ========== SERVER ACTION ERROR ==========");
+    console.error("💥 Course registration error occurred");
+    console.error("⏱️ Duration before error:", `${duration}ms`);
+    console.error(
+      "Error Type:",
+      error instanceof Error ? error.constructor.name : typeof error
+    );
+    console.error(
+      "Error Message:",
+      error instanceof Error ? error.message : String(error)
+    );
+    if (error instanceof Error) {
+      console.error("Error Stack:", error.stack);
+    }
+    console.error("Error Object:", error);
+    console.log("Context:", {
+      isUpdate: !!data?.id,
+      courseId: data?.id,
+      titleEn: data?.titleEn,
+      titleAm: data?.titleAm,
+    });
+    console.groupEnd();
+    console.groupEnd();
+
+    // Return detailed error information
+    if (error instanceof Error) {
+      // Check for Prisma errors
+      if (error.message.includes("Unique constraint")) {
+        return {
+          status: false,
+          cause: "Database Constraint Error",
+          message:
+            "A course with similar data already exists. Please check for duplicates.",
+        };
+      }
+      if (error.message.includes("Foreign key constraint")) {
+        return {
+          status: false,
+          cause: "Database Constraint Error",
+          message:
+            "Invalid reference. Please check instructor or channel selection.",
+        };
+      }
+      if (error.message.includes("Record to update not found")) {
+        return {
+          status: false,
+          cause: "Not Found Error",
+          message: "The course you're trying to update doesn't exist.",
+        };
+      }
+
+      return {
+        status: false,
+        cause: error.name || "Unknown Error",
+        message:
+          error.message || "An error occurred while processing the course",
+      };
+    }
+
     return {
       status: false,
       cause: "Unknown Error",
