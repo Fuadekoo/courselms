@@ -3,9 +3,9 @@ import { useState, memo, useEffect } from "react";
 import { Button } from "@heroui/react";
 import { Upload, Video, Trash } from "lucide-react";
 import {
-  useSubActivityVideoStore,
+  useCourseRegistrationStore,
   useSubActivityVideoUploadState,
-} from "@/stores/subActivityVideoStore";
+} from "@/stores/courseRegistrationStore";
 
 interface SubActivityVideoUploadProps {
   lang: string;
@@ -25,8 +25,12 @@ function SubActivityVideoUpload({
   subActivityIndex,
 }: SubActivityVideoUploadProps) {
   const inputId = `video-upload-${Math.random().toString(36).substr(2, 9)}`;
-  const { setUploading, clearUploadState } = useSubActivityVideoStore();
-  const uploadState = useSubActivityVideoUploadState(activityIndex, subActivityIndex);
+  const { setSubActivityUploading, clearSubActivityUploadState } =
+    useCourseRegistrationStore();
+  const uploadState = useSubActivityVideoUploadState(
+    activityIndex,
+    subActivityIndex
+  );
   const isUploading = uploadState?.isUploading ?? false;
   const uploadProgress = uploadState?.progress ?? 0;
 
@@ -35,10 +39,15 @@ function SubActivityVideoUpload({
     return () => {
       // Don't clear if still uploading - let it continue in background
       if (!isUploading) {
-        clearUploadState(activityIndex, subActivityIndex);
+        clearSubActivityUploadState(activityIndex, subActivityIndex);
       }
     };
-  }, [activityIndex, subActivityIndex, clearUploadState, isUploading]);
+  }, [
+    activityIndex,
+    subActivityIndex,
+    clearSubActivityUploadState,
+    isUploading,
+  ]);
 
   const handleFileSelect = async (file: File) => {
     // Allow video files and HLS manifest files (.m3u8)
@@ -51,10 +60,10 @@ function SubActivityVideoUpload({
     }
 
     // Set uploading state immediately to show progress bar
-    setUploading(activityIndex, subActivityIndex, true, 0);
-    
+    setSubActivityUploading(activityIndex, subActivityIndex, true, 0);
+
     // Allow UI to update before starting upload
-    await new Promise(resolve => setTimeout(resolve, 50));
+    await new Promise((resolve) => setTimeout(resolve, 50));
 
     try {
       // Preserve original extension (important for HLS .m3u8 files)
@@ -80,24 +89,36 @@ function SubActivityVideoUpload({
         });
 
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
-          throw new Error(errorData.error || errorData.details || `Upload failed: ${response.status} ${response.statusText}`);
+          const errorData = await response.json().catch(() => ({
+            error: "Unknown error",
+          }));
+          throw new Error(
+            errorData.error ||
+              errorData.details ||
+              `Upload failed: ${response.status} ${response.statusText}`
+          );
         }
 
         // Update progress in store (persists across unmounts)
-        setUploading(activityIndex, subActivityIndex, true, Math.round(((i + 1) / total) * 100));
+        setSubActivityUploading(
+          activityIndex,
+          subActivityIndex,
+          true,
+          Math.round(((i + 1) / total) * 100)
+        );
       }
 
       // Preserve the original extension (don't force .mp4)
       onVideoSelect(filename);
       // Clear upload state after successful completion
-      setUploading(activityIndex, subActivityIndex, false);
+      setSubActivityUploading(activityIndex, subActivityIndex, false);
     } catch (error: any) {
-      const errorMessage = error?.message || (lang === "en" ? "Upload failed" : "መስቀል አልተሳካም");
+      const errorMessage =
+        error?.message || (lang === "en" ? "Upload failed" : "መስቀል አልተሳካም");
       console.error("[VideoUpload] Upload error:", error);
       alert(errorMessage);
       // Clear upload state on error
-      setUploading(activityIndex, subActivityIndex, false);
+      setSubActivityUploading(activityIndex, subActivityIndex, false);
     }
   };
 

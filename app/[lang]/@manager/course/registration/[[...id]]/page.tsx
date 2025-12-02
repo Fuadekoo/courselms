@@ -55,12 +55,15 @@ export default function Page() {
     videoPreviewUrl,
     isDataLoaded,
     finalExamQuestions,
+    formData,
     setSelectedVideoFile,
     setIsVideoUploading,
     setIsThumbnailUploading,
     setVideoPreviewUrl,
     setIsDataLoaded,
     setFinalExamQuestions,
+    setActivities,
+    updateFormField,
     reset: resetStore,
   } = useCourseRegistrationStore();
 
@@ -222,12 +225,12 @@ export default function Page() {
             (activity: any, index: number) => ({
               titleEn: activity.titleEn,
               titleAm: activity.titleAm,
-              subActivity: (activity.subActivity || []).map(
-                (sub: any, subIndex: number) => ({
+              subActivity: [...(activity.subActivity || [])]
+                .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
+                .map((sub: any, subIndex: number) => ({
                   ...sub,
                   order: sub.order ?? subIndex + 1, // Assign sequential order if missing
-                })
-              ),
+                })),
               order: activity.order ?? index + 1, // Assign sequential order if missing
               questions:
                 activity.questions?.map((q: any) => ({
@@ -239,12 +242,16 @@ export default function Page() {
             })
           );
           setValue("activity", transformedActivity, { shouldValidate: false });
+          // Sync to Zustand for persistence
+          setActivities(transformedActivity);
         }
 
         if (data.video) {
           setVideoPreviewUrl(data.video);
           // Also set the video field in the form so it's preserved when updating
           setValue("video", data.video, { shouldValidate: false });
+          // Sync to Zustand for persistence
+          updateFormField("video", data.video);
         }
 
         // Load final exam questions if they exist
@@ -268,8 +275,11 @@ export default function Page() {
 
   const handleVideoSelect = (file: File) => {
     setSelectedVideoFile(file);
-    setVideoPreviewUrl(URL.createObjectURL(file));
+    const previewUrl = URL.createObjectURL(file);
+    setVideoPreviewUrl(previewUrl);
     setValue("video", file.name, { shouldValidate: false, shouldDirty: true });
+    // Sync to Zustand for persistence
+    updateFormField("video", file.name);
     if (!watch("thumbnail")) {
       setValue("thumbnail", "/darulkubra.png", { shouldValidate: false });
     }
@@ -282,6 +292,18 @@ export default function Page() {
       // No additional sync needed here
     }
   }, [isDataLoaded]);
+
+  // Load activities from Zustand on mount if they exist (for persistence)
+  useEffect(() => {
+    if (!isEditing && formData?.activity && formData.activity.length > 0) {
+      // If we have activities in Zustand but not in form, restore them
+      const currentFormActivities = watch("activity") || [];
+      if (currentFormActivities.length === 0) {
+        setValue("activity", formData.activity, { shouldValidate: false });
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEditing]);
 
   const handleFormSubmit = async (data: TCourse) => {
     console.group("🚀 ========== COURSE FORM SUBMISSION STARTED ==========");
@@ -381,6 +403,9 @@ export default function Page() {
         // Preserve original file extension (important for HLS .m3u8 files)
         data.video = uuidName;
         console.log("✅ Video processed:", data.video);
+        // Sync to Zustand for persistence
+        updateFormField("video", uuidName);
+        setVideoPreviewUrl(uuidName);
       } else {
         // No new video selected - preserve existing video from form
         // Priority: form value > videoPreviewUrl (from database) > data.video
@@ -1119,34 +1144,69 @@ export default function Page() {
                     newActivity,
                   ].sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
 
-                  setValue(
-                    "activity",
-                    updatedActivities.map((activity: any) => ({
+                  const finalActivities = updatedActivities.map(
+                    (activity: any) => ({
                       ...activity,
                       questions: activity.questions || [],
-                    }))
+                    })
                   );
+                  setValue("activity", finalActivities);
+                  // Sync to Zustand for persistence
+                  setActivities(finalActivities);
                 }}
-                addSubActivity={(index, value) =>
-                  setValue(
-                    "activity",
-                    watch("activity").map((activity, i) => ({
-                      ...activity,
-                      subActivity:
-                        i === index
-                          ? [
-                              {
-                                titleEn: value.en,
-                                titleAm: value.am,
-                                video: "",
-                                thumbnail: "",
-                              },
-                              ...activity.subActivity,
-                            ]
-                          : activity.subActivity,
-                    }))
-                  )
-                }
+                addSubActivity={(index, value) => {
+                  const currentActivities = watch("activity") || [];
+                  // Sort activities by order to get the correct activity
+                  const sortedActivities = [...currentActivities].sort(
+                    (a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)
+                  );
+
+                  const updatedActivities = sortedActivities.map(
+                    (activity, i) => {
+                      if (i === index) {
+                        // Sort subActivities by order to ensure we get the correct max
+                        const sortedSubActivities = [
+                          ...(activity.subActivity || []),
+                        ].sort(
+                          (a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)
+                        );
+                        const maxOrder =
+                          sortedSubActivities.length > 0
+                            ? Math.max(
+                                ...sortedSubActivities.map(
+                                  (sub: any) => sub.order ?? 0
+                                )
+                              )
+                            : 0;
+
+                        const newSubActivity = {
+                          titleEn: value.en,
+                          titleAm: value.am,
+                          video: "",
+                          thumbnail: "",
+                          order: maxOrder + 1, // Next sequential order
+                        };
+
+                        // Add new subActivity and re-sort to maintain order
+                        const updatedSubActivities = [
+                          ...sortedSubActivities,
+                          newSubActivity,
+                        ].sort(
+                          (a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)
+                        );
+
+                        return {
+                          ...activity,
+                          subActivity: updatedSubActivities,
+                        };
+                      }
+                      return activity;
+                    }
+                  );
+                  setValue("activity", updatedActivities);
+                  // Sync to Zustand for persistence
+                  setActivities(updatedActivities);
+                }}
                 removeActivity={(index) => {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   const currentActivities = [
@@ -1163,21 +1223,46 @@ export default function Page() {
                     })
                   );
                   setValue("activity", reordered);
+                  // Sync to Zustand for persistence
+                  setActivities(reordered);
                 }}
-                removeSubActivity={(activityIndex, subActivityIndex) =>
-                  setValue(
-                    "activity",
-                    watch("activity").map((activity, index) => ({
-                      ...activity,
-                      subActivity:
-                        index === activityIndex
-                          ? activity.subActivity.filter(
-                              (v, i) => i !== subActivityIndex
-                            )
-                          : activity.subActivity,
-                    }))
-                  )
-                }
+                removeSubActivity={(activityIndex, subActivityIndex) => {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  const currentActivities = [
+                    ...(watch("activity") as any[]),
+                  ].sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0));
+
+                  const updatedActivities = currentActivities.map(
+                    (activity, index) => {
+                      if (index === activityIndex) {
+                        // Sort subActivities by order first
+                        const sortedSubActivities = [
+                          ...(activity.subActivity || []),
+                        ].sort(
+                          (a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)
+                        );
+                        const filtered = sortedSubActivities.filter(
+                          (v, i) => i !== subActivityIndex
+                        );
+                        // Reassign sequential order values after removal
+                        const reordered = filtered.map(
+                          (sub: any, idx: number) => ({
+                            ...sub,
+                            order: idx + 1,
+                          })
+                        );
+                        return {
+                          ...activity,
+                          subActivity: reordered,
+                        };
+                      }
+                      return activity;
+                    }
+                  );
+                  setValue("activity", updatedActivities);
+                  // Sync to Zustand for persistence
+                  setActivities(updatedActivities);
+                }}
                 reorderActivities={(fromIndex, toIndex) => {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   const activities = [...(watch("activity") as any[])].sort(
@@ -1193,6 +1278,8 @@ export default function Page() {
                     })
                   );
                   setValue("activity", reorderedActivities);
+                  // Sync to Zustand for persistence
+                  setActivities(reorderedActivities);
                 }}
                 reorderSubActivities={(activityIndex, fromIndex, toIndex) => {
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -1202,9 +1289,8 @@ export default function Page() {
                     (a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)
                   );
 
-                  setValue(
-                    "activity",
-                    sortedActivities.map((activity, index) => {
+                  const updatedActivities = sortedActivities.map(
+                    (activity, index) => {
                       if (index === activityIndex) {
                         // Sort subactivities first by order
                         const sortedSubActivities = [
@@ -1231,59 +1317,67 @@ export default function Page() {
                         };
                       }
                       return activity;
-                    })
+                    }
                   );
+                  setValue("activity", updatedActivities);
+                  // Sync to Zustand for persistence
+                  setActivities(updatedActivities);
                 }}
                 updateSubActivityVideo={(
                   activityIndex,
                   subActivityIndex,
                   videoUrl
                 ) => {
-                  setValue(
-                    "activity",
-                    watch("activity").map((activity, aIndex) => ({
+                  const updatedActivities = watch("activity").map(
+                    (activity, aIndex) => ({
                       ...activity,
                       subActivity: activity.subActivity.map((sub, sIndex) =>
                         aIndex === activityIndex && sIndex === subActivityIndex
                           ? { ...sub, video: videoUrl }
                           : sub
                       ),
-                    }))
+                    })
                   );
+                  setValue("activity", updatedActivities);
+                  // Sync to Zustand for persistence
+                  setActivities(updatedActivities);
                 }}
                 updateSubActivityThumbnail={(
                   activityIndex,
                   subActivityIndex,
                   thumbnailUrl
                 ) => {
-                  setValue(
-                    "activity",
-                    watch("activity").map((activity, aIndex) => ({
+                  const updatedActivities = watch("activity").map(
+                    (activity, aIndex) => ({
                       ...activity,
                       subActivity: activity.subActivity.map((sub, sIndex) =>
                         aIndex === activityIndex && sIndex === subActivityIndex
                           ? { ...sub, thumbnail: thumbnailUrl }
                           : sub
                       ),
-                    }))
+                    })
                   );
+                  setValue("activity", updatedActivities);
+                  // Sync to Zustand for persistence
+                  setActivities(updatedActivities);
                 }}
-                addQuestion={(activityIndex, question) =>
-                  setValue(
-                    "activity",
-                    watch("activity").map((activity, index) => ({
+                addQuestion={(activityIndex, question) => {
+                  const updatedActivities = watch("activity").map(
+                    (activity, index) => ({
                       ...activity,
                       questions:
                         index === activityIndex
                           ? [...(activity.questions || []), question]
                           : activity.questions || [],
-                    }))
-                  )
-                }
-                removeQuestion={(activityIndex, questionIndex) =>
-                  setValue(
-                    "activity",
-                    watch("activity").map((activity, index) => ({
+                    })
+                  );
+                  setValue("activity", updatedActivities);
+                  // Sync to Zustand for persistence
+                  setActivities(updatedActivities);
+                }}
+                removeQuestion={(activityIndex, questionIndex) => {
+                  const updatedActivities = watch("activity").map(
+                    (activity, index) => ({
                       ...activity,
                       questions:
                         index === activityIndex
@@ -1291,13 +1385,15 @@ export default function Page() {
                               (q, i) => i !== questionIndex
                             )
                           : activity.questions || [],
-                    }))
-                  )
-                }
-                updateActivity={(activityIndex, payload) =>
-                  setValue(
-                    "activity",
-                    watch("activity").map((activity, index) =>
+                    })
+                  );
+                  setValue("activity", updatedActivities);
+                  // Sync to Zustand for persistence
+                  setActivities(updatedActivities);
+                }}
+                updateActivity={(activityIndex, payload) => {
+                  const updatedActivities = watch("activity").map(
+                    (activity, index) =>
                       index === activityIndex
                         ? {
                             ...activity,
@@ -1305,26 +1401,33 @@ export default function Page() {
                             titleAm: payload.am,
                           }
                         : activity
-                    )
-                  )
-                }
-                updateSubActivity={(activityIndex, subActivityIndex, payload) =>
-                  setValue(
-                    "activity",
-                    watch("activity").map((activity, aIndex) => ({
+                  );
+                  setValue("activity", updatedActivities);
+                  // Sync to Zustand for persistence
+                  setActivities(updatedActivities);
+                }}
+                updateSubActivity={(
+                  activityIndex,
+                  subActivityIndex,
+                  payload
+                ) => {
+                  const updatedActivities = watch("activity").map(
+                    (activity, aIndex) => ({
                       ...activity,
                       subActivity: activity.subActivity.map((sub, sIndex) =>
                         aIndex === activityIndex && sIndex === subActivityIndex
                           ? { ...sub, titleEn: payload.en, titleAm: payload.am }
                           : sub
                       ),
-                    }))
-                  )
-                }
-                updateQuestion={(activityIndex, questionIndex, question) =>
-                  setValue(
-                    "activity",
-                    watch("activity").map((activity, index) => ({
+                    })
+                  );
+                  setValue("activity", updatedActivities);
+                  // Sync to Zustand for persistence
+                  setActivities(updatedActivities);
+                }}
+                updateQuestion={(activityIndex, questionIndex, question) => {
+                  const updatedActivities = watch("activity").map(
+                    (activity, index) => ({
                       ...activity,
                       questions:
                         index === activityIndex
@@ -1332,9 +1435,12 @@ export default function Page() {
                               i === questionIndex ? question : q
                             )
                           : activity.questions || [],
-                    }))
-                  )
-                }
+                    })
+                  );
+                  setValue("activity", updatedActivities);
+                  // Sync to Zustand for persistence
+                  setActivities(updatedActivities);
+                }}
                 addToFinalExam={(activityIndex, questionIndex) => {
                   const question =
                     watch("activity")[activityIndex]?.questions?.[

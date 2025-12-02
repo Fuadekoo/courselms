@@ -12,9 +12,8 @@ export { useUploadStore } from "./uploadStore";
 export { useUIStore } from "./uiStore";
 export { useSubActivityThumbnailStore } from "./subActivityThumbnailStore";
 export {
-  useSubActivityVideoStore,
   useSubActivityVideoUploadState,
-} from "./subActivityVideoStore";
+} from "./courseRegistrationStore";
 export {
   useStudentProgressStore,
   useCurrentVideo,

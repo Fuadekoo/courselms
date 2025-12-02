@@ -189,21 +189,23 @@ export async function courseRegistration(
           courseFor: { create: courseFor },
           requirement: { create: requirement },
           activity: {
-            create: activity.map(
-              ({ titleAm, titleEn, subActivity }, index) => ({
+            create: [...activity]
+              .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
+              .map(({ titleAm, titleEn, subActivity, order }, index) => ({
                 titleAm,
                 titleEn,
-                order: index + 1,
+                order: order ?? index + 1, // Use the order field from the data, fallback to index + 1
                 subActivity: {
-                  create: subActivity.map((sub, subIndex) => ({
-                    ...sub,
-                    video: sub.video || "", // Ensure video is always a string
-                    thumbnail: sub.thumbnail || "", // Ensure thumbnail is always a string
-                    order: subIndex + 1,
-                  })),
+                  create: [...(subActivity || [])]
+                    .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
+                    .map((sub, subIndex) => ({
+                      ...sub,
+                      video: sub.video || "", // Ensure video is always a string
+                      thumbnail: sub.thumbnail || "", // Ensure thumbnail is always a string
+                      order: sub.order ?? subIndex + 1, // Use the order field from the data, fallback to subIndex + 1
+                    })),
                 },
-              })
-            ),
+              })),
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,
@@ -403,20 +405,27 @@ export async function courseRegistration(
         for (const v of requirement) {
           await prisma.requirement.create({ data: { ...v, courseId } });
         }
-        for (let i = 0; i < activity.length; i++) {
-          const { subActivity, questions, ...v } = activity[i];
+        // Sort activities by order before creating
+        const sortedActivities = [...activity].sort(
+          (a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)
+        );
+
+        for (let i = 0; i < sortedActivities.length; i++) {
+          const { subActivity, questions, order, ...v } = sortedActivities[i];
           const createdActivity = await prisma.activity.create({
             data: {
               ...v,
               courseId,
-              order: i + 1,
+              order: order ?? i + 1, // Use the order field from the data, fallback to index + 1
               subActivity: {
-                create: subActivity.map((sub, subIndex) => ({
-                  ...sub,
-                  video: sub.video || "", // Ensure video is always a string
-                  thumbnail: sub.thumbnail || "", // Ensure thumbnail is always a string
-                  order: subIndex + 1,
-                })),
+                create: [...(subActivity || [])]
+                  .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
+                  .map((sub, subIndex) => ({
+                    ...sub,
+                    video: sub.video || "", // Ensure video is always a string
+                    thumbnail: sub.thumbnail || "", // Ensure thumbnail is always a string
+                    order: sub.order ?? subIndex + 1, // Use the order field from the data, fallback to subIndex + 1
+                  })),
               },
             },
           });

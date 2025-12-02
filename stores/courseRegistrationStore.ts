@@ -2,23 +2,36 @@ import { create } from "zustand";
 import { TCourse } from "@/lib/definations";
 import { TQuestion } from "@/components/ActivityManager";
 
+interface SubActivityVideoUploadState {
+  activityIndex: number;
+  subActivityIndex: number;
+  isUploading: boolean;
+  progress?: number;
+}
+
 interface CourseRegistrationState {
   // Form state
   formData: Partial<TCourse>;
-  
+
   // Upload states
   selectedVideoFile: File | null;
   isVideoUploading: boolean;
   isThumbnailUploading: boolean;
   videoPreviewUrl: string;
-  
+
+  // SubActivity video upload states (key: "activityIndex-subActivityIndex")
+  subActivityUploadStates: Record<string, SubActivityVideoUploadState>;
+
   // Data loading
   isDataLoaded: boolean;
   finalExamQuestions: TQuestion[];
-  
+
   // Actions
   setFormData: (data: Partial<TCourse>) => void;
-  updateFormField: <K extends keyof TCourse>(field: K, value: TCourse[K]) => void;
+  updateFormField: <K extends keyof TCourse>(
+    field: K,
+    value: TCourse[K]
+  ) => void;
   setSelectedVideoFile: (file: File | null) => void;
   setIsVideoUploading: (uploading: boolean) => void;
   setIsThumbnailUploading: (uploading: boolean) => void;
@@ -28,6 +41,19 @@ interface CourseRegistrationState {
   addFinalExamQuestion: (question: TQuestion) => void;
   removeFinalExamQuestion: (index: number) => void;
   updateFinalExamQuestion: (index: number, question: TQuestion) => void;
+  setActivities: (activities: TCourse["activity"]) => void;
+  // SubActivity upload actions
+  setSubActivityUploading: (
+    activityIndex: number,
+    subActivityIndex: number,
+    isUploading: boolean,
+    progress?: number
+  ) => void;
+  clearSubActivityUploadState: (
+    activityIndex: number,
+    subActivityIndex: number
+  ) => void;
+  clearAllSubActivityUploadStates: () => void;
   reset: () => void;
 }
 
@@ -59,13 +85,21 @@ const initialFormData: Partial<TCourse> = {
   finalExamQuestions: [],
 };
 
+const getSubActivityKey = (
+  activityIndex: number,
+  subActivityIndex: number
+): string => {
+  return `${activityIndex}-${subActivityIndex}`;
+};
+
 export const useCourseRegistrationStore = create<CourseRegistrationState>(
-  (set) => ({
+  (set, get) => ({
     formData: initialFormData,
     selectedVideoFile: null,
     isVideoUploading: false,
     isThumbnailUploading: false,
     videoPreviewUrl: "",
+    subActivityUploadStates: {},
     isDataLoaded: false,
     finalExamQuestions: [],
 
@@ -97,7 +131,9 @@ export const useCourseRegistrationStore = create<CourseRegistrationState>(
 
     removeFinalExamQuestion: (index) =>
       set((state) => ({
-        finalExamQuestions: state.finalExamQuestions.filter((_, i) => i !== index),
+        finalExamQuestions: state.finalExamQuestions.filter(
+          (_, i) => i !== index
+        ),
       })),
 
     updateFinalExamQuestion: (index, question) =>
@@ -107,6 +143,52 @@ export const useCourseRegistrationStore = create<CourseRegistrationState>(
         ),
       })),
 
+    setActivities: (activities) =>
+      set((state) => ({
+        formData: { ...state.formData, activity: activities || [] },
+      })),
+
+    setSubActivityUploading: (
+      activityIndex: number,
+      subActivityIndex: number,
+      isUploading: boolean,
+      progress?: number
+    ) => {
+      const key = getSubActivityKey(activityIndex, subActivityIndex);
+      const currentStates = get().subActivityUploadStates;
+
+      if (isUploading) {
+        set({
+          subActivityUploadStates: {
+            ...currentStates,
+            [key]: {
+              activityIndex,
+              subActivityIndex,
+              isUploading: true,
+              progress,
+            },
+          },
+        });
+      } else {
+        const { [key]: _, ...rest } = currentStates;
+        set({ subActivityUploadStates: rest });
+      }
+    },
+
+    clearSubActivityUploadState: (
+      activityIndex: number,
+      subActivityIndex: number
+    ) => {
+      const key = getSubActivityKey(activityIndex, subActivityIndex);
+      const currentStates = get().subActivityUploadStates;
+      const { [key]: _, ...rest } = currentStates;
+      set({ subActivityUploadStates: rest });
+    },
+
+    clearAllSubActivityUploadStates: () => {
+      set({ subActivityUploadStates: {} });
+    },
+
     reset: () =>
       set({
         formData: initialFormData,
@@ -114,9 +196,20 @@ export const useCourseRegistrationStore = create<CourseRegistrationState>(
         isVideoUploading: false,
         isThumbnailUploading: false,
         videoPreviewUrl: "",
+        subActivityUploadStates: {},
         isDataLoaded: false,
         finalExamQuestions: [],
       }),
   })
 );
 
+// Selector hook for getting upload state for a specific sub-activity
+export const useSubActivityVideoUploadState = (
+  activityIndex: number,
+  subActivityIndex: number
+): SubActivityVideoUploadState | undefined => {
+  const key = getSubActivityKey(activityIndex, subActivityIndex);
+  return useCourseRegistrationStore(
+    (state) => state.subActivityUploadStates[key]
+  );
+};
