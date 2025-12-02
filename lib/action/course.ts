@@ -191,21 +191,28 @@ export async function courseRegistration(
           activity: {
             create: [...activity]
               .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
-              .map(({ titleAm, titleEn, subActivity, order }, index) => ({
-                titleAm,
-                titleEn,
-                order: order ?? index + 1, // Use the order field from the data, fallback to index + 1
-                subActivity: {
-                  create: [...(subActivity || [])]
-                    .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
-                    .map((sub, subIndex) => ({
-                      ...sub,
-                      video: sub.video || "", // Ensure video is always a string
-                      thumbnail: sub.thumbnail || "", // Ensure thumbnail is always a string
-                      order: sub.order ?? subIndex + 1, // Use the order field from the data, fallback to subIndex + 1
-                    })),
-                },
-              })),
+              .map((activityItem: any, index) => {
+                const { titleAm, titleEn, subActivity } = activityItem;
+                const order: number | undefined = activityItem.order;
+                return {
+                  titleAm,
+                  titleEn,
+                  order: order ?? index + 1, // Use the order field from the data, fallback to index + 1
+                  subActivity: {
+                    create: [...(subActivity || [])]
+                      .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
+                      .map((sub: any, subIndex: number) => {
+                        const subOrder: number | undefined = sub.order;
+                        return {
+                          ...sub,
+                          video: sub.video || "", // Ensure video is always a string
+                          thumbnail: sub.thumbnail || "", // Ensure thumbnail is always a string
+                          order: subOrder ?? subIndex + 1, // Use the order field from the data, fallback to subIndex + 1
+                        };
+                      }),
+                  },
+                };
+              }),
           },
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any,
@@ -411,7 +418,9 @@ export async function courseRegistration(
         );
 
         for (let i = 0; i < sortedActivities.length; i++) {
-          const { subActivity, questions, order, ...v } = sortedActivities[i];
+          const activityItem: any = sortedActivities[i];
+          const { subActivity, questions, ...v } = activityItem;
+          const order: number | undefined = activityItem.order;
           const createdActivity = await prisma.activity.create({
             data: {
               ...v,
@@ -420,12 +429,15 @@ export async function courseRegistration(
               subActivity: {
                 create: [...(subActivity || [])]
                   .sort((a: any, b: any) => (a.order ?? 0) - (b.order ?? 0))
-                  .map((sub, subIndex) => ({
-                    ...sub,
-                    video: sub.video || "", // Ensure video is always a string
-                    thumbnail: sub.thumbnail || "", // Ensure thumbnail is always a string
-                    order: sub.order ?? subIndex + 1, // Use the order field from the data, fallback to subIndex + 1
-                  })),
+                  .map((sub: any, subIndex: number) => {
+                    const subOrder: number | undefined = sub.order;
+                    return {
+                      ...sub,
+                      video: sub.video || "", // Ensure video is always a string
+                      thumbnail: sub.thumbnail || "", // Ensure thumbnail is always a string
+                      order: subOrder ?? subIndex + 1, // Use the order field from the data, fallback to subIndex + 1
+                    };
+                  }),
               },
             },
           });
@@ -441,7 +453,7 @@ export async function courseRegistration(
                   answerExplanation: explanation,
                   activityId: createdActivity.id,
                   questionOptions: {
-                    create: options.map((option) => ({ option })),
+                    create: options.map((option: string) => ({ option })),
                   },
                 },
               });
