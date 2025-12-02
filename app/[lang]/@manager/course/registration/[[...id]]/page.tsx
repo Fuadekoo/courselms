@@ -253,6 +253,15 @@ export default function Page() {
           setValue("video", data.video, { shouldValidate: false });
           // Sync to Zustand for persistence
           updateFormField("video", data.video);
+        } else if (isEditing) {
+          // If editing but no video in data, check if we have it in Zustand
+          const storedVideo = formData.video || videoPreviewUrl;
+          if (storedVideo) {
+            setValue("video", storedVideo, { shouldValidate: false });
+            updateFormField("video", storedVideo);
+            setVideoPreviewUrl(storedVideo);
+            console.log("📹 Restored video from Zustand:", storedVideo);
+          }
         }
 
         // Load final exam questions if they exist
@@ -319,6 +328,19 @@ export default function Page() {
       errors: formState.errors,
       errorCount: Object.keys(formState.errors).length,
     });
+    
+    // Ensure video is set before validation - critical for updates
+    if (!data.video && !selectedVideoFile) {
+      // Try to get video from various sources
+      const existingVideo = watch("video") || videoPreviewUrl || formData.video;
+      if (existingVideo) {
+        data.video = existingVideo;
+        // Also update the form field to ensure it's set
+        setValue("video", existingVideo, { shouldValidate: false });
+        console.log("📹 Restored video from state:", existingVideo);
+      }
+    }
+    
     console.log("📦 Form Data Summary:", {
       titleEn: data.titleEn,
       titleAm: data.titleAm,
@@ -338,6 +360,7 @@ export default function Page() {
       hasSelectedVideoFile: !!selectedVideoFile,
       videoPreviewUrl: videoPreviewUrl || "None",
       formVideoValue: watch("video") || "None",
+      dataVideo: data.video || "None",
     });
     console.groupEnd();
 
@@ -1770,10 +1793,31 @@ export default function Page() {
                             thumbnail: watch("thumbnail"),
                           });
                           if (!formState.isSubmitting && !isVideoUploading) {
+                            // Ensure video is set before validation (critical for updates)
+                            const currentVideo = watch("video");
+                            if (!currentVideo && !selectedVideoFile && isEditing) {
+                              // Try to restore video from Zustand or preview URL
+                              const existingVideo = videoPreviewUrl || formData.video;
+                              if (existingVideo) {
+                                setValue("video", existingVideo, { shouldValidate: true });
+                                console.log("📹 Restored video before validation:", existingVideo);
+                              }
+                            }
+                            
                             console.log("✅ Calling handleSubmit...");
                             // Use handleSubmit which will validate and call handleFormSubmit if valid
                             handleSubmit(handleFormSubmit, (errors) => {
                               console.error("❌ Form validation failed:", errors);
+                              // Log detailed error information
+                              if (errors.video) {
+                                console.error("❌ Video validation error:", errors.video);
+                                console.log("📹 Video state:", {
+                                  formVideo: watch("video"),
+                                  videoPreviewUrl,
+                                  formDataVideo: formData.video,
+                                  selectedVideoFile: !!selectedVideoFile,
+                                });
+                              }
                               toast.error(
                                 lang === "en"
                                   ? "Please fix the form errors before submitting"
@@ -1781,7 +1825,7 @@ export default function Page() {
                                 {
                                   description:
                                     Object.keys(errors).length > 0
-                                      ? `${Object.keys(errors).length} field(s) have errors`
+                                      ? `${Object.keys(errors).length} field(s) have errors: ${Object.keys(errors).join(", ")}`
                                       : "Form validation failed",
                                 }
                               );
