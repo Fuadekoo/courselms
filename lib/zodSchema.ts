@@ -125,6 +125,7 @@ export const courseSchema = z.object({
     z.object({
       titleEn: z.string({ message: "" }).nonempty("activity title is required"),
       titleAm: z.string({ message: "" }).nonempty("activity title is required"),
+      order: z.number().optional(), // Order field for activity ordering
       subActivity: z.array(
         z.object({
           titleEn: z
@@ -137,6 +138,7 @@ export const courseSchema = z.object({
           thumbnail: z
             .string({ message: "" })
             .nonempty("thumbnail is required"),
+          order: z.number().optional(), // Order field for subActivity ordering
         })
       ),
       questions: z

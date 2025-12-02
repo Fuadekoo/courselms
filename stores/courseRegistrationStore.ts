@@ -209,7 +209,10 @@ export const useSubActivityVideoUploadState = (
   subActivityIndex: number
 ): SubActivityVideoUploadState | undefined => {
   const key = getSubActivityKey(activityIndex, subActivityIndex);
-  return useCourseRegistrationStore(
-    (state) => state.subActivityUploadStates[key]
+  // Subscribe to the entire uploadStates object to ensure re-renders when any upload state changes
+  // Then extract the specific state we need
+  const uploadStates = useCourseRegistrationStore(
+    (state) => state.subActivityUploadStates
   );
+  return uploadStates[key];
 };

@@ -75,6 +75,7 @@ export default function Page() {
   const { handleSubmit, register, setValue, formState, watch } =
     useForm<TCourse>({
       resolver: zodResolver(courseSchema),
+      mode: "onChange", // Validate on change to show errors immediately
       defaultValues: {
         titleEn: "",
         titleAm: "",
@@ -1770,7 +1771,21 @@ export default function Page() {
                           });
                           if (!formState.isSubmitting && !isVideoUploading) {
                             console.log("✅ Calling handleSubmit...");
-                            handleSubmit(handleFormSubmit)();
+                            // Use handleSubmit which will validate and call handleFormSubmit if valid
+                            handleSubmit(handleFormSubmit, (errors) => {
+                              console.error("❌ Form validation failed:", errors);
+                              toast.error(
+                                lang === "en"
+                                  ? "Please fix the form errors before submitting"
+                                  : "እባክዎ ከመላክዎ በፊት የቅጹን ስህተቶች ይስተካከሉ",
+                                {
+                                  description:
+                                    Object.keys(errors).length > 0
+                                      ? `${Object.keys(errors).length} field(s) have errors`
+                                      : "Form validation failed",
+                                }
+                              );
+                            })();
                           } else {
                             console.log("⚠️ Form submission blocked:", {
                               isSubmitting: formState.isSubmitting,

@@ -1,5 +1,5 @@
 "use client";
-import { useState, memo, useEffect } from "react";
+import { useEffect } from "react";
 import { Button } from "@heroui/react";
 import { Upload, Video, Trash } from "lucide-react";
 import {
@@ -214,5 +214,5 @@ function SubActivityVideoUpload({
   );
 }
 
-// Memoize to prevent unnecessary re-renders when parent form updates
-export default memo(SubActivityVideoUpload);
+// Export component directly - Zustand hooks will handle re-render optimization
+export default SubActivityVideoUpload;
