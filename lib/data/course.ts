@@ -374,7 +374,12 @@ export async function getCourseForManager(id: string) {
             question: q.question,
             options: q.questionOptions.map((opt: any) => opt.option),
             answers: q.questionAnswer.map((ans: any) => ans.answer.option),
-            explanation: q.answerExplanation,
+            explanation: 
+              q.answerExplanation && typeof q.answerExplanation === 'string'
+                ? q.answerExplanation
+                : q.answerExplanation && typeof q.answerExplanation === 'object'
+                ? JSON.stringify(q.answerExplanation)
+                : undefined,
             sourceActivityIndex,
             sourceQuestionIndex,
             isSharedFromActivity: true,
@@ -385,7 +390,12 @@ export async function getCourseForManager(id: string) {
             question: q.question,
             options: q.questionOptions.map((opt: any) => opt.option),
             answers: q.questionAnswer.map((ans: any) => ans.answer.option),
-            explanation: q.answerExplanation,
+            explanation: 
+              q.answerExplanation && typeof q.answerExplanation === 'string'
+                ? q.answerExplanation
+                : q.answerExplanation && typeof q.answerExplanation === 'object'
+                ? JSON.stringify(q.answerExplanation)
+                : undefined,
             sourceActivityIndex: undefined,
             sourceQuestionIndex: undefined,
             isSharedFromActivity: false,

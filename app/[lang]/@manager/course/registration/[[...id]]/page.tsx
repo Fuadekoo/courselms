@@ -266,7 +266,16 @@ export default function Page() {
 
         // Load final exam questions if they exist
         if (data && "finalExamQuestions" in data && data.finalExamQuestions) {
-          const examQuestions = data.finalExamQuestions as TQuestion[];
+          // Transform finalExamQuestions to ensure explanation is always a string or undefined
+          const examQuestions = (data.finalExamQuestions as TQuestion[]).map((q: any) => ({
+            ...q,
+            explanation: 
+              q.explanation && typeof q.explanation === 'string'
+                ? q.explanation
+                : q.explanation && typeof q.explanation === 'object'
+                ? JSON.stringify(q.explanation)
+                : undefined,
+          }));
           setFinalExamQuestions(examQuestions);
           setValue("finalExamQuestions", examQuestions, {
             shouldValidate: false,
