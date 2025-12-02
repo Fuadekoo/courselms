@@ -62,7 +62,7 @@ export default function Page() {
       success: lang === "en" ? "Successfully enrolled" : "በተሳካ ሁኔታ ተመዝግቧል",
       error: lang === "en" ? "Failed to enroll" : "መመዝገብ አልተሳካም",
       onSuccess() {
-        router.push(`/${lang}/student/mycourse`);
+        router.push(`/${lang}/mycourse`);
       },
     }
   );

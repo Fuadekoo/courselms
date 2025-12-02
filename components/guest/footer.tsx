@@ -66,24 +66,32 @@ export function Footer() {
             </h4>
             <ul className="space-y-2 text-sm">
               <li>
-                <Link href="https://www.facebook.com/share/1ErhYdzUn3/?mibextid=wwXIfr" className="hover:text-sky-400 transition-colors flex items-center gap-2">
+                <Link
+                  href="https://www.facebook.com/share/1ErhYdzUn3/?mibextid=wwXIfr"
+                  className="hover:text-sky-400 transition-colors flex items-center gap-2"
+                >
                   <Facebook className="w-4 h-4" />
                   <span className="text-sm">Facebook</span>
                 </Link>
               </li>
               <li>
-                <Link href="https://www.tiktok.com/@darulkubraofficial?_t=ZM-90jD1IIkdoZ&_r=1" className="hover:text-sky-400 transition-colors flex items-center gap-2">
+                <Link
+                  href="https://www.tiktok.com/@darulkubraofficial?_t=ZM-90jD1IIkdoZ&_r=1"
+                  className="hover:text-sky-400 transition-colors flex items-center gap-2"
+                >
                   <img src="/tiktok.png" alt="TikTok" className="w-4 h-4" />
                   <span className="text-sm">TikTok</span>
                 </Link>
               </li>
               <li>
-                <Link href="t.me/darulkubraa" className="hover:text-sky-400 transition-colors flex items-center gap-2">
+                <Link
+                  href="https://t.me/darulkubraa"
+                  className="hover:text-sky-400 transition-colors flex items-center gap-2"
+                >
                   <Send className="w-4 h-4" />
                   <span className="text-sm">Telegram</span>
                 </Link>
               </li>
-              
             </ul>
           </div>
 

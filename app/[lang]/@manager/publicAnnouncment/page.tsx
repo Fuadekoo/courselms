@@ -26,6 +26,8 @@ import {
   Trash2,
   Image as ImageIcon,
   Bell as BellIcon,
+  Upload,
+  X,
 } from "lucide-react";
 import {
   getPublicAnnouncements,
@@ -55,6 +57,8 @@ export default function PublicAnnouncementsPage() {
     message: "",
     photo: "",
   });
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedImage, setUploadedImage] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAnnouncements();
@@ -88,6 +92,77 @@ export default function PublicAnnouncementsPage() {
   ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    // Clear uploaded image if user manually enters URL
+    if (name === "photo" && uploadedImage) {
+      setUploadedImage(null);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast.error(
+        lang === "en"
+          ? "Please select an image file"
+          : "እባክዎ የምስል ፋይል ይምረጡ"
+      );
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    const maxSize = 5 * 1024 * 1024; // 5MB
+    if (file.size > maxSize) {
+      toast.error(
+        lang === "en"
+          ? "Image size must be less than 5MB"
+          : "የምስል መጠን ከ 5MB ያነሰ መሆን አለበት"
+      );
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const uploadFormData = new FormData();
+      uploadFormData.append("image", file);
+
+      const response = await fetch("/api/upload-announcement-image", {
+        method: "POST",
+        body: uploadFormData,
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.imageUrl) {
+        setFormData((prev) => ({ ...prev, photo: data.imageUrl }));
+        setUploadedImage(data.imageUrl);
+        toast.success(
+          lang === "en"
+            ? "Image uploaded successfully"
+            : "ምስል በተሳካ ሁኔታ ተስቀለ"
+        );
+      } else {
+        toast.error(
+          data.error ||
+            (lang === "en" ? "Upload failed" : "ስቀል አልተሳካም")
+        );
+      }
+    } catch (error) {
+      console.error("Upload error:", error);
+      toast.error(
+        lang === "en" ? "Upload failed" : "ስቀል አልተሳካም"
+      );
+    } finally {
+      setIsUploading(false);
+      e.target.value = ""; // Reset input
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setFormData((prev) => ({ ...prev, photo: "" }));
+    setUploadedImage(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -140,6 +215,7 @@ export default function PublicAnnouncementsPage() {
       message: announcement.message,
       photo: announcement.photo || "",
     });
+    setUploadedImage(announcement.photo || null);
     setIsOpen(true);
   };
 
@@ -180,6 +256,7 @@ export default function PublicAnnouncementsPage() {
       message: "",
       photo: "",
     });
+    setUploadedImage(null);
   };
 
   return (
@@ -365,28 +442,109 @@ export default function PublicAnnouncementsPage() {
                   minRows={4}
                 />
 
-                <Input
-                  label={
-                    lang === "en" ? "Image URL (Optional)" : "የምስል URL (አማራጭ)"
-                  }
-                  name="photo"
-                  value={formData.photo}
-                  onChange={handleInputChange}
-                  placeholder="https://example.com/image.jpg"
-                  endContent={
-                    formData.photo && (
-                      <a
-                        href={formData.photo}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:underline text-sm flex items-center"
-                      >
-                        <ImageIcon className="h-4 w-4 mr-1" />{" "}
-                        {lang === "en" ? "Preview" : "ይመልከቱ"}
-                      </a>
-                    )
-                  }
-                />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-foreground">
+                    {lang === "en" ? "Image (Optional)" : "ምስል (አማራጭ)"}
+                  </label>
+                  
+                  {/* File Upload */}
+                  <div className="border-2 border-dashed border-default-300 rounded-lg p-4">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      id="announcement-image-upload"
+                      disabled={isUploading}
+                    />
+                    <label
+                      htmlFor="announcement-image-upload"
+                      className={`flex flex-col items-center justify-center cursor-pointer ${
+                        isUploading ? "opacity-50 cursor-not-allowed" : ""
+                      }`}
+                    >
+                      {uploadedImage || formData.photo ? (
+                        <div className="relative w-full">
+                          <img
+                            src={uploadedImage || formData.photo}
+                            alt="Announcement"
+                            className="w-full h-48 object-cover rounded-lg"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                            }}
+                          />
+                          <Button
+                            isIconOnly
+                            size="sm"
+                            color="danger"
+                            variant="solid"
+                            className="absolute top-2 right-2"
+                            onPress={handleRemoveImage}
+                            disabled={isUploading}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex flex-col items-center gap-2 py-4">
+                          <Upload className="h-8 w-8 text-default-400" />
+                          <p className="text-sm text-default-600">
+                            {lang === "en"
+                              ? "Click to upload or drag and drop"
+                              : "ለመስቀል ጠቅ ያድርጉ ወይም ይጎትቱ"}
+                          </p>
+                          <p className="text-xs text-default-500">
+                            {lang === "en"
+                              ? "PNG, JPG, WEBP up to 5MB"
+                              : "PNG, JPG, WEBP እስከ 5MB"}
+                          </p>
+                        </div>
+                      )}
+                    </label>
+                    {isUploading && (
+                      <div className="flex items-center justify-center gap-2 mt-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-primary"></div>
+                        <span className="text-sm text-default-600">
+                          {lang === "en" ? "Uploading..." : "ስቀል በሂደት ላይ..."}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* URL Input (Alternative) */}
+                  <div className="text-xs text-default-500 text-center">
+                    {lang === "en" ? "OR" : "ወይም"}
+                  </div>
+                  <Input
+                    label={
+                      lang === "en"
+                        ? "Image URL (Alternative)"
+                        : "የምስል URL (አማራጭ)"
+                    }
+                    name="photo"
+                    value={formData.photo}
+                    onChange={handleInputChange}
+                    placeholder="https://example.com/image.jpg"
+                    description={
+                      lang === "en"
+                        ? "Enter image URL if you prefer not to upload"
+                        : "ከመስቀል ይልቅ URL ማስገባት ከፈለጉ"
+                    }
+                    endContent={
+                      formData.photo && !uploadedImage && (
+                        <a
+                          href={formData.photo}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline text-sm flex items-center"
+                        >
+                          <ImageIcon className="h-4 w-4 mr-1" />{" "}
+                          {lang === "en" ? "Preview" : "ይመልከቱ"}
+                        </a>
+                      )
+                    }
+                  />
+                </div>
               </div>
             </ModalBody>
             <ModalFooter>

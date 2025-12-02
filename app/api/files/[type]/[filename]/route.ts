@@ -13,7 +13,7 @@ export async function GET(
     console.log("📁 File request:", { type, filename });
 
     // Validate type to prevent directory traversal
-    const allowedTypes = ["thumbnails", "pdfs", "materials", "ai-pdfs"];
+    const allowedTypes = ["thumbnails", "pdfs", "materials", "ai-pdfs", "announcements"];
     if (!allowedTypes.includes(type)) {
       console.error("❌ Invalid file type:", type);
       return new NextResponse("Invalid file type", { status: 400 });
@@ -61,6 +61,12 @@ export async function GET(
         break;
       case "webp":
         contentType = "image/webp";
+        break;
+      case "gif":
+        contentType = "image/gif";
+        break;
+      case "svg":
+        contentType = "image/svg+xml";
         break;
       case "doc":
       case "docx":

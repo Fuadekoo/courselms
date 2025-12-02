@@ -12,7 +12,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
     )}>
       {/* Background layers - applied to all pages */}
       <>
-        {/* Layer 1 - Top: Minimal blur (1px) */}
+        {/* Layer 1 - First blur layer (12px) */}
         <div
           className="absolute inset-0 opacity-55 dark:opacity-45"
           style={{
@@ -20,10 +20,32 @@ export default function Layout({ children }: { children: React.ReactNode }) {
             backgroundSize: "cover",
             backgroundPosition: "center",
             backgroundRepeat: "no-repeat",
-            filter: "blur(1px) brightness(1.05)",
-            transform: "scale(1.01)",
-            maskImage: "linear-gradient(to bottom, black 0%, black 30%, rgba(0,0,0,0.8) 50%, rgba(0,0,0,0.4) 70%, transparent 100%)",
-            WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 30%, rgba(0,0,0,0.8) 50%, rgba(0,0,0,0.4) 70%, transparent 100%)",
+            filter: "blur(12px) brightness(1.05)",
+            transform: "scale(1.02)",
+          }}
+        />
+        {/* Layer 2 - Second blur layer (24px) */}
+        <div
+          className="absolute inset-0 opacity-50 dark:opacity-40"
+          style={{
+            backgroundImage: `url('/darulkubra.png')`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            filter: "blur(24px) brightness(1.05)",
+            transform: "scale(1.03)",
+          }}
+        />
+        {/* Layer 3 - Third blur layer (40px) - deep blur */}
+        <div
+          className="absolute inset-0 opacity-40 dark:opacity-30"
+          style={{
+            backgroundImage: `url('/darulkubra.png')`,
+            backgroundSize: "cover",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            filter: "blur(40px) brightness(1.05)",
+            transform: "scale(1.04)",
           }}
         />
         {/* Overlay for better content readability */}

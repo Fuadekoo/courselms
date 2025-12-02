@@ -57,7 +57,7 @@ export function CoursesSection() {
   const courses = getCourses(lang);
 
   return (
-    <section id="courses" className="py-20 bg-background">
+    <section id="courses" className="py-20 bg-gradient-to-b from-transparent via-sky-50/30 to-transparent dark:via-sky-900/10">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-balance text-foreground">

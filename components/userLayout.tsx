@@ -22,7 +22,7 @@ function UserLayoutContent({
     )}>
       {/* Background layers - applied to all pages */}
         <>
-          {/* Layer 1 - Top: Minimal blur (1px) */}
+          {/* Layer 1 - First blur layer (12px) */}
           <div
             className="absolute inset-0 opacity-55 dark:opacity-45"
             style={{
@@ -30,68 +30,34 @@ function UserLayoutContent({
               backgroundSize: "cover",
               backgroundPosition: "center",
               backgroundRepeat: "no-repeat",
-              filter: "blur(1px) brightness(1.05)",
-              transform: "scale(1.01)",
-              maskImage: "linear-gradient(to bottom, black 0%, black 30%, rgba(0,0,0,0.8) 50%, rgba(0,0,0,0.4) 70%, transparent 100%)",
-              WebkitMaskImage: "linear-gradient(to bottom, black 0%, black 30%, rgba(0,0,0,0.8) 50%, rgba(0,0,0,0.4) 70%, transparent 100%)",
+              filter: "blur(12px) brightness(1.05)",
+              transform: "scale(1.02)",
             }}
           />
-      {/* Layer 2 - Upper-Mid: Light blur (2.5px) - Hidden */}
-      {/* <div
-        className="absolute inset-0 opacity-52 dark:opacity-42"
-        style={{
-          backgroundImage: `url('/darulkubra.png')`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-          filter: "blur(2.5px) brightness(1.05)",
-          transform: "scale(1.01)",
-          maskImage: "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.3) 30%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.5) 85%, transparent 100%)",
-          WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, rgba(0,0,0,0.3) 30%, rgba(0,0,0,0.7) 50%, rgba(0,0,0,0.9) 70%, rgba(0,0,0,0.5) 85%, transparent 100%)",
-        }}
-      /> */}
-      {/* Layer 3 - Mid: Moderate blur (4px) - Hidden */}
-      {/* <div
-        className="absolute inset-0 opacity-50 dark:opacity-40"
-        style={{
-          backgroundImage: `url('/darulkubra.png')`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-          filter: "blur(4px) brightness(1.05)",
-          transform: "scale(1.01)",
-          maskImage: "linear-gradient(to bottom, transparent 0%, transparent 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.6) 60%, rgba(0,0,0,0.9) 80%, rgba(0,0,0,0.7) 90%, transparent 100%)",
-          WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, transparent 20%, rgba(0,0,0,0.2) 40%, rgba(0,0,0,0.6) 60%, rgba(0,0,0,0.9) 80%, rgba(0,0,0,0.7) 90%, transparent 100%)",
-        }}
-      /> */}
-      {/* Layer 4 - Lower-Mid: Medium blur (48px) - Hidden */}
-      {/* <div
-        className="absolute inset-0 opacity-48 dark:opacity-38"
-        style={{
-          backgroundImage: `url('/darulkubra.png')`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-          filter: "blur(48px) brightness(1.05)",
-          transform: "scale(1.01)",
-          maskImage: "linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.95) 85%, black 100%)",
-          WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, transparent 40%, rgba(0,0,0,0.3) 55%, rgba(0,0,0,0.7) 70%, rgba(0,0,0,0.95) 85%, black 100%)",
-        }}
-      /> */}
-      {/* Layer 5 - Bottom: More blurred (72px) - Hidden */}
-      {/* <div
-        className="absolute inset-0 opacity-45 dark:opacity-35"
-        style={{
-          backgroundImage: `url('/darulkubra.png')`,
-          backgroundSize: "cover",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-          filter: "blur(72px) brightness(1.05)",
-          transform: "scale(1.01)",
-          maskImage: "linear-gradient(to bottom, transparent 0%, transparent 60%, rgba(0,0,0,0.4) 75%, rgba(0,0,0,0.8) 85%, black 95%, black 100%)",
-          WebkitMaskImage: "linear-gradient(to bottom, transparent 0%, transparent 60%, rgba(0,0,0,0.4) 75%, rgba(0,0,0,0.8) 85%, black 95%, black 100%)",
-        }}
-      /> */}
+          {/* Layer 2 - Second blur layer (24px) */}
+          <div
+            className="absolute inset-0 opacity-50 dark:opacity-40"
+            style={{
+              backgroundImage: `url('/darulkubra.png')`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+              filter: "blur(24px) brightness(1.05)",
+              transform: "scale(1.03)",
+            }}
+          />
+          {/* Layer 3 - Third blur layer (40px) - deep blur */}
+          <div
+            className="absolute inset-0 opacity-40 dark:opacity-30"
+            style={{
+              backgroundImage: `url('/darulkubra.png')`,
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+              filter: "blur(40px) brightness(1.05)",
+              transform: "scale(1.04)",
+            }}
+          />
           {/* Overlay for better content readability */}
           <div className="absolute inset-0 bg-white/20 dark:bg-gray-900/25 pointer-events-none" />
         </>

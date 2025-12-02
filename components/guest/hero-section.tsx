@@ -23,7 +23,7 @@ export function HeroSection() {
   };
 
   return (
-    <section className="relative overflow-hidden bg-gradient-to-b from-sky-50 to-background dark:from-sky-900/20 dark:to-background py-20 md:py-32">
+    <section className="relative overflow-hidden py-20 md:py-32 bg-gradient-to-b from-sky-50/50 via-transparent to-transparent dark:from-sky-900/10 dark:via-transparent dark:to-transparent">
       <div className="container mx-auto px-4">
         <div className="mx-auto max-w-4xl text-center">
           <Chip color="primary" variant="flat" className="mb-6">

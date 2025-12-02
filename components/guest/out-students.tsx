@@ -66,7 +66,7 @@ export function OurStudentsSection() {
   const ourStudents = getOurStudents(lang);
 
   return (
-    <section id="testimonials" className="py-20 bg-background">
+    <section id="testimonials" className="py-20 bg-gradient-to-b from-transparent via-primary-50/20 to-transparent dark:via-primary-950/15">
       <div className="container mx-auto px-4">
         <div className="text-center mb-12">
           <h2 className="text-3xl md:text-4xl font-bold mb-4 text-balance text-foreground">

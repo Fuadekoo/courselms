@@ -16,7 +16,7 @@ export default function Page() {
   }, []);
 
   return (
-    <div className="h-full">
+    <div className="w-full">
       <PublicAnnouncement />
       <HeroSection />
       <CoursePage />

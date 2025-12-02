@@ -59,7 +59,7 @@ export default function Page() {
 
   return (
     <div className="min-h-screen">
-      <main className="bg-gradient-to-b from-background to-sky-50 dark:to-sky-900/20">
+      <main>
         {loading ? (
           <div className="flex items-center justify-center min-h-[60vh]">
             <Loading />
@@ -69,7 +69,7 @@ export default function Page() {
             <NoData />
           </div>
         ) : (
-          <section className="py-20">
+          <section className="py-20 bg-gradient-to-b from-transparent via-sky-50/20 to-transparent dark:via-sky-900/10">
             <div className="container mx-auto px-4">
               {/* Page Header */}
               <div className="text-center mb-12">

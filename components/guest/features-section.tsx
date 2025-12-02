@@ -60,10 +60,8 @@ export function FeaturesSection() {
   return (
     <section
       id="features"
-      className="py-20 bg-gradient-to-b from-sky-50 to-background dark:from-sky-900/20 dark:to-background relative overflow-hidden"
+      className="py-20 relative overflow-hidden bg-gradient-to-b from-transparent via-primary-50/30 to-transparent dark:via-primary-950/20"
     >
-      {/* Background Pattern */}
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.05),transparent_50%)] dark:bg-[radial-gradient(circle_at_50%_50%,rgba(59,130,246,0.1),transparent_50%)]"></div>
 
       <div className="container mx-auto px-4 relative z-10">
         <div className="text-center mb-16">
