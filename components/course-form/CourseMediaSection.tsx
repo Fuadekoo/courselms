@@ -4,6 +4,7 @@ import { memo, useMemo } from "react";
 import Player from "../stream/Player";
 import ThumbnailUpload from "../ThumbnailUpload";
 import VideoUploadButton from "../VideoUploadButton";
+import { useCourseRegistrationStore } from "@/stores/courseRegistrationStore";
 
 interface CourseMediaSectionProps {
   lang: string;
@@ -32,19 +33,29 @@ function CourseMediaSection({
   onVideoRemove,
   hasVideoError,
 }: CourseMediaSectionProps) {
-  // Priority: selectedVideoFile (uploaded) > video (database)
+  // Get video from Zustand store as source of truth
+  const { videoPreviewUrl, formData } = useCourseRegistrationStore();
+  
+  // Priority: selectedVideoFile (uploaded) > videoPreviewUrl (Zustand) > video (prop) > formData.video (Zustand)
   // Memoize videoSrc to prevent unnecessary recalculations
   const videoSrc = useMemo(() => {
     if (selectedVideoFile) {
       return URL.createObjectURL(selectedVideoFile);
     }
-    if (video) {
-      return video.startsWith('/api/videos/') 
-        ? video.replace('/api/videos/', '') 
-        : video;
+    const videoToUse = videoPreviewUrl || video || formData.video;
+    if (videoToUse) {
+      return videoToUse.startsWith('/api/videos/') 
+        ? videoToUse.replace('/api/videos/', '') 
+        : videoToUse;
     }
     return null;
-  }, [selectedVideoFile, video]);
+  }, [selectedVideoFile, videoPreviewUrl, video, formData.video]);
+  
+  // Get existing video for display (from Zustand as source of truth)
+  const existingVideo = useMemo(() => {
+    if (selectedVideoFile) return undefined; // Don't show existing if new file selected
+    return videoPreviewUrl || formData.video || (video ? video : undefined);
+  }, [selectedVideoFile, videoPreviewUrl, formData.video, video]);
 
   return (
     <div className="grid gap-2">
@@ -78,6 +89,7 @@ function CourseMediaSection({
       <VideoUploadButton
         lang={lang}
         selectedVideo={selectedVideoFile}
+        existingVideo={existingVideo}
         onVideoSelect={onVideoSelect}
         onVideoRemove={onVideoRemove}
         disabled={isUploading}

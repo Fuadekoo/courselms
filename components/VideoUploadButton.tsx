@@ -13,6 +13,7 @@ interface VideoUploadButtonProps {
   onVideoSelect: (file: File) => void;
   onVideoRemove: () => void;
   selectedVideo?: File | null;
+  existingVideo?: string; // Video URL from database when editing
   lang: string;
   disabled?: boolean;
   showExternalProgress?: boolean;
@@ -22,6 +23,7 @@ function VideoUploadButton({
   onVideoSelect,
   onVideoRemove,
   selectedVideo,
+  existingVideo,
   lang,
   disabled = false,
   showExternalProgress = false,
@@ -132,17 +134,30 @@ function VideoUploadButton({
         disabled={disabled || isUploading}
       />
 
-      {selectedVideo || isUploading ? (
+      {selectedVideo || existingVideo || isUploading ? (
         <div className="flex flex-col gap-4">
-          {selectedVideo && (
+          {(selectedVideo || existingVideo) && (
             <div className="flex items-center justify-between p-4 bg-primary/10 border border-primary/30 rounded-lg">
               <div className="flex items-center gap-3">
                 <Video className="w-8 h-8 text-primary" />
                 <div>
-                  <p className="font-medium text-sm">{selectedVideo.name}</p>
-                  <p className="text-xs text-gray-500">
-                    {formatFileSize(selectedVideo.size)}
+                  <p className="font-medium text-sm">
+                    {selectedVideo
+                      ? selectedVideo.name
+                      : existingVideo
+                      ? existingVideo.split("/").pop() || existingVideo
+                      : ""}
                   </p>
+                  {selectedVideo && (
+                    <p className="text-xs text-gray-500">
+                      {formatFileSize(selectedVideo.size)}
+                    </p>
+                  )}
+                  {existingVideo && !selectedVideo && (
+                    <p className="text-xs text-gray-500">
+                      {lang === "en" ? "Existing video" : "የነበረ ቪዲዮ"}
+                    </p>
+                  )}
                   {uuidFilename && (
                     <p className="text-xs text-gray-400">
                       <strong>
