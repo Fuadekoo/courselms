@@ -13,6 +13,7 @@ import useData from "@/hooks/useData";
 import { useSearchParams, useParams } from "next/navigation";
 import { getOverview } from "@/actions/instructor/overview";
 import { useUserData } from "@/hooks/useUserData";
+import { useGlobalLoading } from "@/stores/uiStore";
 
 export default function Page() {
   const { data: session, status } = useSession();
