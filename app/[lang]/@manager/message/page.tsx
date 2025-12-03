@@ -2,7 +2,6 @@
 "use client";
 import React, { useEffect, useMemo, useState } from "react";
 import useData from "@/hooks/useData";
-import Loading from "@/components/loading";
 
 import {
   Button,
@@ -153,13 +152,8 @@ export default function Page() {
     await createAnnouncement({ courseId: announcementCourseId, description: announcementText.trim() });
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading />
-      </div>
-    );
-  }
+  // Loading is handled by TopLoadingBar in layout
+  if (loading) return null;
 
   return (
     <ScrollablePageWrapper>

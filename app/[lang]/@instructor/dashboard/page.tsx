@@ -3,11 +3,9 @@
 import React, { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
 import { Shield, AlertTriangle, RefreshCw } from "lucide-react";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import EmptyState from "@/components/ui/EmptyState";
 import PageHeader from "@/components/layout/PageHeader";
 import Section from "@/components/layout/Section";
-import Loading from "@/components/loading";
 import Overview01 from "../../@manager/_components/overview01";
 import Overview02 from "../../@manager/_components/overview02";
 import Overview03 from "../../@manager/_components/overview03";
@@ -44,14 +42,10 @@ export default function Page() {
     });
   }, [searchParams]);
 
-  // Loading state
-  if (status === "loading") {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading />
-      </div>
-    );
-  }
+  const globalLoading = useGlobalLoading();
+  
+  // Keep previous page visible while loading (TopLoadingBar will show progress)
+  if (globalLoading || status === "loading") return null;
 
   // Unauthenticated state
   if (status === "unauthenticated") {
@@ -87,14 +81,8 @@ export default function Page() {
     );
   }
 
-  // Loading data state
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading />
-      </div>
-    );
-  }
+  // Loading data state - keep previous page visible while loading
+  if (globalLoading || loading) return null;
 
   // Error state
   if (error) {

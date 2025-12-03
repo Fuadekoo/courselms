@@ -16,7 +16,6 @@ import ActivityManager, { TQuestion } from "@/components/ActivityManager";
 import CourseMediaSection from "@/components/course-form/CourseMediaSection";
 import CourseBasicInfo from "@/components/course-form/CourseBasicInfo";
 import CourseSettings from "@/components/course-form/CourseSettings";
-import Loading from "@/components/loading";
 // import { Prisma } from "@prisma/client";
 import {
   Button,
@@ -842,12 +841,9 @@ export default function Page() {
   const progressPercentage = (completedSteps / formProgress.length) * 100;
 
   // Show loading state while essential data is loading
+  // Loading is handled by TopLoadingBar in layout
   if (channelsLoading || instructorsLoading || (isEditing && courseLoading)) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading />
-      </div>
-    );
+    return null;
   }
 
   return (

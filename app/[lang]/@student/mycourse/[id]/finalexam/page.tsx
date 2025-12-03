@@ -30,7 +30,7 @@ import {
   readyToCertification,
 } from "@/actions/student/mycourse";
 import { useExamStore } from "@/stores";
-import Loading from "@/components/loading";
+import { useGlobalLoading } from "@/stores/uiStore";
 
 // Strong types for questions/options
 type ExamOption = { id: string; label: string };
@@ -360,13 +360,10 @@ export default function Page() {
     setShowCongrats(true);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading />
-      </div>
-    );
-  }
+  const globalLoading = useGlobalLoading();
+  
+  // Keep previous page visible while loading (TopLoadingBar will show progress)
+  if (globalLoading || loading) return null;
   if (!displayQuestions.length) {
     return (
       <div className="min-h-dvh bg-background text-foreground flex items-center justify-center p-6">

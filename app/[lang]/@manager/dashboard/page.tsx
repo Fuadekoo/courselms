@@ -18,8 +18,8 @@ import Overview03 from "../_components/overview03";
 import { getOverviewData } from "@/actions/manager/course";
 import useData from "@/hooks/useData";
 import { useSearchParams, useParams } from "next/navigation";
-import Loading from "@/components/loading";
 import { useUserData } from "@/hooks/useUserData";
+import { useGlobalLoading } from "@/stores/uiStore";
 
 export default function Page() {
   const params = useParams<{ lang: string }>();
@@ -51,14 +51,10 @@ export default function Page() {
     setDate(value);
   }, [getDate]);
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading />
-      </div>
-    );
-  }
+  const globalLoading = useGlobalLoading();
+  
+  // Keep previous page visible while loading (TopLoadingBar will show progress)
+  if (globalLoading || loading) return null;
 
   // No data state
   if (!data) {

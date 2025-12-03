@@ -13,7 +13,7 @@ import EmptyState from "@/components/ui/EmptyState";
 import Overview01 from "../../_components/overview01";
 import Overview02 from "../../_components/overview02";
 import Overview03 from "../../_components/overview03";
-import Loading from "@/components/loading";
+import { useGlobalLoading } from "@/stores/uiStore";
 
 export default function Page() {
   const params = useParams<{ id: string }>(),
@@ -42,13 +42,11 @@ export default function Page() {
     setDate(getDate());
   }, [getDate]);
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading />
-      </div>
-    );
+  const globalLoading = useGlobalLoading();
+
+  // Keep previous page visible while loading (TopLoadingBar will show progress)
+  if (globalLoading || loading) {
+    return null;
   }
 
   // No data state
@@ -65,7 +63,7 @@ export default function Page() {
           description="There's no analytics data to display for this course at the moment."
           action={{
             label: "Refresh Data",
-            onClick: () => window.location.reload()
+            onClick: () => window.location.reload(),
           }}
         />
       </ScrollablePageWrapper>
@@ -89,7 +87,7 @@ export default function Page() {
           </Button>
         }
       />
-      
+
       <div className="grid gap-6 md:grid-cols-[1fr_auto]">
         <div className="grid gap-6">
           <Section>
@@ -108,11 +106,11 @@ export default function Page() {
           <Overview02 width={400} data={data[1]} />
         </Section>
       </div>
-      
+
       <Section>
         <Overview03 data={data[4]} />
       </Section>
-      
+
       {/* Add extra content to ensure scrolling */}
       <div className="grid gap-6 md:grid-cols-2">
         <div className="card p-6">

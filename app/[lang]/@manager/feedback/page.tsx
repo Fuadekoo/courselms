@@ -10,7 +10,6 @@ import { getFeedback, getAverageRating } from "@/lib/data/courseMaterials";
 import ScrollablePageWrapper from "@/components/layout/ScrollablePageWrapper";
 import PageHeader from "@/components/layout/PageHeader";
 import EmptyState from "@/components/ui/EmptyState";
-import Loading from "@/components/loading";
 
 interface FeedbackItem {
   id: string;
@@ -92,11 +91,8 @@ export default function Page() {
   );
 
   if (loadingCourses) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading />
-      </div>
-    );
+    // Loading is handled by TopLoadingBar in layout
+    return null;
   }
 
   if (!courses || courses.length === 0) {

@@ -10,7 +10,7 @@ import { Trophy, Printer, ChevronLeft, ChevronRight } from "lucide-react";
 import { toPng } from "html-to-image";
 import jsPDF from "jspdf";
 import { useEffect } from "react";
-import Loading from "@/components/loading";
+import { useGlobalLoading } from "@/stores/uiStore";
 
 type CertificateData = {
   status: boolean;
@@ -573,12 +573,11 @@ export default function Page() {
   const goPrev = () => setActiveIdx((i) => (i === 0 ? 1 : i - 1));
   const goNext = () => setActiveIdx((i) => (i === 1 ? 0 : i + 1));
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading />
-      </div>
-    );
+  const globalLoading = useGlobalLoading();
+  
+  // Keep previous page visible while loading (TopLoadingBar will show progress)
+  if (globalLoading || loading) {
+    return null;
   }
 
   if (!data?.status || data.result === "nottaken" || data.result === "error") {

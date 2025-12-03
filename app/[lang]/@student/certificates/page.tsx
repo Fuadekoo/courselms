@@ -4,10 +4,10 @@ import { useRouter } from "next/navigation";
 import { useParams } from "next/navigation";
 import { Card, CardBody, Button, Image } from "@heroui/react";
 import { Award, ExternalLink } from "lucide-react";
-import Loading from "@/components/loading";
 import NoData from "@/components/noData";
 import { getAllCertificates } from "@/actions/student/mycourse";
 import useData from "@/hooks/useData";
+import { useGlobalLoading } from "@/stores/uiStore";
 
 export default function CertificatesPage() {
   const router = useRouter();
@@ -27,13 +27,10 @@ export default function CertificatesPage() {
     router.push(`/${lang}/certificates/${courseId}`);
   };
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading />
-      </div>
-    );
-  }
+  const globalLoading = useGlobalLoading();
+  
+  // Keep previous page visible while loading (TopLoadingBar will show progress)
+  if (globalLoading || loading) return null;
 
   if (error) {
     return (

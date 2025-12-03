@@ -13,14 +13,15 @@ export default function Page() {
   const params = useParams<{ lang: string }>();
   const lang = params?.lang ?? "en";
   const searchParams = useSearchParams();
-  const { data } = useData({
+  const { data, loading } = useData({
     func: getCoursesForLoginCustomer,
     args: [],
   });
   const globalLoading = useGlobalLoading();
 
-  if (globalLoading) {
-    return null; // Hide content while TopLoadingBar is active
+  // Keep previous page visible while loading (TopLoadingBar will show progress)
+  if (globalLoading || loading) {
+    return null;
   }
 
   return (

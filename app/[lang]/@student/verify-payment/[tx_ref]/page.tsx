@@ -6,7 +6,6 @@ import { Button } from "@heroui/react";
 import Link from "next/link";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect } from "react";
-import Loading from "@/components/loading";
 
 export default function Page() {
   const params = useParams<{ lang: string; tx_ref?: string }>();
@@ -50,11 +49,7 @@ export default function Page() {
 
   return (
     <div className="h-dvh grid gap-y-4 place-content-center ">
-      {isPending ? (
-        <div className="flex items-center justify-center min-h-screen">
-          <Loading />
-        </div>
-      ) : state ? (
+      {isPending ? null : state ? (
         state.status ? (
           <>
             <p className="text-success-600">

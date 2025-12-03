@@ -14,7 +14,6 @@ import {
 import Payment from "@/components/Payment";
 import useData from "@/hooks/useData";
 import { getCourseForCustomer } from "@/lib/data/course";
-import Loading from "@/components/loading";
 import NoData from "@/components/noData";
 import CourseAbout from "@/components/courseAbout";
 import CourseMainDescription from "@/components/courseMainDescription";
@@ -61,11 +60,14 @@ export default function Page() {
     router.push(redirectUrl);
   };
 
+  // Keep previous page visible while loading (TopLoadingBar will show progress)
+  if (loading) {
+    return null;
+  }
+
   return (
     <div className="h-dvh">
-      {loading ? (
-        <Loading />
-      ) : !data ? (
+      {!data ? (
         <NoData />
       ) : (
         <div className="px-2 md:pl-4 lg:pl-6 xl:pl-8 pt-4 md:pt-6 pb-6 md:pr-[28rem] lg:pr-[32rem] h-full flex flex-col gap-6 md:gap-8 overflow-y-auto overflow-x-hidden smooth-scroll">

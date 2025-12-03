@@ -16,9 +16,9 @@ import { useEffect } from "react";
 import QRCode from "qrcode";
 import Image from "next/image";
 import { Button } from "@heroui/react";
-import Loading from "@/components/loading";
 import { getCertificateDetails } from "@/actions/student/mycourse";
 import useData from "@/hooks/useData";
+import { useGlobalLoading } from "@/stores/uiStore";
 
 type CertificateData = {
   status: boolean;
@@ -540,12 +540,11 @@ export default function CertificateDetailPage() {
   const goPrev = () => setActiveIdx((i) => (i === 0 ? 1 : i - 1));
   const goNext = () => setActiveIdx((i) => (i === 1 ? 0 : i + 1));
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading />
-      </div>
-    );
+  const globalLoading = useGlobalLoading();
+  
+  // Keep previous page visible while loading (TopLoadingBar will show progress)
+  if (globalLoading || loading) {
+    return null;
   }
 
   if (

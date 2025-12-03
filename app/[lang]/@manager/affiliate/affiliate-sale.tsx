@@ -1,11 +1,11 @@
 "use client";
 
-import Loading from "@/components/loading";
 import useData from "@/hooks/useData";
 import { getfeckdata } from "@/lib/data/course";
 import { cn } from "@/lib/utils";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
+import { useGlobalLoading } from "@/stores/uiStore";
 import {
   Area,
   AreaChart,
@@ -35,9 +35,12 @@ export default function SalesChart() {
     });
   }, [searchParams]);
 
-  return loading ? (
-    <Loading />
-  ) : (
+  const globalLoading = useGlobalLoading();
+  
+  // Keep previous page visible while loading (TopLoadingBar will show progress)
+  if (globalLoading || loading) return null;
+
+  return (
     data && (
       <div className="bg-background/60 backdrop-blur-xl rounded-md shadow shadow-primary/10  ">
         <div className="py-5 px-5 md:px-10 grid max-md:gap-2 md:grid-cols-[1fr_auto]">

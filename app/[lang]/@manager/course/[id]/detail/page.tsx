@@ -13,13 +13,13 @@ import {
 } from "lucide-react";
 import useData from "@/hooks/useData";
 import { getCourse } from "@/actions/manager/course";
-import Loading from "@/components/loading";
 import CourseAbout from "@/components/courseAbout";
 import CourseMainDescription from "@/components/courseMainDescription";
 import CourseRequirement from "@/components/courseRequirement";
 import CourseFor from "@/components/courseFor";
 import CourseActivity from "@/components/courseActivity";
 import CourseTopOverview from "@/components/courseTopOverview";
+import { useGlobalLoading } from "@/stores/uiStore";
 
 export default function Page() {
   const params = useParams<{ lang: string; id: string }>();
@@ -27,11 +27,12 @@ export default function Page() {
   const id = params?.id ?? "",
     { data, loading } = useData({ func: getCourse, args: [id] });
 
-  return loading ? (
-    <div className="flex items-center justify-center min-h-screen">
-      <Loading />
-    </div>
-  ) : (
+  const globalLoading = useGlobalLoading();
+  
+  // Keep previous page visible while loading (TopLoadingBar will show progress)
+  if (globalLoading || loading) return null;
+
+  return (
     data && (
       <div className="h-full px-2 2xl:pl-20 md:pr-[20rem] 2xl:pr-[31.5rem] pb-20 flex flex-col gap-10 overflow-auto">
         <CourseTopOverview

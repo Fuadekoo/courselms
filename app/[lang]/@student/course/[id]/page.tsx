@@ -78,19 +78,14 @@ export default function Page() {
     }
   };
 
-  if (globalLoading) {
-    return null; // Hide content while TopLoadingBar is active
+  // Keep previous page visible while loading (TopLoadingBar will show progress)
+  if (globalLoading || loading) {
+    return null;
   }
 
   return (
     <div className="h-dvh">
-      {loading ? (
-        <div className="flex items-center justify-center h-full">
-          <div className="text-center text-gray-500 dark:text-gray-400">
-            {lang === "en" ? "Loading course..." : "ኮርስ በመጫን ላይ..."}
-          </div>
-        </div>
-      ) : !data ? (
+      {!data ? (
         <NoData />
       ) : (
         <div className="px-2 md:pl-4 lg:pl-6 xl:pl-8 pt-4 md:pt-6 pb-6 md:pr-[28rem] lg:pr-[32rem] h-full flex flex-col gap-6 md:gap-8 overflow-y-auto overflow-x-hidden smooth-scroll">

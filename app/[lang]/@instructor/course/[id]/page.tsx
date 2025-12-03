@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Loading from "@/components/loading";
 import NoData from "@/components/noData";
 import Overview01 from "../../../@manager/_components/overview01";
 import Overview02 from "../../../@manager/_components/overview02";
@@ -9,6 +8,7 @@ import Overview03 from "../../../@manager/_components/overview03";
 import useData from "@/hooks/useData";
 import { useSearchParams, useParams } from "next/navigation";
 import { getOverview } from "@/actions/instructor/overview";
+import { useGlobalLoading } from "@/stores/uiStore";
 
 export default function Page() {
   const params = useParams<{ id: string }>();
@@ -34,13 +34,16 @@ export default function Page() {
     }));
   }, [searchParams]);
 
-  return loading ? (
-    <div className="flex items-center justify-center min-h-screen">
-      <Loading />
-    </div>
-  ) : !data ? (
-    <NoData />
-  ) : (
+  const globalLoading = useGlobalLoading();
+  
+  // Keep previous page visible while loading (TopLoadingBar will show progress)
+  if (globalLoading || loading) return null;
+
+  if (!data) {
+    return <NoData />;
+  }
+
+  return (
     <div className="overflow-auto">
       <div className="py-4 grid gap-4 md:grid-cols-[1fr_auto] ">
         <div className="grid gap-4">

@@ -12,7 +12,6 @@ import { signupWithOTP } from "@/lib/action/user";
 import { sendOTP } from "@/lib/action";
 import OTPInput from "@/components/OTPInput";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import Loading from "@/components/loading";
 
 // Ensure signup returns StateType:
 // type StateType = { status: true; message: string } | { status: false; cause: string; message: string };
@@ -212,22 +211,9 @@ export default function Page() {
     lang == "en" ? "Set Password" : "የይለፍ ቃል ያዘጋጁ",
   ];
 
-  // Show loading while checking authentication
-  if (status === "loading") {
-    return (
-      <div className="min-h-dvh flex items-center justify-center">
-        <Loading />
-      </div>
-    );
-  }
-
-  // If authenticated, don't render signup form (will redirect)
-  if (status === "authenticated") {
-    return (
-      <div className="min-h-dvh flex items-center justify-center">
-        <Loading />
-      </div>
-    );
+  // Loading is handled by TopLoadingBar in layout
+  if (status === "loading" || status === "authenticated") {
+    return null;
   }
 
   return (

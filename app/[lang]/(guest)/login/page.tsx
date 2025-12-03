@@ -11,7 +11,6 @@ import useAction from "@/hooks/useAction";
 import { authenticate } from "@/lib/action/user";
 import { CButton } from "@/components/heroui";
 import { Form, Input } from "@heroui/react";
-import Loading from "@/components/loading";
 
 const formSchema = z.object({
   userName: z.string({ message: "" }).nonempty("User Name is required"),
@@ -58,22 +57,9 @@ export default function Page() {
     }
   }, [status, session, router, lang]);
 
-  // Show loading while checking authentication
-  if (status === "loading") {
-    return (
-      <div className="min-h-dvh flex items-center justify-center">
-        <Loading />
-      </div>
-    );
-  }
-
-  // If authenticated, don't render login form (will redirect)
-  if (status === "authenticated") {
-    return (
-      <div className="min-h-dvh flex items-center justify-center">
-        <Loading />
-      </div>
-    );
+  // Loading is handled by TopLoadingBar in layout
+  if (status === "loading" || status === "authenticated") {
+    return null;
   }
 
   // Process phone numbers: handle leading 0 and add default country code

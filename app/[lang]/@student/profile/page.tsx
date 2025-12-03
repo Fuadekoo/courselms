@@ -1,7 +1,6 @@
 "use client";
 
 import { CInput } from "@/components/heroui";
-import Loading from "@/components/loading";
 import { Edit2, Save, X } from "lucide-react";
 import { useParams } from "next/navigation";
 import { useForm } from "react-hook-form";
@@ -110,13 +109,8 @@ export default function StudentProfilePage() {
     setIsEditing(true);
   };
 
-  if (isLoading || !profile) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading />
-      </div>
-    );
-  }
+  // Loading is handled by TopLoadingBar in layout
+  if (isLoading || !profile) return null;
 
   const fullName =
     [profile.firstName, profile.fatherName, profile.lastName]

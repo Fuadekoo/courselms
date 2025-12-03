@@ -2,7 +2,6 @@
 
 import { getManager, registerManager } from "@/actions/manager/manager";
 import { CInput, CSelect, CSelectItem } from "@/components/heroui";
-import Loading from "@/components/loading";
 import useAction from "@/hooks/useAction";
 import useData from "@/hooks/useData";
 import { TManager } from "@/lib/definations";
@@ -58,11 +57,10 @@ export default function Page() {
       },
     });
 
-  return loading ? (
-    <div className="flex items-center justify-center min-h-screen">
-      <Loading />
-    </div>
-  ) : (
+  // Loading is handled by TopLoadingBar in layout
+  if (loading) return null;
+
+  return (
     <div className="grid md:place-content-center overflow-auto">
       <Form
         onSubmit={handleSubmit(action)}

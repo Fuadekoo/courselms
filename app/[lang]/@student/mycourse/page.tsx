@@ -16,20 +16,21 @@ export default function Page() {
   const lang = params?.lang ?? "en";
   const searchParams = useSearchParams();
 
-  const { data: myCourses } = useData({
+  const { data: myCourses, loading: myCoursesLoading } = useData({
     func: getMyCoursesWithProgress,
     args: [],
   });
 
-  const { data: allCourses } = useData({
+  const { data: allCourses, loading: allCoursesLoading } = useData({
     func: getCoursesForLoginCustomer,
     args: [],
   });
 
   const globalLoading = useGlobalLoading();
 
-  if (globalLoading) {
-    return null; // Hide content while TopLoadingBar is active
+  // Keep previous page visible while loading (TopLoadingBar will show progress)
+  if (globalLoading || myCoursesLoading || allCoursesLoading) {
+    return null;
   }
 
   return (

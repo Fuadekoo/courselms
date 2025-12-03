@@ -18,7 +18,6 @@ import { useEffect } from "react";
 import QRCode from "qrcode";
 import Image from "next/image";
 import { Button, Card, CardBody } from "@heroui/react";
-import Loading from "@/components/loading";
 import { verifyCertificate } from "@/actions/student/mycourse";
 import useData from "@/hooks/useData";
 
@@ -549,11 +548,8 @@ export default function VerifyCertificatePage() {
   const goNext = () => setActiveIdx((i) => (i === 1 ? 0 : i + 1));
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading />
-      </div>
-    );
+    // Loading is handled by TopLoadingBar in layout
+    return null;
   }
 
   if (error) {

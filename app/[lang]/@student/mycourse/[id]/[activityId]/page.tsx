@@ -20,7 +20,7 @@ import {
   X,
   RotateCcw,
 } from "lucide-react";
-import Loading from "@/components/loading";
+import { useGlobalLoading } from "@/stores/uiStore";
 
 export default function Page() {
   const router = useRouter();
@@ -186,12 +186,11 @@ export default function Page() {
     [answers, questions]
   );
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loading />
-      </div>
-    );
+  const globalLoading = useGlobalLoading();
+  
+  // Keep previous page visible while loading (TopLoadingBar will show progress)
+  if (globalLoading || loading) {
+    return null;
   }
 
   if (!questions.length) {

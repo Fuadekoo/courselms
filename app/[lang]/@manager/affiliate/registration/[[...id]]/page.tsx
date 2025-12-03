@@ -6,7 +6,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import useAction from "@/hooks/useAction";
 import useData from "@/hooks/useData";
-import Loading from "@/components/loading";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { getAffiliate, registerAffiliate } from "@/actions/manager/affiliate";
@@ -62,11 +61,10 @@ export default function Page() {
       },
     });
 
-  return loading ? (
-    <div className="flex items-center justify-center min-h-screen">
-      <Loading />
-    </div>
-  ) : (
+  // Loading is handled by TopLoadingBar in layout
+  if (loading) return null;
+
+  return (
     <div className="grid md:place-content-center overflow-auto">
       <Form
         className="w-full max-w-md p-8 bg-background/20 rounded-xl shadow-md grid gap-10"

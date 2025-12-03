@@ -3,7 +3,6 @@
 import useData from "@/hooks/useData";
 import { getCoursesForCustomer } from "@/lib/data/course";
 import React, { useEffect, useMemo } from "react";
-import Loading from "@/components/loading";
 import NoData from "@/components/noData";
 import { useParams, useSearchParams } from "next/navigation";
 import {
@@ -57,14 +56,15 @@ export default function Page() {
     });
   }, [data, searchTerm, selectedLevel]);
 
+  // Keep previous page visible while loading (TopLoadingBar will show progress)
+  if (loading) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen">
       <main>
-        {loading ? (
-          <div className="flex items-center justify-center min-h-[60vh]">
-            <Loading />
-          </div>
-        ) : !data || data.length <= 0 ? (
+        {!data || data.length <= 0 ? (
           <div className="flex items-center justify-center min-h-[60vh]">
             <NoData />
           </div>
