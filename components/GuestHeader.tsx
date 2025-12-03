@@ -146,11 +146,12 @@ export default function GuestHeader() {
               )}
             </Button>
 
-            {/* Language Switcher */}
+            {/* Language Switcher - Hidden on screens 425px and smaller */}
             <Link
               href={targetHref}
               onClick={onLangClick}
               aria-label="Switch language"
+              className="max-[425px]:hidden"
             >
               <Button
                 isIconOnly

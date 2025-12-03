@@ -73,7 +73,7 @@ export default function Header({
               variant="light"
               size="sm"
               onPress={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-              className="lg:hidden text-gray-700 dark:text-gray-300"
+              className="md:hidden text-gray-700 dark:text-gray-300"
               aria-label={isMobileMenuOpen ? "Close menu" : "Open menu"}
             >
               {isMobileMenuOpen ? (
@@ -108,7 +108,7 @@ export default function Header({
           </form>
 
           {/* Right Side: Desktop Actions */}
-          <div className="items-center gap-3 hidden lg:flex">
+          <div className="items-center gap-3 hidden md:flex">
             {/* Shopping Cart */}
             <Button
               isIconOnly
@@ -147,7 +147,7 @@ export default function Header({
               </Button>
             )}
 
-            {/* Language Selector */}
+            {/* Language Selector - Hidden on screens 425px and smaller */}
             <Button
               variant="flat"
               size="sm"
@@ -158,16 +158,16 @@ export default function Header({
                   }`
                 )
               }
-              className="text-xs font-medium text-primary-700 dark:text-primary-300 bg-primary-100 dark:bg-primary-900/30 hover:bg-primary-200 dark:hover:bg-primary-800"
+              className="max-[425px]:hidden text-xs font-medium text-primary-700 dark:text-primary-300 bg-primary-100 dark:bg-primary-900/30 hover:bg-primary-200 dark:hover:bg-primary-800"
             >
               {lang === "en" ? "አማ" : "EN"}
             </Button>
           </div>
 
-          {/* Mobile: Language and Login - Visible on mobile when menu is closed */}
+          {/* Mobile: Language and Login - Visible on mobile when menu is closed (below 768px only) */}
           {!isMobileMenuOpen && (
-            <div className="flex items-center gap-2 lg:hidden">
-              {/* Language Selector - Mobile */}
+            <div className="flex items-center gap-2 md:hidden">
+              {/* Language Selector - Mobile - Hidden on screens 425px and smaller */}
               <Button
                 variant="flat"
                 size="sm"
@@ -178,7 +178,7 @@ export default function Header({
                     }`
                   )
                 }
-                className="text-xs font-medium text-primary-700 dark:text-primary-300 bg-primary-100 dark:bg-primary-900/30"
+                className="max-[425px]:hidden text-xs font-medium text-primary-700 dark:text-primary-300 bg-primary-100 dark:bg-primary-900/30"
               >
                 {lang === "en" ? "አማ" : "EN"}
               </Button>
@@ -197,9 +197,7 @@ export default function Header({
               )}
 
               {/* User Icon - Mobile (if logged in) */}
-              {userName && (
-                <User userName={userName} navItems={navItems} />
-              )}
+              {userName && <User userName={userName} navItems={navItems} />}
             </div>
           )}
         </div>
@@ -208,7 +206,7 @@ export default function Header({
       {/* Mobile Menu Overlay */}
       {isMobileMenuOpen && (
         <div
-          className="fixed inset-0 z-40 bg-black/50 lg:hidden"
+          className="fixed inset-0 z-40 bg-black/50 md:hidden"
           onClick={() => setIsMobileMenuOpen(false)}
         />
       )}
@@ -216,7 +214,7 @@ export default function Header({
       {/* Mobile Menu Drawer */}
       <div
         className={cn(
-          "fixed top-16 left-0 z-50 h-[calc(100vh-4rem)] w-80 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-300 ease-in-out lg:hidden",
+          "fixed top-16 left-0 z-50 h-[calc(100vh-4rem)] w-80 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform duration-300 ease-in-out md:hidden",
           isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -278,23 +276,7 @@ export default function Header({
             </Button>
           )}
 
-          {/* Language Selector - Mobile */}
-          <Button
-            variant="light"
-            onPress={() =>
-              router.push(
-                `/${lang === "en" ? "am" : "en"}/${
-                  pathname?.split("/").slice(2).join("/") || ""
-                }`
-              )
-            }
-            className="justify-start text-gray-700 dark:text-gray-300"
-          >
-            {lang === "en" ? "Switch to Amharic" : "ወደ እንግሊዘኛ ቀይር"}
-            <span className="ml-auto text-xs font-medium text-primary-700 dark:text-primary-300 bg-primary-100 dark:bg-primary-900/30 px-2 py-1 rounded">
-              {lang === "en" ? "አማ" : "EN"}
-            </span>
-          </Button>
+          {/* Language button removed from mobile menu - only visible on large screens and up */}
 
           {/* Divider */}
           <div className="border-t border-gray-200 dark:border-gray-700 my-2" />
