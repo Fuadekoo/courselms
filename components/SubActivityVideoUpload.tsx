@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@heroui/react";
 import { Upload, Video, Trash } from "lucide-react";
 import { useCourseRegistrationStore } from "@/stores/courseRegistrationStore";
@@ -30,34 +30,62 @@ function SubActivityVideoUpload({
 
   // Subscribe to the entire uploadStates object to ensure re-renders
   // This is critical for components inside accordions that might not re-render otherwise
+  const key = useMemo(
+    () => `${activityIndex}-${subActivityIndex}`,
+    [activityIndex, subActivityIndex]
+  );
+  
+  // Subscribe to the entire subActivityUploadStates object
+  // This ensures re-renders when ANY upload state changes (important for accordions)
+  // We need to subscribe to the entire object, not just a specific key, to ensure re-renders
   const allUploadStates = useCourseRegistrationStore(
     (state) => state.subActivityUploadStates
   );
 
   // Extract the specific upload state for this sub-activity
-  const key = `${activityIndex}-${subActivityIndex}`;
-  const uploadState = allUploadStates[key];
+  // Accessing it this way ensures React detects changes when the parent object updates
+  const uploadState = allUploadStates?.[key];
 
+  // Extract values - these will update when uploadState changes
   const isUploading = uploadState?.isUploading ?? false;
   const uploadProgress = uploadState?.progress ?? 0;
 
+  // Use local state to force re-renders when Zustand state changes
+  // This ensures the component updates even inside accordions
+  const [localUploadState, setLocalUploadState] = useState({
+    isUploading: false,
+    progress: 0,
+  });
+
+  // Sync local state with Zustand state to force re-renders
+  useEffect(() => {
+    setLocalUploadState({
+      isUploading: isUploading,
+      progress: uploadProgress,
+    });
+  }, [isUploading, uploadProgress]);
+
+  // Use local state for display to ensure immediate updates
+  const displayIsUploading = localUploadState.isUploading;
+  const displayProgress = localUploadState.progress;
+
   // Debug: Log when upload state changes (remove in production)
   useEffect(() => {
-    if (isUploading) {
+    if (displayIsUploading) {
       console.log(
         `[SubActivityVideoUpload] Upload state changed:`,
         activityIndex,
         subActivityIndex,
-        `Progress: ${uploadProgress}%`
+        `Progress: ${displayProgress}%`
       );
     }
-  }, [isUploading, uploadProgress, activityIndex, subActivityIndex]);
+  }, [displayIsUploading, displayProgress, activityIndex, subActivityIndex]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       // Don't clear if still uploading - let it continue in background
-      if (!isUploading) {
+      if (!localUploadState.isUploading) {
         clearSubActivityUploadState(activityIndex, subActivityIndex);
       }
     };
@@ -172,7 +200,7 @@ function SubActivityVideoUpload({
                 onVideoRemove();
               }
             }}
-            isDisabled={isUploading}
+            isDisabled={displayIsUploading}
           >
             <Trash className="size-4" />
           </Button>
@@ -198,7 +226,7 @@ function SubActivityVideoUpload({
               }}
               className="hidden"
               id={inputId}
-              disabled={isUploading}
+              disabled={displayIsUploading}
             />
             <Button
               type="button"
@@ -211,7 +239,7 @@ function SubActivityVideoUpload({
                 ) as HTMLInputElement;
                 input?.click();
               }}
-              isDisabled={isUploading}
+              isDisabled={displayIsUploading}
             >
               <Upload className="size-4" />
               {lang === "en" ? "Choose Video" : "ቪዲዮ ምረጥ"}
@@ -220,23 +248,23 @@ function SubActivityVideoUpload({
         </div>
       )}
 
-      {isUploading && (
+      {displayIsUploading && (
         <div className="flex flex-col gap-2 p-4 bg-blue-50 dark:bg-blue-950/30 border-2 border-blue-300 dark:border-blue-700 rounded-lg animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex justify-between items-center">
             <span className="text-sm font-semibold text-primary">
               {lang === "en" ? "Uploading video..." : "ቪዲዮ ስቀል በሂደት ላይ..."}
             </span>
             <span className="text-sm font-bold text-primary">
-              {uploadProgress}%
+              {displayProgress}%
             </span>
           </div>
           <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 overflow-hidden">
             <div
               className="h-full bg-gradient-to-r from-blue-500 to-blue-600 rounded-full transition-all duration-300 ease-out"
-              style={{ width: `${uploadProgress}%` }}
+              style={{ width: `${displayProgress}%` }}
             />
           </div>
-          {uploadProgress === 0 && (
+          {displayProgress === 0 && (
             <p className="text-xs text-gray-600 dark:text-gray-400 text-center">
               {lang === "en" ? "Preparing upload..." : "ስቀል በመዘጋጀት ላይ..."}
             </p>

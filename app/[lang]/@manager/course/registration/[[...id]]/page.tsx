@@ -698,6 +698,8 @@ export default function Page() {
       setSelectedVideoFile(null);
       setVideoPreviewUrl("");
       setValue("video", "", { shouldValidate: false, shouldDirty: true });
+      // Also clear video from Zustand formData to prevent it from being restored
+      updateFormField("video", "");
       // Note: Thumbnail is NOT cleared when removing video - they are independent
     }
   };

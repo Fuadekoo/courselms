@@ -42,7 +42,13 @@ function CourseMediaSection({
     if (selectedVideoFile) {
       return URL.createObjectURL(selectedVideoFile);
     }
-    const videoToUse = videoPreviewUrl || video || formData.video;
+    // Filter out empty strings - only use truthy, non-empty values
+    const getValidVideo = (val: string | undefined | null) => {
+      if (!val || typeof val !== 'string') return null;
+      const trimmed = val.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    };
+    const videoToUse = getValidVideo(videoPreviewUrl) || getValidVideo(video) || getValidVideo(formData.video);
     if (videoToUse) {
       return videoToUse.startsWith('/api/videos/') 
         ? videoToUse.replace('/api/videos/', '') 
@@ -54,7 +60,13 @@ function CourseMediaSection({
   // Get existing video for display (from Zustand as source of truth)
   const existingVideo = useMemo(() => {
     if (selectedVideoFile) return undefined; // Don't show existing if new file selected
-    return videoPreviewUrl || formData.video || (video ? video : undefined);
+    // Filter out empty strings - only return truthy, non-empty values
+    const getValidVideo = (val: string | undefined | null) => {
+      if (!val || typeof val !== 'string') return null;
+      const trimmed = val.trim();
+      return trimmed.length > 0 ? trimmed : null;
+    };
+    return getValidVideo(videoPreviewUrl) || getValidVideo(formData.video) || getValidVideo(video) || undefined;
   }, [selectedVideoFile, videoPreviewUrl, formData.video, video]);
 
   return (

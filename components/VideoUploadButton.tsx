@@ -174,14 +174,9 @@ function VideoUploadButton({
                 size="sm"
                 variant="light"
                 color="danger"
-                onClick={() => {
-                  const confirmMessage =
-                    lang === "en"
-                      ? "Are you sure you want to delete this video?"
-                      : "ይህን ቪዲዮ መሰረዝ እርግጠኛ ነዎት?";
-                  if (confirm(confirmMessage)) {
-                    onVideoRemove();
-                  }
+                onClick={(e) => {
+                  e.stopPropagation(); // Prevent event bubbling
+                  onVideoRemove(); // Confirmation is handled in the parent handler
                 }}
                 disabled={disabled || isUploading}
               >
