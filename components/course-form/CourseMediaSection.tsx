@@ -68,13 +68,15 @@ function CourseMediaSection({
           disabled={isThumbnailUploading}
         />
         {videoSrc ? (
-          <Player 
-            src={videoSrc}
-            type={selectedVideoFile ? "url" : "local"}
-            title="Melaverse video player" 
-            poster={thumbnail} // Show thumbnail as poster
-            key={selectedVideoFile ? 'uploaded' : 'database'}
-          />
+          <div className="w-full aspect-video rounded-xl overflow-hidden">
+            <Player 
+              src={videoSrc}
+              type={selectedVideoFile ? "url" : "local"}
+              title="Melaverse video player" 
+              poster={thumbnail} // Show thumbnail as poster
+              key={selectedVideoFile ? 'uploaded' : 'database'}
+            />
+          </div>
         ) : (
           <div
             className={cn(

@@ -170,6 +170,7 @@ export const useCourseRegistrationStore = create<CourseRegistrationState>(
           },
         });
       } else {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const { [key]: _, ...rest } = currentStates;
         set({ subActivityUploadStates: rest });
       }
@@ -181,6 +182,7 @@ export const useCourseRegistrationStore = create<CourseRegistrationState>(
     ) => {
       const key = getSubActivityKey(activityIndex, subActivityIndex);
       const currentStates = get().subActivityUploadStates;
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
       const { [key]: _, ...rest } = currentStates;
       set({ subActivityUploadStates: rest });
     },
@@ -209,10 +211,12 @@ export const useSubActivityVideoUploadState = (
   subActivityIndex: number
 ): SubActivityVideoUploadState | undefined => {
   const key = getSubActivityKey(activityIndex, subActivityIndex);
-  // Subscribe to the entire uploadStates object to ensure re-renders when any upload state changes
-  // Then extract the specific state we need
-  const uploadStates = useCourseRegistrationStore(
+  // Subscribe to the entire subActivityUploadStates object to ensure re-renders
+  // when any upload state changes, then extract the specific state
+  // This approach ensures Zustand detects changes even when the component is inside an accordion
+  const allStates = useCourseRegistrationStore(
     (state) => state.subActivityUploadStates
   );
-  return uploadStates[key];
+  // Return the specific state - Zustand will re-render when allStates changes
+  return allStates[key];
 };

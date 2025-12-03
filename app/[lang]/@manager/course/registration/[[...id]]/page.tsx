@@ -698,7 +698,7 @@ export default function Page() {
       setSelectedVideoFile(null);
       setVideoPreviewUrl("");
       setValue("video", "", { shouldValidate: false, shouldDirty: true });
-      setValue("thumbnail", "", { shouldValidate: false, shouldDirty: true });
+      // Note: Thumbnail is NOT cleared when removing video - they are independent
     }
   };
 

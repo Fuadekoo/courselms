@@ -1,11 +1,8 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { Button } from "@heroui/react";
 import { Upload, Video, Trash } from "lucide-react";
-import {
-  useCourseRegistrationStore,
-  useSubActivityVideoUploadState,
-} from "@/stores/courseRegistrationStore";
+import { useCourseRegistrationStore } from "@/stores/courseRegistrationStore";
 
 interface SubActivityVideoUploadProps {
   lang: string;
@@ -24,15 +21,37 @@ function SubActivityVideoUpload({
   activityIndex,
   subActivityIndex,
 }: SubActivityVideoUploadProps) {
-  const inputId = `video-upload-${Math.random().toString(36).substr(2, 9)}`;
+  const inputId = useMemo(
+    () => `video-upload-${Math.random().toString(36).substr(2, 9)}`,
+    []
+  );
   const { setSubActivityUploading, clearSubActivityUploadState } =
     useCourseRegistrationStore();
-  const uploadState = useSubActivityVideoUploadState(
-    activityIndex,
-    subActivityIndex
+
+  // Subscribe to the entire uploadStates object to ensure re-renders
+  // This is critical for components inside accordions that might not re-render otherwise
+  const allUploadStates = useCourseRegistrationStore(
+    (state) => state.subActivityUploadStates
   );
+
+  // Extract the specific upload state for this sub-activity
+  const key = `${activityIndex}-${subActivityIndex}`;
+  const uploadState = allUploadStates[key];
+
   const isUploading = uploadState?.isUploading ?? false;
   const uploadProgress = uploadState?.progress ?? 0;
+
+  // Debug: Log when upload state changes (remove in production)
+  useEffect(() => {
+    if (isUploading) {
+      console.log(
+        `[SubActivityVideoUpload] Upload state changed:`,
+        activityIndex,
+        subActivityIndex,
+        `Progress: ${uploadProgress}%`
+      );
+    }
+  }, [isUploading, uploadProgress, activityIndex, subActivityIndex]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -52,10 +71,17 @@ function SubActivityVideoUpload({
   const handleFileSelect = async (file: File) => {
     // Allow video files and HLS manifest files (.m3u8)
     const isVideo = file.type.startsWith("video/");
-    const isHlsManifest = file.name.endsWith(".m3u8") || file.type === "application/vnd.apple.mpegurl" || file.type === "application/x-mpegURL";
-    
+    const isHlsManifest =
+      file.name.endsWith(".m3u8") ||
+      file.type === "application/vnd.apple.mpegurl" ||
+      file.type === "application/x-mpegURL";
+
     if (!isVideo && !isHlsManifest) {
-      alert(lang === "en" ? "Please select a video file or HLS manifest (.m3u8)" : "እባክዎ የቪዲዮ ፋይል ወይም HLS manifest (.m3u8) ይምረጡ");
+      alert(
+        lang === "en"
+          ? "Please select a video file or HLS manifest (.m3u8)"
+          : "እባክዎ የቪዲዮ ፋይል ወይም HLS manifest (.m3u8) ይምረጡ"
+      );
       return;
     }
 
@@ -68,7 +94,9 @@ function SubActivityVideoUpload({
     try {
       // Preserve original extension (important for HLS .m3u8 files)
       const ext = file.name.split(".").pop() || "mp4";
-      const filename = `${Date.now()}-${Math.floor(Math.random() * 100000)}.${ext}`;
+      const filename = `${Date.now()}-${Math.floor(
+        Math.random() * 100000
+      )}.${ext}`;
       const chunkSize = 512 * 1024;
       const total = Math.ceil(file.size / chunkSize);
 
@@ -112,9 +140,10 @@ function SubActivityVideoUpload({
       onVideoSelect(filename);
       // Clear upload state after successful completion
       setSubActivityUploading(activityIndex, subActivityIndex, false);
-    } catch (error: any) {
+    } catch (error: unknown) {
       const errorMessage =
-        error?.message || (lang === "en" ? "Upload failed" : "መስቀል አልተሳካም");
+        (error instanceof Error ? error.message : String(error)) ||
+        (lang === "en" ? "Upload failed" : "መስቀል አልተሳካም");
       console.error("[VideoUpload] Upload error:", error);
       alert(errorMessage);
       // Clear upload state on error
@@ -153,7 +182,9 @@ function SubActivityVideoUpload({
           <div className="flex flex-col items-center gap-2">
             <Video className="size-8 text-primary-500" />
             <p className="text-sm text-gray-600">
-              {lang === "en" ? "Upload sub-activity video" : "የንዑስ እንቅስቃሴ ቪዲዮ ይስቀሉ"}
+              {lang === "en"
+                ? "Upload sub-activity video"
+                : "የንዑስ እንቅስቃሴ ቪዲዮ ይስቀሉ"}
             </p>
             <input
               type="file"
@@ -162,7 +193,7 @@ function SubActivityVideoUpload({
                 const file = e.target.files?.[0];
                 if (file) {
                   handleFileSelect(file);
-                  e.target.value = '';
+                  e.target.value = "";
                 }
               }}
               className="hidden"
@@ -175,7 +206,9 @@ function SubActivityVideoUpload({
               color="primary"
               variant="bordered"
               onPress={() => {
-                const input = document.getElementById(inputId) as HTMLInputElement;
+                const input = document.getElementById(
+                  inputId
+                ) as HTMLInputElement;
                 input?.click();
               }}
               isDisabled={isUploading}
@@ -186,7 +219,7 @@ function SubActivityVideoUpload({
           </div>
         </div>
       )}
-      
+
       {isUploading && (
         <div className="flex flex-col gap-2 p-4 bg-blue-50 dark:bg-blue-950/30 border-2 border-blue-300 dark:border-blue-700 rounded-lg animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="flex justify-between items-center">
