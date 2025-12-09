@@ -35,8 +35,8 @@
     "disable-devtool": "^0.3.9",
     "dotenv": "^16.4.7",
     "express": "^4.21.2",
-    "framer-motion": "^11.11.17",
     "formidable": "^3.5.4",
+    "framer-motion": "^11.11.17",
     "grammy": "^1.33.0",
     "hls.js": "^1.6.15",
     "html-to-image": "^1.11.13",
@@ -62,7 +62,7 @@
     "tailwind-merge": "^2.5.5",
     "use-debounce": "^10.0.4",
     "zod": "^3.24.1",
-    "zustand": "^5.0.8"
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
