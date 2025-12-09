@@ -6,7 +6,7 @@ import {
   FieldPath,
   FieldValues,
 } from "react-hook-form";
-import { motion } from "motion/react";
+import { motion } from "framer-motion";
 
 type ControlProps<T extends FieldValues> =
   | {

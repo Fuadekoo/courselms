@@ -1,5 +1,5 @@
 import useOnBlur from "@/hooks/useOnBlur";
-import { motion, AnimatePresence } from "motion/react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useRef } from "react";
 
 export default function Modal({
