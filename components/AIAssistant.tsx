@@ -207,11 +207,11 @@ export default function AIAssistant({ courseId, lang }: AIAssistantProps) {
                       }}
                     />
                     <p className="text-xs text-gray-500 text-center">
-                      {progress < 15 && (lang === "en" ? "Analyzing question..." : "ጥያቄን በመመርመር ላይ...")}
-                      {progress >= 15 && progress < 30 && (lang === "en" ? "Searching content..." : "ይዘት በመፈለግ ላይ...")}
-                      {progress >= 30 && progress < 50 && (lang === "en" ? "Processing with AI..." : "በ AI በማስኬድ ላይ...")}
-                      {progress >= 50 && progress < 75 && (lang === "en" ? "Generating response..." : "ምላሽ በማመንጨት ላይ...")}
-                      {progress >= 75 && progress < 90 && (lang === "en" ? "Finalizing answer..." : "መልስ በማጠናቀቅ ላይ...")}
+                      {progress < 15 && (lang === "en" ? "Darulkubra AI is analyzing question..." : "Darulkubra AI ጥያቄን በመመርመር ላይ...")}
+                      {progress >= 15 && progress < 30 && (lang === "en" ? "Darulkubra AI is searching content..." : "Darulkubra AI ይዘት በመፈለግ ላይ...")}
+                      {progress >= 30 && progress < 50 && (lang === "en" ? "Darulkubra AI is processing..." : "Darulkubra AI በማስኬድ ላይ...")}
+                      {progress >= 50 && progress < 75 && (lang === "en" ? "Darulkubra AI is generating response..." : "Darulkubra AI ምላሽ በማመንጨት ላይ...")}
+                      {progress >= 75 && progress < 90 && (lang === "en" ? "Darulkubra AI is finalizing answer..." : "Darulkubra AI መልስ በማጠናቀቅ ላይ...")}
                       {progress >= 90 && progress < 100 && (lang === "en" ? "Almost done..." : "ለመጨረስ ቀርቷል...")}
                       {progress === 100 && (lang === "en" ? "Complete!" : "ተጠናቅቋል!")}
                     </p>
