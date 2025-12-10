@@ -8,6 +8,7 @@
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next build",
     "build:server": "NODE_OPTIONS=--max-old-space-size=4096 NODE_ENV=production next build",
     "build:server:safe": "NODE_ENV=production next build",
+    "build:no-limit": "NODE_ENV=production next build",
     "build:linux": "NODE_OPTIONS=--max-old-space-size=4096 next build",
     "build:fast": "cross-env NODE_OPTIONS=--max-old-space-size=4096 SKIP_TYPE_CHECK=true next build",
     "build:secure": "bash scripts/secure-build.sh",
