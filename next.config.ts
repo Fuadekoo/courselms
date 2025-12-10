@@ -31,10 +31,18 @@ const nextConfig: NextConfig = {
       exclude: ["error", "warn"], // Keep error and warn logs in production
     } : false,
   },
-  // Skip favicon generation during build
+  // Optimize build ID generation
   generateBuildId: async () => {
-    return "build-" + Date.now();
+    // Use git commit hash if available, otherwise timestamp
+    try {
+      const { execSync } = require('child_process');
+      const gitHash = execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
+      return `build-${gitHash}`;
+    } catch {
+      return `build-${Date.now()}`;
+    }
   },
+  
   eslint: {
     // Warning: This allows production builds to successfully complete even if
     // your project has ESLint errors.
@@ -43,8 +51,10 @@ const nextConfig: NextConfig = {
   typescript: {
     // Type checking can be slow - skip during build if needed (recommended to keep enabled)
     ignoreBuildErrors: false,
+    // Use incremental builds for faster TypeScript compilation
+    tsconfigPath: './tsconfig.json',
   },
-  webpack: (config, { isServer }) => {
+  webpack: (config, { isServer, dev }) => {
     // Exclude the fuad directory from webpack processing
     config.watchOptions = {
       ...config.watchOptions,
@@ -52,12 +62,38 @@ const nextConfig: NextConfig = {
     };
     
     // Optimize webpack for faster builds
-    if (!isServer) {
-      // Client-side optimizations
+    if (!isServer && !dev) {
+      // Production client-side optimizations
       config.optimization = {
         ...config.optimization,
         moduleIds: "deterministic", // Better caching
+        // Reduce bundle analysis overhead
+        usedExports: true,
+        sideEffects: false,
+        // Parallel processing
+        minimize: true,
       };
+      
+      // Cache webpack builds for faster subsequent builds
+      config.cache = {
+        type: 'filesystem',
+        buildDependencies: {
+          config: [__filename],
+        },
+      };
+    }
+    
+    // Exclude heavy packages from server bundle if not needed
+    if (isServer) {
+      const existingExternals = config.externals || [];
+      // Don't bundle these in server - they're Node.js only
+      config.externals = [
+        ...(Array.isArray(existingExternals) ? existingExternals : [existingExternals]),
+        {
+          'sharp': 'commonjs sharp',
+          'bcryptjs': 'commonjs bcryptjs',
+        },
+      ].filter(Boolean);
     }
     
     return config;
