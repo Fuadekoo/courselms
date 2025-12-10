@@ -58,15 +58,12 @@ export default function AIAssistant({ courseId, lang }: AIAssistantProps) {
       
       setProgress(100);
       
-      if (result.success) {
-        setAiResponse(result.answer || "No answer received");
-        // Always show as Darulkubra AI for professional branding
-        setCurrentAiProvider("Darulkubra AI");
-        setNewQuestion("");
-        onClose();
-      } else {
-        throw new Error(result.error || "Failed to get AI response");
-      }
+      // askCourseQuestion always returns success: true with a default answer if needed
+      setAiResponse(result.answer || "No answer received");
+      // Always show as Darulkubra AI for professional branding
+      setCurrentAiProvider("Darulkubra AI");
+      setNewQuestion("");
+      onClose();
     } catch (error) {
       console.error("Error getting AI response:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";

@@ -42,13 +42,10 @@ export default function ChatComponent({ courseId }: ChatComponentProps) {
       
       setProgress(100);
 
-      if (result.success) {
-        setAnswer(result.answer || "No answer received");
-        // Always show as Darulkubra AI for professional branding
-        setCurrentAiProvider("Darulkubra AI");
-      } else {
-        setAnswer(`Error: ${result.error}`);
-      }
+      // askCourseQuestion always returns success: true with a default answer if needed
+      setAnswer(result.answer || "No answer received");
+      // Always show as Darulkubra AI for professional branding
+      setCurrentAiProvider("Darulkubra AI");
     } catch (error) {
       console.error("Error asking question:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";

@@ -145,13 +145,10 @@ export default function VideoQA({ courseId, subActivityId, lang, currentTime }: 
       // Use the server action to ask the question
       const result = await askCourseQuestion(courseId, newQuestion.trim());
       
-      if (result.success) {
-        setAiResponse(result.answer || "No answer received");
-        setNewQuestion("");
-        onClose();
-      } else {
-        throw new Error(result.error || "Failed to get AI response");
-      }
+      // askCourseQuestion always returns success: true with a default answer if needed
+      setAiResponse(result.answer || "No answer received");
+      setNewQuestion("");
+      onClose();
     } catch (error) {
       console.error("Error getting AI response:", error);
       const errorMessage = error instanceof Error ? error.message : "Unknown error";
