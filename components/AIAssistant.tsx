@@ -60,9 +60,8 @@ export default function AIAssistant({ courseId, lang }: AIAssistantProps) {
       
       if (result.success) {
         setAiResponse(result.answer || "No answer received");
-        setCurrentAiProvider(
-          result.aiProvider === "openai" ? "OpenAI GPT-4" : "Gemini AI"
-        );
+        // Always show as Darulkubra AI for professional branding
+        setCurrentAiProvider("Darulkubra AI");
         setNewQuestion("");
         onClose();
       } else {
@@ -193,7 +192,7 @@ export default function AIAssistant({ courseId, lang }: AIAssistantProps) {
                       <div className="flex items-center gap-2 text-purple-600 dark:text-purple-400">
                         <Bot className="w-4 h-4 animate-pulse" />
                         <span className="text-sm font-medium">
-                          {lang === "en" ? "AI is processing..." : "AI በማስኬድ ላይ..."}
+                          {lang === "en" ? "Darulkubra AI is processing..." : "Darulkubra AI በማስኬድ ላይ..."}
                         </span>
                       </div>
                       <span className="text-sm font-medium text-purple-600">

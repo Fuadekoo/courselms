@@ -29,30 +29,52 @@ export async function askCourseQuestion(
   courseId: string, 
   question: string
 ) {
+  let course: { pdfData: string | null; aiProvider: string | null } | null = null
+  let aiProvider: AIProvider = 'gemini'
+  
   try {
     console.log('🤖 askCourseQuestion called:', { courseId, question: question.substring(0, 50) })
     
     const prisma = (await import('@/lib/db')).default
     
     // Get the course with AI PDF data
-    const course = await prisma.course.findUnique({
+    course = await prisma.course.findUnique({
       where: { id: courseId },
       select: { pdfData: true, aiProvider: true }
     })
     
-    const aiProvider = (course?.aiProvider as AIProvider) || 'gemini'
+    aiProvider = (course?.aiProvider as AIProvider) || 'gemini'
     
     // If no PDF is provided, use the selected AI to respond directly
     if (!course?.pdfData) {
       console.log('⚠️ No PDF found, using AI provider directly:', aiProvider)
       
-      const { askLLM } = await import('@/lib/ask')
-      const directAnswer = await askLLM(question, [], aiProvider)
-      
-      return {
-        success: true,
-        answer: directAnswer,
-        aiProvider
+      try {
+        const { askLLM } = await import('@/lib/ask')
+        const directAnswer = await askLLM(question, [], aiProvider)
+        
+        return {
+          success: true,
+          answer: directAnswer,
+          aiProvider
+        }
+      } catch (aiError) {
+        console.error('❌ Error calling AI provider directly:', aiError)
+        // Return default helpful response when AI processing fails
+        const defaultResponse = `Hey! Darulkubra AI here. I'm having a bit of trouble processing your question right now. 😅
+
+Here's what you can try:
+• Check your internet connection
+• Try asking your question in a different way
+• Reach out to your instructor - they can help!
+
+If documents need to be set up, let your instructor know. I'll be back up and running soon!`
+        
+        return {
+          success: true,
+          answer: defaultResponse,
+          aiProvider
+        }
       }
     }
     
@@ -76,39 +98,76 @@ export async function askCourseQuestion(
     
     // Read the PDF file from filesystem
     const filePath = join(process.cwd(), 'docs', 'ai-pdfs', filename)
-    const pdfBuffer = await readFile(filePath)
-    const base64Data = pdfBuffer.toString('base64')
     
-    console.log(`✅ PDF loaded, size: ${base64Data.length} chars`)
-    
-    // Create PDF metadata for AI processing
-    const pdfMetadata: PDFFile = {
-      fileName: filename,
-      mimeType: 'application/pdf',
-      base64Data: base64Data,
-      aiProvider: aiProvider,
-      uploadedAt: new Date().toISOString()
-    }
-    
-    console.log('🤖 Calling AI with PDF data...')
-    
-    // Use the AI to answer the question
-    const answer = await askLLMWithPDFs(question, [pdfMetadata], aiProvider)
-    
-    console.log('✅ AI response received, length:', answer.length)
-    
-    // Cache the response
-    await setCachedResponse(question, contentHash, aiProvider, answer)
-    
-    return { 
-      success: true, 
-      answer, 
-      aiProvider 
+    // Check if file exists
+    try {
+      const pdfBuffer = await readFile(filePath)
+      const base64Data = pdfBuffer.toString('base64')
+      
+      console.log(`✅ PDF loaded, size: ${base64Data.length} chars`)
+      
+      // Create PDF metadata for AI processing
+      const pdfMetadata: PDFFile = {
+        fileName: filename,
+        mimeType: 'application/pdf',
+        base64Data: base64Data,
+        aiProvider: aiProvider,
+        uploadedAt: new Date().toISOString()
+      }
+      
+      console.log('🤖 Calling AI with PDF data...')
+      
+      // Use the AI to answer the question
+      const answer = await askLLMWithPDFs(question, [pdfMetadata], aiProvider)
+      
+      console.log('✅ AI response received, length:', answer.length)
+      
+      // Cache the response
+      await setCachedResponse(question, contentHash, aiProvider, answer)
+      
+      return { 
+        success: true, 
+        answer, 
+        aiProvider 
+      }
+    } catch (fileError) {
+      console.error('❌ Error reading PDF file:', fileError)
+      // Return default response when PDF file cannot be read
+      const defaultResponse = `Hey! Darulkubra AI here. Oops! I can't find the document right now. 📚
+
+It looks like the document might not be uploaded yet. Here's what to do:
+• Let your instructor know - they can upload it
+• Try again in a bit
+• If you need help right away, contact your instructor
+
+Once the document is ready, I'll be able to help you with your questions!`
+      
+      return {
+        success: true,
+        answer: defaultResponse,
+        aiProvider
+      }
     }
   } catch (error) {
     console.error('❌ Error asking course question:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return { success: false, error: `Failed to process question: ${errorMessage}` }
+    
+    // Return a helpful default response instead of an error
+    const defaultResponse = `Hey! Darulkubra AI here. Hmm, something went wrong while I was trying to answer your question. 🤔
+
+Don't worry though! Try these:
+• Ask your question in a different way
+• Make sure you're connected to the internet
+• If it keeps happening, let your instructor know
+• Check if documents are set up
+
+I'll be ready to help once things are working again!`
+    
+    return { 
+      success: true, 
+      answer: defaultResponse,
+      aiProvider: aiProvider
+    }
   }
 }
 

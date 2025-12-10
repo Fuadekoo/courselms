@@ -44,9 +44,8 @@ export default function ChatComponent({ courseId }: ChatComponentProps) {
 
       if (result.success) {
         setAnswer(result.answer || "No answer received");
-        setCurrentAiProvider(
-          result.aiProvider === "openai" ? "OpenAI GPT-4" : "Gemini AI"
-        );
+        // Always show as Darulkubra AI for professional branding
+        setCurrentAiProvider("Darulkubra AI");
       } else {
         setAnswer(`Error: ${result.error}`);
       }
@@ -120,11 +119,11 @@ export default function ChatComponent({ courseId }: ChatComponentProps) {
               }}
             />
             <p className="text-xs text-gray-500 dark:text-gray-400 text-center">
-              {progress < 15 && "Analyzing question..."}
-              {progress >= 15 && progress < 30 && "Searching content..."}
-              {progress >= 30 && progress < 50 && "Processing with AI..."}
-              {progress >= 50 && progress < 75 && "Generating response..."}
-              {progress >= 75 && progress < 90 && "Finalizing answer..."}
+              {progress < 15 && "Darulkubra AI is analyzing question..."}
+              {progress >= 15 && progress < 30 && "Darulkubra AI is searching content..."}
+              {progress >= 30 && progress < 50 && "Darulkubra AI is processing..."}
+              {progress >= 50 && progress < 75 && "Darulkubra AI is generating response..."}
+              {progress >= 75 && progress < 90 && "Darulkubra AI is finalizing answer..."}
               {progress >= 90 && progress < 100 && "Almost done..."}
               {progress === 100 && "Complete!"}
             </p>
@@ -137,7 +136,7 @@ export default function ChatComponent({ courseId }: ChatComponentProps) {
               <span>Answer</span>
               {currentAiProvider && (
                 <span className="px-2 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs rounded-full">
-                  DarulkubraAI
+                  {currentAiProvider}
                 </span>
               )}
             </h3>

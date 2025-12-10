@@ -27,8 +27,8 @@ export async function askLLM(
   try {
     if (aiProvider === "openai") {
       const systemContent = hasContext
-        ? "You are a helpful AI assistant that answers questions based on the provided course content. Only use information from the provided content to answer questions."
-        : "You are a helpful AI assistant. Answer questions clearly and concisely.";
+        ? "You are Darulkubra AI, a helpful AI assistant for Darulkubra Academy. You answer questions based on the provided document. Always identify yourself as Darulkubra AI in your responses. Use information from the provided content to answer questions professionally."
+        : "You are Darulkubra AI, a helpful AI assistant for Darulkubra Academy. Always identify yourself as Darulkubra AI in your responses. Answer questions clearly and concisely.";
 
       const completion = await openai.chat.completions.create({
         model: "gpt-4o-mini",
@@ -49,7 +49,12 @@ export async function askLLM(
       return completion.choices[0]?.message?.content || "No response generated";
     } else {
       // Default to Gemini
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const model = genAI.getGenerativeModel({ 
+        model: "gemini-2.5-flash",
+        systemInstruction: hasContext
+          ? "You are Darulkubra AI, a helpful AI assistant for Darulkubra Academy. You answer questions based on the provided document. Always identify yourself as Darulkubra AI in your responses. Use information from the provided content to answer questions professionally."
+          : "You are Darulkubra AI, a helpful AI assistant for Darulkubra Academy. Always identify yourself as Darulkubra AI in your responses. Answer questions clearly and concisely."
+      });
 
       const result = await model.generateContent({
         contents: [
@@ -64,7 +69,28 @@ export async function askLLM(
     }
   } catch (error) {
     console.error(`Error with ${aiProvider}:`, error);
-    throw new Error(`Failed to get response from ${aiProvider}`);
+    
+    // Provide a helpful default response instead of throwing
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Check for specific error types
+    if (errorMessage.includes('API key') || errorMessage.includes('authentication')) {
+      return `Hey! This is Darulkubra AI. There's a setup issue on my end. Your instructor needs to configure the AI service. Let them know and they'll get it sorted! 😊`;
+    }
+    
+    if (errorMessage.includes('network') || errorMessage.includes('timeout') || errorMessage.includes('fetch')) {
+      return `Hi! Darulkubra AI here. Can't connect right now - might be an internet issue. Check your connection and try again! If it keeps happening, let your instructor know. 🌐`;
+    }
+    
+    // Generic helpful response
+    return `Hey! Darulkubra AI here. Oops! I ran into a problem: ${errorMessage}
+
+Try these:
+• Ask your question differently
+• Check your internet
+• Let your instructor know if it keeps happening
+
+I'll be back to help soon! 💪`;
   }
 }
 
@@ -107,20 +133,25 @@ export async function askLLMWithPDFs(
       }
 
       // Add the text prompt after images
-      const prompt = `The images above show pages from a course PDF document.
+      const prompt = `You are Darulkubra AI, the AI assistant for Darulkubra Academy. Always identify yourself as Darulkubra AI in your response.
+
+The images above show pages from the provided PDF document.
 
 IMPORTANT INSTRUCTIONS:
 1. Carefully read and analyze ALL the text content shown in the PDF images above
-2. Answer the question ONLY using information visible in these PDF images
-3. Provide specific details, examples, and explanations from the document
-4. Quote relevant sections when appropriate
-5. If you cannot find the answer in the visible PDF content, you MUST respond with EXACTLY: "I cannot find this information in the course materials"
-6. Be detailed and comprehensive in your response when information is found
-7. Do not make up or assume information that is not explicitly shown in the PDF
+2. PRIORITIZE information from the document - use it as your primary source
+3. If the question is RELATED to the document content (even if not explicitly stated in the PDF), you can use your general knowledge to provide a helpful answer that connects to the document
+4. When using general knowledge, always relate it back to the document and explain how it connects
+5. Provide specific details, examples, and explanations from the document when available
+6. Quote relevant sections from the PDF when appropriate
+7. If the question is completely unrelated to the document content, politely explain that it's outside the scope
+8. Be detailed and comprehensive in your response
+9. Make connections between the document and related concepts to help the student understand better
+10. Avoid using phrases like "course material", "course content", or "course document" - refer to it simply as "the document" or "the provided content"
 
 Student's Question: ${question}
 
-Please provide a detailed answer based on what you can see in the PDF images:`;
+Please provide a detailed answer that uses the document as the foundation, and supplement with related knowledge when helpful. Remember to identify yourself as Darulkubra AI:`;
 
       userContent.push({ type: "text", text: prompt });
 
@@ -128,7 +159,7 @@ Please provide a detailed answer based on what you can see in the PDF images:`;
         {
           role: "system",
           content:
-            'You are a helpful course assistant. You must answer questions based ONLY on the content shown in the PDF images provided. Extract and use specific information from the images. If information is not found in the images, respond with EXACTLY: "I cannot find this information in the course materials". Never make up information that is not visible in the images.',
+            'You are Darulkubra AI, a helpful assistant for Darulkubra Academy. Always identify yourself as Darulkubra AI in your responses. Your primary source is the PDF document shown in the images. When answering questions: 1) Always prioritize information from the document, 2) If a question is related to the document but not explicitly stated in the PDF, use your general knowledge to provide a helpful answer that connects to the document, 3) Explain how your answer relates to the document, 4) Only refuse to answer if the question is completely unrelated to the document topic. Be helpful and educational while staying relevant. Avoid using phrases like "course material", "course content", or "course document" - refer to it simply as "the document" or "the provided content".',
         },
         {
           role: "user",
@@ -149,15 +180,14 @@ Please provide a detailed answer based on what you can see in the PDF images:`;
         completion.choices[0]?.message?.content || "No response generated";
       console.log("📥 OpenAI response received:", response.substring(0, 100));
 
-      // Check if the AI couldn't find information in the course materials
+      // Only reject if the response clearly indicates the question is completely unrelated
+      // Don't reject if AI is providing related information even if not explicitly in PDF
       if (
-        response.toLowerCase().includes("cannot find") ||
-        response.toLowerCase().includes("not in the pdf") ||
-        response.toLowerCase().includes("not in the course materials") ||
-        response.toLowerCase().includes("not found in") ||
-        response.toLowerCase().includes("no information")
+        response.toLowerCase().includes("completely unrelated") ||
+        response.toLowerCase().includes("outside the scope") ||
+        response.toLowerCase().includes("not related to this course")
       ) {
-        return "Please ask only about the course.";
+        return "Hey! Darulkubra AI here. This question seems to be outside the scope. Please ask questions related to the document content!";
       }
 
       return response;
@@ -174,7 +204,7 @@ Please provide a detailed answer based on what you can see in the PDF images:`;
           maxOutputTokens: 2048,
         },
         systemInstruction:
-          'You are a helpful course assistant. You must answer questions based ONLY on the content provided in the PDF document. Extract specific information, provide detailed explanations, and quote relevant sections. If information is not in the PDF, respond with EXACTLY: "I cannot find this information in the course materials". Never make up information that is not in the PDF.',
+          'You are Darulkubra AI, a helpful assistant for Darulkubra Academy. Always identify yourself as Darulkubra AI in your responses. Your primary source is the PDF document. When answering: 1) Always prioritize information from the document, 2) If a question is related to the document but not explicitly in the PDF, use your general knowledge to provide a helpful answer that connects to the document, 3) Explain how your answer relates to the document, 4) Only refuse if the question is completely unrelated to the document topic. Be helpful and educational while staying relevant. Avoid using phrases like "course material", "course content", or "course document" - refer to it simply as "the document" or "the provided content".',
       });
 
       // Prepare the parts array with PDF data first, then the prompt
@@ -193,20 +223,24 @@ Please provide a detailed answer based on what you can see in the PDF images:`;
       }
 
       // Then add the prompt with clear instructions
-      const prompt = `You are a helpful course assistant. The PDF document above contains the course material.
+      const prompt = `You are Darulkubra AI, the AI assistant for Darulkubra Academy. Always identify yourself as Darulkubra AI in your response.
+
+The PDF document above contains the provided content.
 
 IMPORTANT INSTRUCTIONS:
-1. Answer the question ONLY using information from the PDF document provided above
-2. Provide specific details, examples, and explanations from the document
-3. Quote relevant sections when appropriate
-4. If the answer is not in the PDF, you MUST respond with EXACTLY: "I cannot find this information in the course materials"
-5. Be detailed and comprehensive in your response when information is found
-6. Use clear formatting and structure your answer well
-7. Do not make up or assume information that is not explicitly in the PDF
+1. PRIORITIZE information from the document - use it as your primary source
+2. If the question is RELATED to the document content (even if not explicitly stated in the PDF), you can use your general knowledge to provide a helpful answer that connects to the document
+3. When using general knowledge, always relate it back to the document and explain how it connects
+4. Provide specific details, examples, and explanations from the document when available
+5. Quote relevant sections from the PDF when appropriate
+6. If the question is completely unrelated to the document content, politely explain that it's outside the scope
+7. Be detailed and comprehensive in your response
+8. Make connections between the document and related concepts to help the student understand better
+9. Avoid using phrases like "course material", "course content", or "course document" - refer to it simply as "the document" or "the provided content"
 
 Student's Question: ${question}
 
-Please provide a detailed answer based on the PDF content:`;
+Please provide a detailed answer that uses the document as the foundation, and supplement with related knowledge when helpful. Remember to identify yourself as Darulkubra AI:`;
 
       parts.push({ text: prompt });
 
@@ -228,22 +262,42 @@ Please provide a detailed answer based on the PDF content:`;
       const response = result.response.text();
       console.log("📥 Gemini response received:", response.substring(0, 100));
 
-      // Check if the AI couldn't find information in the course materials
+      // Only reject if the response clearly indicates the question is completely unrelated
+      // Don't reject if AI is providing related information even if not explicitly in PDF
       if (
-        response.toLowerCase().includes("cannot find") ||
-        response.toLowerCase().includes("not in the pdf") ||
-        response.toLowerCase().includes("not in the course materials") ||
-        response.toLowerCase().includes("not found in") ||
-        response.toLowerCase().includes("no information")
+        response.toLowerCase().includes("completely unrelated") ||
+        response.toLowerCase().includes("outside the scope") ||
+        response.toLowerCase().includes("not related to this course")
       ) {
-        return "Please ask only about the course.";
+        return "Hey! Darulkubra AI here. This question seems to be outside the scope. Please ask questions related to the document content!";
       }
 
       return response;
     }
   } catch (error) {
     console.error(`Error processing PDFs with ${aiProvider}:`, error);
-    throw new Error(`Failed to process PDF documents with ${aiProvider}`);
+    
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Provide helpful default response instead of throwing
+    if (errorMessage.includes('API key') || errorMessage.includes('authentication')) {
+      return `Hey! Darulkubra AI here. There's a setup issue - your instructor needs to configure the AI service. Let them know! 🔧`;
+    }
+    
+    if (errorMessage.includes('network') || errorMessage.includes('timeout') || errorMessage.includes('fetch')) {
+      return `Hi! Darulkubra AI here. Having trouble connecting while reading the course materials. Check your internet and try again! If it keeps happening, let your instructor know. 📡`;
+    }
+    
+    // Generic helpful response
+    return `Hey! Darulkubra AI here. Hmm, I hit a snag while looking through the document: ${errorMessage}
+
+Try these:
+• Ask your question a different way
+• Check your internet connection
+• Make sure documents are uploaded
+• Let your instructor know if you need help
+
+I'll be ready to help once this is sorted! 🚀`;
   }
 }
 
