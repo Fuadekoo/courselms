@@ -6,9 +6,11 @@
   "scripts": {
     "dev": "next dev ",
     "build": "cross-env NODE_OPTIONS=--max-old-space-size=4096 next build",
+    "build:secure": "bash scripts/secure-build.sh",
     "start": "next start",
     "lint": "next lint",
-    "check:ffmpeg": "node scripts/check-ffmpeg.cjs"
+    "check:ffmpeg": "node scripts/check-ffmpeg.cjs",
+    "audit:check": "npm audit --audit-level=moderate"
   },
   "dependencies": {
     "@aws-sdk/client-ses": "^3.940.0",
