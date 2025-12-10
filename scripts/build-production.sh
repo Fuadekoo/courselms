@@ -19,9 +19,9 @@ chmod 777 .next
 # Set Node.js memory limit
 export NODE_OPTIONS="--max-old-space-size=4096"
 
-# Build the application
+# Build the application (use Linux-compatible build command)
 echo "🔨 Building application..."
-npm run build
+npm run build:linux || npm run build
 
 # Check if build was successful
 if [ $? -eq 0 ]; then

@@ -26,7 +26,8 @@ echo "🧹 Cleaning previous build..."
 rm -rf .next
 
 echo "🔨 Building application..."
-npm run build
+# Use Linux-compatible build (sets NODE_OPTIONS directly)
+NODE_OPTIONS="--max-old-space-size=4096" NODE_ENV="production" npm run build || npm run build:linux
 
 # Check if build was successful
 if [ $? -ne 0 ]; then

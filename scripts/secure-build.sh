@@ -86,7 +86,8 @@ export NODE_OPTIONS="--max-old-space-size=4096"
 export NODE_ENV="production"
 
 # Set timeout for build (30 minutes)
-timeout 1800 npm run build || {
+# Use Linux-compatible build command (NODE_OPTIONS already set above)
+timeout 1800 npm run build:linux || timeout 1800 npm run build || {
     if [ $? -eq 124 ]; then
         echo -e "${RED}❌ Build timed out after 30 minutes!${NC}"
         echo "This might indicate a problem. Check for:"
