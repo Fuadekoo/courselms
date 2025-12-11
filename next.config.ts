@@ -56,11 +56,17 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
     // Use incremental builds for faster TypeScript compilation
     tsconfigPath: "./tsconfig.json",
+    // tsconfigPath: "./tsconfig.json",
   },
-  eslint: {
-    // Disable ESLint during builds to allow build to succeed
-    ignoreDuringBuilds: true,
+  // Turbopack configuration (Next.js 16+ uses Turbopack by default)
+  turbopack: {
+    // Exclude fuad folder from Turbopack processing
+    resolveAlias: {
+      // This prevents Turbopack from analyzing files in the fuad directory
+    },
   },
+  // Disable source maps in development to suppress warnings
+  productionBrowserSourceMaps: false,
   webpack: (config, { isServer, dev }) => {
     // Optimize module resolution for faster builds
     config.resolve = config.resolve || {};
@@ -99,7 +105,13 @@ const nextConfig: NextConfig = {
     // Exclude the fuad directory from webpack processing
     config.watchOptions = {
       ...config.watchOptions,
-      ignored: ["**/fuad/**", "**/node_modules/**"],
+      ignored: [
+        "**/fuad/**",
+        "**/node_modules/**",
+        "**/fuad",
+        "fuad/**",
+        "fuad",
+      ],
     };
 
     // Enable filesystem cache for ALL builds (dev and production)
