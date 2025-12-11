@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, memo } from "react";
+import type { MouseEvent, DragEvent, ChangeEvent } from "react";
 import { CButton } from "./heroui";
 import { Upload, Image, X } from "lucide-react";
 
@@ -31,7 +32,7 @@ function ThumbnailUpload({
     }
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragOver(false);
     const file = e.dataTransfer.files[0];
@@ -44,7 +45,7 @@ function ThumbnailUpload({
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
+        onChange={(e: ChangeEvent<HTMLInputElement>) => {
           const file = e.target.files?.[0];
           if (file) handleFileSelect(file);
         }}
@@ -63,7 +64,7 @@ function ThumbnailUpload({
           }
         `}
         onDrop={handleDrop}
-        onDragOver={(e: React.DragEvent) => {
+        onDragOver={(e: DragEvent<HTMLDivElement>) => {
           e.preventDefault();
           setIsDragOver(true);
         }}
@@ -82,7 +83,7 @@ function ThumbnailUpload({
                 color="primary"
                 variant="solid"
                 startContent={<Upload className="w-4 h-4" />}
-                onClick={(e: React.MouseEvent<Element>) => {
+                onClick={(e: MouseEvent<Element>) => {
                   e.stopPropagation();
                   fileInputRef.current?.click();
                 }}
@@ -97,7 +98,7 @@ function ThumbnailUpload({
               variant="solid"
               color="danger"
               className="absolute top-2 right-2"
-              onClick={(e: React.MouseEvent<Element>) => {
+              onClick={(e: MouseEvent<Element>) => {
                 e.stopPropagation();
                 onImageRemove();
               }}
