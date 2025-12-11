@@ -25,7 +25,9 @@ function ThumbnailUpload({
     if (file.type.startsWith("image/")) {
       onImageSelect(file);
     } else {
-      alert(lang === "en" ? "Please select an image file" : "እባክዎ የምስል ፋይል ይምረጡ");
+      alert(
+        lang === "en" ? "Please select an image file" : "እባክዎ የምስል ፋይል ይምረጡ"
+      );
     }
   };
 
@@ -42,7 +44,7 @@ function ThumbnailUpload({
         ref={fileInputRef}
         type="file"
         accept="image/*"
-        onChange={(e) => {
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => {
           const file = e.target.files?.[0];
           if (file) handleFileSelect(file);
         }}
@@ -54,10 +56,17 @@ function ThumbnailUpload({
         className={`
           relative border-2 border-dashed rounded-xl overflow-hidden cursor-pointer transition-colors
           ${isDragOver ? "border-primary bg-primary/5" : "border-primary/30"}
-          ${disabled ? "opacity-50 cursor-not-allowed" : "hover:border-primary hover:bg-primary/5"}
+          ${
+            disabled
+              ? "opacity-50 cursor-not-allowed"
+              : "hover:border-primary hover:bg-primary/5"
+          }
         `}
         onDrop={handleDrop}
-        onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+        onDragOver={(e: React.DragEvent) => {
+          e.preventDefault();
+          setIsDragOver(true);
+        }}
         onDragLeave={() => setIsDragOver(false)}
         onClick={() => !disabled && fileInputRef.current?.click()}
       >
@@ -73,7 +82,7 @@ function ThumbnailUpload({
                 color="primary"
                 variant="solid"
                 startContent={<Upload className="w-4 h-4" />}
-                onClick={(e) => {
+                onClick={(e: React.MouseEvent<Element>) => {
                   e.stopPropagation();
                   fileInputRef.current?.click();
                 }}
@@ -88,7 +97,7 @@ function ThumbnailUpload({
               variant="solid"
               color="danger"
               className="absolute top-2 right-2"
-              onClick={(e) => {
+              onClick={(e: React.MouseEvent<Element>) => {
                 e.stopPropagation();
                 onImageRemove();
               }}
@@ -104,10 +113,9 @@ function ThumbnailUpload({
               {lang === "en" ? "Upload Thumbnail" : "ምስል ይስቀሉ"}
             </p>
             <p className="text-xs text-gray-500 text-center">
-              {lang === "en" 
+              {lang === "en"
                 ? "Click or drag image here"
-                : "ምስል እዚህ ይጫኑ ወይም ይጎትቱ"
-              }
+                : "ምስል እዚህ ይጫኑ ወይም ይጎትቱ"}
             </p>
           </div>
         )}
