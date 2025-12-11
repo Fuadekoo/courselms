@@ -16,9 +16,9 @@ export async function getCourses(tableData: TTableData) {
           },
         },
       })
-      .then((res) => {
+      .then((res: any) => {
         //   console.log(">> ", res);
-        const temp = res.filter((v) =>
+        const temp = res.filter((v: any) =>
           `${v.titleEn} ${v.titleEn}`
             .toLowerCase()
             .includes(tableData.search.toLowerCase())
@@ -27,7 +27,7 @@ export async function getCourses(tableData: TTableData) {
         totalPage = Math.ceil(totalData / tableData.rowsPerPage);
         return temp;
       })
-      .then((res) =>
+      .then((res: any) =>
         res.slice(
           (tableData.currentPage - 1) * tableData.rowsPerPage,
           tableData.currentPage * tableData.rowsPerPage

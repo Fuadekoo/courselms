@@ -32,22 +32,14 @@ export function useStudentProfile() {
       setLoadingProfile(true);
       try {
         const data = await getProfile();
+        // getProfile now returns null for unauthorized users instead of throwing
         setProfile(data);
         setLoadingProfile(false);
         return data;
       } catch (error: any) {
-        // Handle unauthorized/guest users gracefully
-        if (
-          error?.message === "Unauthorized" ||
-          error?.message === "Profile not found"
-        ) {
-          // User is not authenticated or is a guest - this is expected
-          setLoadingProfile(false);
-          return null;
-        }
+        // Handle any unexpected errors
         console.error("Error fetching profile:", error);
         setLoadingProfile(false);
-        // Don't throw for guest users
         return null;
       }
     },

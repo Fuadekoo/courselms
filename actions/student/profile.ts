@@ -6,7 +6,8 @@ import { StateType } from "@/lib/definations";
 export async function getProfile() {
   const session = await auth();
   if (!session?.user?.id) {
-    throw new Error("Unauthorized");
+    // Return null instead of throwing - let the calling code handle unauthorized users
+    return null;
   }
   const userId = session.user.id;
   
@@ -30,7 +31,8 @@ export async function getProfile() {
   });
 
   if (!profile) {
-    throw new Error("Profile not found");
+    // Return null if profile not found instead of throwing
+    return null;
   }
 
   // Get enrolled courses count
