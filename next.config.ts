@@ -38,12 +38,6 @@ const nextConfig: NextConfig = {
             exclude: ["error", "warn"], // Keep error and warn logs in production
           }
         : false,
-    removeConsole:
-      process.env.NODE_ENV === "production"
-        ? {
-            exclude: ["error", "warn"], // Keep error and warn logs in production
-          }
-        : false,
   },
   // Optimize build ID generation
   generateBuildId: async () => {
@@ -63,7 +57,7 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: true,
     // Use incremental builds for faster TypeScript compilation
     tsconfigPath: "./tsconfig.json",
-    tsconfigPath: "./tsconfig.json",
+    // tsconfigPath: "./tsconfig.json",
   },
   // Turbopack configuration (Next.js 16+ uses Turbopack by default)
   turbopack: {
@@ -105,7 +99,13 @@ const nextConfig: NextConfig = {
     // Exclude the fuad directory from webpack processing
     config.watchOptions = {
       ...config.watchOptions,
-      ignored: ["**/fuad/**", "**/node_modules/**", /fuad/],
+      ignored: [
+        "**/fuad/**",
+        "**/node_modules/**",
+        "**/fuad",
+        "fuad/**",
+        "fuad",
+      ],
     };
 
     // Use IgnorePlugin to completely exclude fuad folder from bundling
