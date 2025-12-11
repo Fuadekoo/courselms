@@ -42,17 +42,15 @@ const nextConfig: NextConfig = {
       return `build-${Date.now()}`;
     }
   },
-  
-  eslint: {
-    // Warning: This allows production builds to successfully complete even if
-    // your project has ESLint errors.
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     // Type checking can be slow - skip during build if needed (recommended to keep enabled)
     ignoreBuildErrors: false,
     // Use incremental builds for faster TypeScript compilation
     tsconfigPath: './tsconfig.json',
+  },
+  // Turbopack configuration (Next.js 16+ uses Turbopack by default)
+  turbopack: {
+    // Empty config to silence the warning - webpack config will be used when needed
   },
   webpack: (config, { isServer, dev }) => {
     // Exclude the fuad directory from webpack processing
