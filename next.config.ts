@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -14,10 +15,16 @@ const nextConfig: NextConfig = {
       "lucide-react",
       "framer-motion",
       "recharts",
+      "@radix-ui/react-tabs",
+      "date-fns",
+      "lodash",
+      "zod",
+      "react-hook-form",
     ],
     serverActions: {
       bodySizeLimit: "1000mb", // Increase from default 1MB to 1000MB for file uploads
     },
+    // Note: optimizeCss disabled - requires critters package which can cause build issues
   },
   // Handle favicon and static files
   async rewrites() {
@@ -68,32 +75,39 @@ const nextConfig: NextConfig = {
     buildActivity: false,
   },
   webpack: (config, { isServer, dev }) => {
-    // Ensure proper module resolution
+    // Optimize module resolution for faster builds
     config.resolve = config.resolve || {};
     config.resolve.modules = [
       ...(config.resolve.modules || []),
       "node_modules",
     ];
 
+    // Cache module resolution results
+    config.resolve.cache = true;
+    config.resolve.cacheWithContext = false; // Faster resolution
+
     // Fix for pdf-lib and other packages with internal module resolution issues
     config.resolve.alias = {
       ...config.resolve.alias,
     };
 
-    // Ensure proper extension resolution
+    // Optimize extension resolution order (most common first)
     config.resolve.extensions = [
-      ...(config.resolve.extensions || []),
       ".js",
       ".jsx",
       ".ts",
       ".tsx",
       ".json",
-    ];
+      ...(config.resolve.extensions || []),
+    ].filter((ext, index, self) => self.indexOf(ext) === index); // Remove duplicates
 
     config.resolve.extensionAlias = {
       ".js": [".js", ".ts", ".tsx"],
       ".jsx": [".jsx", ".tsx"],
     };
+
+    // Enable faster module resolution
+    config.resolve.unsafeCache = true;
 
     // Exclude the fuad directory from webpack processing
     config.watchOptions = {
@@ -107,30 +121,29 @@ const nextConfig: NextConfig = {
       ],
     };
 
-    // Use IgnorePlugin to completely exclude fuad folder from bundling
-    const webpack = require("webpack");
-    config.plugins = config.plugins || [];
-    config.plugins.push(
-      new webpack.IgnorePlugin({
-        resourceRegExp: /fuad/,
-      }),
-      new webpack.IgnorePlugin({
-        checkResource(resource: string) {
-          return resource.includes("fuad");
+    // Enable filesystem cache for ALL builds (dev and production)
+    // Use webpack's default cache location (safer and faster)
+    if (!config.cache) {
+      config.cache = {
+        type: "filesystem",
+        buildDependencies: {
+          config: [__filename],
         },
-      })
-    );
-
-    // Suppress source map warnings in development (these are harmless warnings from Next.js internals)
-    if (dev) {
-      config.ignoreWarnings = [
-        { module: /node_modules/ },
-        { module: /fuad/ },
-        { message: /sourceMapURL/ },
-        { message: /Invalid source map/ },
-        { message: /fuad/ },
-        { message: /The file pattern.*fuad/ },
-      ];
+        // Let webpack use default cache directory (node_modules/.cache/webpack)
+        // This avoids path resolution issues and is optimized by webpack
+        compression: "gzip",
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      };
+    } else {
+      // Merge with existing cache config
+      config.cache = {
+        ...config.cache,
+        type: "filesystem",
+        buildDependencies: {
+          ...(config.cache.buildDependencies || {}),
+          config: [__filename],
+        },
+      };
     }
 
     // Optimize webpack for faster builds
@@ -160,19 +173,6 @@ const nextConfig: NextConfig = {
         buildDependencies: {
           config: [__filename],
         },
-        // Reduce cache overhead
-        compression: "gzip",
-      };
-    }
-
-    // Enable caching for all builds (including server)
-    if (!dev) {
-      config.cache = config.cache || {
-        type: "filesystem",
-        buildDependencies: {
-          config: [__filename],
-        },
-        compression: "gzip",
       };
     }
 
