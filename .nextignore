@@ -1,0 +1,4 @@
+# Exclude fuad folder and all its contents from Next.js build
+fuad/
+**/fuad/**
+

@@ -27,16 +27,21 @@ const nextConfig: NextConfig = {
   // output: "standalone",
   // Compiler optimizations (SWC is already default in Next.js 15)
   compiler: {
-    removeConsole: process.env.NODE_ENV === "production" ? {
-      exclude: ["error", "warn"], // Keep error and warn logs in production
-    } : false,
+    removeConsole:
+      process.env.NODE_ENV === "production"
+        ? {
+            exclude: ["error", "warn"], // Keep error and warn logs in production
+          }
+        : false,
   },
   // Optimize build ID generation
   generateBuildId: async () => {
     // Use git commit hash if available, otherwise timestamp
     try {
-      const { execSync } = require('child_process');
-      const gitHash = execSync('git rev-parse --short HEAD', { encoding: 'utf-8' }).trim();
+      const { execSync } = require("child_process");
+      const gitHash = execSync("git rev-parse --short HEAD", {
+        encoding: "utf-8",
+      }).trim();
       return `build-${gitHash}`;
     } catch {
       return `build-${Date.now()}`;
@@ -46,11 +51,14 @@ const nextConfig: NextConfig = {
     // Type checking can be slow - skip during build if needed (recommended to keep enabled)
     ignoreBuildErrors: false,
     // Use incremental builds for faster TypeScript compilation
-    tsconfigPath: './tsconfig.json',
+    tsconfigPath: "./tsconfig.json",
   },
   // Turbopack configuration (Next.js 16+ uses Turbopack by default)
   turbopack: {
-    // Empty config to silence the warning - webpack config will be used when needed
+    // Exclude fuad folder from Turbopack processing
+    resolveAlias: {
+      // This prevents Turbopack from analyzing files in the fuad directory
+    },
   },
   // Disable source maps in development to suppress warnings
   productionBrowserSourceMaps: false,
@@ -58,18 +66,35 @@ const nextConfig: NextConfig = {
     // Exclude the fuad directory from webpack processing
     config.watchOptions = {
       ...config.watchOptions,
-      ignored: ["**/fuad/**", "**/node_modules/**"],
+      ignored: ["**/fuad/**", "**/node_modules/**", /fuad/],
     };
-    
+
+    // Use IgnorePlugin to completely exclude fuad folder from bundling
+    const webpack = require("webpack");
+    config.plugins = config.plugins || [];
+    config.plugins.push(
+      new webpack.IgnorePlugin({
+        resourceRegExp: /fuad/,
+      }),
+      new webpack.IgnorePlugin({
+        checkResource(resource: string) {
+          return resource.includes("fuad");
+        },
+      })
+    );
+
     // Suppress source map warnings in development (these are harmless warnings from Next.js internals)
     if (dev) {
       config.ignoreWarnings = [
         { module: /node_modules/ },
+        { module: /fuad/ },
         { message: /sourceMapURL/ },
         { message: /Invalid source map/ },
+        { message: /fuad/ },
+        { message: /The file pattern.*fuad/ },
       ];
     }
-    
+
     // Optimize webpack for faster builds
     if (!isServer && !dev) {
       // Production client-side optimizations
@@ -82,29 +107,31 @@ const nextConfig: NextConfig = {
         // Parallel processing
         minimize: true,
       };
-      
+
       // Cache webpack builds for faster subsequent builds
       config.cache = {
-        type: 'filesystem',
+        type: "filesystem",
         buildDependencies: {
           config: [__filename],
         },
       };
     }
-    
+
     // Exclude heavy packages from server bundle if not needed
     if (isServer) {
       const existingExternals = config.externals || [];
       // Don't bundle these in server - they're Node.js only
       config.externals = [
-        ...(Array.isArray(existingExternals) ? existingExternals : [existingExternals]),
+        ...(Array.isArray(existingExternals)
+          ? existingExternals
+          : [existingExternals]),
         {
-          'sharp': 'commonjs sharp',
-          'bcryptjs': 'commonjs bcryptjs',
+          sharp: "commonjs sharp",
+          bcryptjs: "commonjs bcryptjs",
         },
       ].filter(Boolean);
     }
-    
+
     return config;
   },
 };
