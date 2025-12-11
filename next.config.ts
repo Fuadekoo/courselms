@@ -52,12 +52,23 @@ const nextConfig: NextConfig = {
   turbopack: {
     // Empty config to silence the warning - webpack config will be used when needed
   },
+  // Disable source maps in development to suppress warnings
+  productionBrowserSourceMaps: false,
   webpack: (config, { isServer, dev }) => {
     // Exclude the fuad directory from webpack processing
     config.watchOptions = {
       ...config.watchOptions,
       ignored: ["**/fuad/**", "**/node_modules/**"],
     };
+    
+    // Suppress source map warnings in development (these are harmless warnings from Next.js internals)
+    if (dev) {
+      config.ignoreWarnings = [
+        { module: /node_modules/ },
+        { message: /sourceMapURL/ },
+        { message: /Invalid source map/ },
+      ];
+    }
     
     // Optimize webpack for faster builds
     if (!isServer && !dev) {

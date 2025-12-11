@@ -3,7 +3,6 @@ import { DefaultJWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { z } from "zod";
-import bcryptjs from "bcryptjs";
 import prisma from "./db";
 import { Role } from "@prisma/client";
 
@@ -124,10 +123,15 @@ const authConfig = {
       return token;
     },
     session: async ({ session, token }) => {
-      if (token.id && token.role) {
+      // Always populate user.id if token.id exists (even without role)
+      if (token.id) {
         session.user.id = token.id;
-        session.user.role = token.role;
-        session.user.code = token.code;
+        if (token.role) {
+          session.user.role = token.role;
+        }
+        if (token.code) {
+          session.user.code = token.code;
+        }
       }
       return session;
     },
@@ -146,6 +150,9 @@ const authConfig = {
     }),
     Credentials({
       authorize: async (credentials) => {
+        // Lazy import bcryptjs to avoid bundling it in Edge Runtime (middleware)
+        const bcryptjs = (await import("bcryptjs")).default;
+        
         const { userName, password } = z
             .object({
               userName: z.string(),
