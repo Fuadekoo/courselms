@@ -39,25 +39,20 @@ const nextConfig: NextConfig = {
           }
         : false,
   },
-  // Optimize build ID generation
+  // Optimize build ID generation - use simple timestamp for faster builds
   generateBuildId: async () => {
-    // Use git commit hash if available, otherwise timestamp
-    try {
-      const { execSync } = require("child_process");
-      const gitHash = execSync("git rev-parse --short HEAD", {
-        encoding: "utf-8",
-      }).trim();
-      return `build-${gitHash}`;
-    } catch {
-      return `build-${Date.now()}`;
-    }
+    // Skip git command for faster builds on VPS
+    return `build-${Date.now()}`;
   },
   typescript: {
     // Disable TypeScript errors during builds to allow build to succeed
     ignoreBuildErrors: true,
-    // Use incremental builds for faster TypeScript compilation
-    tsconfigPath: "./tsconfig.json",
+    // Skip TypeScript type checking entirely for faster builds
     // tsconfigPath: "./tsconfig.json",
+  },
+  eslint: {
+    // Disable ESLint during builds for faster compilation
+    ignoreDuringBuilds: true,
   },
   // Turbopack configuration (Next.js 16+ uses Turbopack by default)
   turbopack: {
@@ -66,8 +61,12 @@ const nextConfig: NextConfig = {
       // This prevents Turbopack from analyzing files in the fuad directory
     },
   },
-  // Disable source maps in development to suppress warnings
+  // Disable source maps completely for faster builds
   productionBrowserSourceMaps: false,
+  // Disable source maps in development too
+  devIndicators: {
+    buildActivity: false,
+  },
   webpack: (config, { isServer, dev }) => {
     // Ensure proper module resolution
     config.resolve = config.resolve || {};
@@ -143,8 +142,16 @@ const nextConfig: NextConfig = {
         // Reduce bundle analysis overhead
         usedExports: true,
         sideEffects: false,
-        // Parallel processing
+        // Parallel processing - reduce for VPS with limited resources
         minimize: true,
+        // Reduce chunk splitting overhead
+        splitChunks: {
+          chunks: "all",
+          cacheGroups: {
+            default: false,
+            vendors: false,
+          },
+        },
       };
 
       // Cache webpack builds for faster subsequent builds
@@ -153,6 +160,19 @@ const nextConfig: NextConfig = {
         buildDependencies: {
           config: [__filename],
         },
+        // Reduce cache overhead
+        compression: "gzip",
+      };
+    }
+
+    // Enable caching for all builds (including server)
+    if (!dev) {
+      config.cache = config.cache || {
+        type: "filesystem",
+        buildDependencies: {
+          config: [__filename],
+        },
+        compression: "gzip",
       };
     }
 
@@ -167,8 +187,19 @@ const nextConfig: NextConfig = {
         {
           sharp: "commonjs sharp",
           bcryptjs: "commonjs bcryptjs",
+          "@prisma/client": "commonjs @prisma/client",
+          mysql2: "commonjs mysql2",
         },
       ].filter(Boolean);
+    }
+
+    // Reduce parallel processing for VPS with limited CPU (only in production)
+    if (!dev && process.env.NODE_ENV === "production") {
+      // Use limited parallelism to avoid memory issues on VPS
+      config.parallelism = Math.max(
+        1,
+        Math.floor((require("os").cpus().length || 2) / 2)
+      );
     }
 
     return config;

@@ -11,6 +11,7 @@
     "build:no-limit": "NODE_ENV=production next build",
     "build:linux": "NODE_OPTIONS=--max-old-space-size=4096 next build",
     "build:fast": "cross-env NODE_OPTIONS=--max-old-space-size=4096 SKIP_TYPE_CHECK=true next build",
+    "build:vps": "cross-env NODE_OPTIONS=--max-old-space-size=4096 NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 next build",
     "build:secure": "bash scripts/secure-build.sh",
     "start": "next start",
     "lint": "next lint",
