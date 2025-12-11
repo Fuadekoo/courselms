@@ -1,13 +1,13 @@
 "use client";
 
-import React, { createContext, useContext, ReactNode, useCallback } from "react";
+import { createContext, useContext, ReactNode, useCallback, type Dispatch, type SetStateAction } from "react";
 import { useUIStore } from "@/stores/uiStore";
 
 interface SidebarContextType {
   isCollapsed: boolean;
-  setIsCollapsed: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsCollapsed: Dispatch<SetStateAction<boolean>>;
   isSide: boolean;
-  setIsSide: React.Dispatch<React.SetStateAction<boolean>>;
+  setIsSide: Dispatch<SetStateAction<boolean>>;
 }
 
 const SidebarContext = createContext<SidebarContextType | undefined>(undefined);
@@ -20,7 +20,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
 
   // Create Dispatch-compatible setters that support both boolean and function updates
   const setIsCollapsed = useCallback(
-    (value: React.SetStateAction<boolean>) => {
+    (value: SetStateAction<boolean>) => {
       if (typeof value === "function") {
         setSidebarCollapsedStore(value(sidebarCollapsed));
       } else {
@@ -31,7 +31,7 @@ export function SidebarProvider({ children }: { children: ReactNode }) {
   );
 
   const setIsSide = useCallback(
-    (value: React.SetStateAction<boolean>) => {
+    (value: SetStateAction<boolean>) => {
       if (typeof value === "function") {
         setSidebarVisibleStore(value(sidebarVisible));
       } else {
