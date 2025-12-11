@@ -57,8 +57,9 @@ const nextConfig: NextConfig = {
     // Skip TypeScript type checking entirely for faster builds
     // tsconfigPath: "./tsconfig.json",
   },
+  // Disable ESLint during builds for faster compilation
+  // @ts-ignore - eslint property exists in Next.js but may not be in types
   eslint: {
-    // Disable ESLint during builds for faster compilation
     ignoreDuringBuilds: true,
   },
   // Turbopack configuration (Next.js 16+ uses Turbopack by default)
@@ -70,10 +71,6 @@ const nextConfig: NextConfig = {
   },
   // Disable source maps completely for faster builds
   productionBrowserSourceMaps: false,
-  // Disable source maps in development too
-  devIndicators: {
-    buildActivity: false,
-  },
   webpack: (config, { isServer, dev }) => {
     // Optimize module resolution for faster builds
     config.resolve = config.resolve || {};
