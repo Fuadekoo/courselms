@@ -8,7 +8,7 @@ import { Button } from "@heroui/react";
  * Test page for video upload and HLS conversion
  * Access at: http://localhost:3000/test-upload
  */
-export default function TestUploadPage() {
+function TestUploadPage() {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -263,3 +263,5 @@ export default function TestUploadPage() {
   );
 }
 
+// Export as default for Next.js
+export default TestUploadPage;

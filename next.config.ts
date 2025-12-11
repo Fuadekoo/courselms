@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const nextConfig: NextConfig = {
   /* config options here */
@@ -14,10 +15,16 @@ const nextConfig: NextConfig = {
       "lucide-react",
       "framer-motion",
       "recharts",
+      "@radix-ui/react-tabs",
+      "date-fns",
+      "lodash",
+      "zod",
+      "react-hook-form",
     ],
     serverActions: {
       bodySizeLimit: "1000mb", // Increase from default 1MB to 1000MB for file uploads
     },
+    // Note: optimizeCss disabled - requires critters package which can cause build issues
   },
   // Handle favicon and static files
   async rewrites() {
@@ -39,18 +46,10 @@ const nextConfig: NextConfig = {
           }
         : false,
   },
-  // Optimize build ID generation
+  // Optimize build ID generation (simplified for faster builds)
   generateBuildId: async () => {
-    // Use git commit hash if available, otherwise timestamp
-    try {
-      const { execSync } = require("child_process");
-      const gitHash = execSync("git rev-parse --short HEAD", {
-        encoding: "utf-8",
-      }).trim();
-      return `build-${gitHash}`;
-    } catch {
-      return `build-${Date.now()}`;
-    }
+    // Use simple timestamp for faster builds (git hash adds overhead)
+    return `build-${Date.now()}`;
   },
   typescript: {
     // Disable TypeScript errors during builds to allow build to succeed
@@ -63,38 +62,70 @@ const nextConfig: NextConfig = {
     ignoreDuringBuilds: true,
   },
   webpack: (config, { isServer, dev }) => {
-    // Ensure proper module resolution
+    // Optimize module resolution for faster builds
     config.resolve = config.resolve || {};
     config.resolve.modules = [
       ...(config.resolve.modules || []),
       "node_modules",
     ];
 
+    // Cache module resolution results
+    config.resolve.cache = true;
+    config.resolve.cacheWithContext = false; // Faster resolution
+
     // Fix for pdf-lib and other packages with internal module resolution issues
     config.resolve.alias = {
       ...config.resolve.alias,
     };
 
-    // Ensure proper extension resolution
+    // Optimize extension resolution order (most common first)
     config.resolve.extensions = [
-      ...(config.resolve.extensions || []),
       ".js",
       ".jsx",
       ".ts",
       ".tsx",
       ".json",
-    ];
+      ...(config.resolve.extensions || []),
+    ].filter((ext, index, self) => self.indexOf(ext) === index); // Remove duplicates
 
     config.resolve.extensionAlias = {
       ".js": [".js", ".ts", ".tsx"],
       ".jsx": [".jsx", ".tsx"],
     };
 
+    // Enable faster module resolution
+    config.resolve.unsafeCache = true;
+
     // Exclude the fuad directory from webpack processing
     config.watchOptions = {
       ...config.watchOptions,
       ignored: ["**/fuad/**", "**/node_modules/**"],
     };
+
+    // Enable filesystem cache for ALL builds (dev and production)
+    // Use webpack's default cache location (safer and faster)
+    if (!config.cache) {
+      config.cache = {
+        type: "filesystem",
+        buildDependencies: {
+          config: [__filename],
+        },
+        // Let webpack use default cache directory (node_modules/.cache/webpack)
+        // This avoids path resolution issues and is optimized by webpack
+        compression: "gzip",
+        maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+      };
+    } else {
+      // Merge with existing cache config
+      config.cache = {
+        ...config.cache,
+        type: "filesystem",
+        buildDependencies: {
+          ...(config.cache.buildDependencies || {}),
+          config: [__filename],
+        },
+      };
+    }
 
     // Optimize webpack for faster builds
     if (!isServer && !dev) {
@@ -107,15 +138,60 @@ const nextConfig: NextConfig = {
         sideEffects: false,
         // Parallel processing
         minimize: true,
-      };
-
-      // Cache webpack builds for faster subsequent builds
-      config.cache = {
-        type: "filesystem",
-        buildDependencies: {
-          config: [__filename],
+        // Simplified chunk splitting for faster builds
+        splitChunks: {
+          chunks: "all",
+          cacheGroups: {
+            default: false,
+            vendors: false,
+            // Framework chunk (React, etc.)
+            framework: {
+              name: "framework",
+              chunks: "all",
+              test: /[\\/]node_modules[\\/](react|react-dom|scheduler|prop-types|use-subscription)[\\/]/,
+              priority: 40,
+              enforce: true,
+            },
+            // Large libraries
+            lib: {
+              test: /[\\/]node_modules[\\/]/,
+              name(module: any) {
+                const packageName = module.context.match(
+                  /[\\/]node_modules[\\/](.*?)([\\/]|$)/
+                )?.[1];
+                return packageName
+                  ? `lib-${packageName.replace("@", "").replace("/", "-")}`
+                  : "lib";
+              },
+              priority: 30,
+              minChunks: 1,
+              minSize: 0,
+              reuseExistingChunk: true,
+            },
+            // Common chunks
+            commons: {
+              name: "commons",
+              minChunks: 2,
+              priority: 20,
+              reuseExistingChunk: true,
+            },
+          },
         },
       };
+    }
+
+    // Optimize for development builds too
+    if (dev) {
+      config.optimization = {
+        ...config.optimization,
+        removeAvailableModules: false,
+        removeEmptyChunks: false,
+        splitChunks: false, // Faster dev builds
+        // Disable minification in dev for speed
+        minimize: false,
+      };
+      // Faster source maps in dev
+      config.devtool = "eval-cheap-module-source-map";
     }
 
     // Exclude heavy packages from server bundle if not needed
@@ -129,9 +205,42 @@ const nextConfig: NextConfig = {
         {
           sharp: "commonjs sharp",
           bcryptjs: "commonjs bcryptjs",
+          // Add more heavy packages that don't need bundling
+          "@prisma/client": "commonjs @prisma/client",
+          mysql2: "commonjs mysql2",
+          express: "commonjs express",
         },
       ].filter(Boolean);
     }
+
+    // Optimize loader performance with parallel processing
+    config.parallelism = Math.max(1, require("os").cpus().length - 1); // Use all but one CPU core
+
+    // Optimize module processing
+    config.module = config.module || {};
+    if (config.module.rules) {
+      // Add faster processing for common file types
+      config.module.rules.forEach((rule: any) => {
+        if (rule && rule.test && rule.use) {
+          // Enable caching for loaders
+          if (Array.isArray(rule.use)) {
+            rule.use.forEach((use: any) => {
+              if (use && typeof use === "object" && use.loader) {
+                use.options = {
+                  ...use.options,
+                  cache: true,
+                };
+              }
+            });
+          }
+        }
+      });
+    }
+
+    // Reduce build output noise for faster builds
+    config.infrastructureLogging = {
+      level: "error", // Only show errors
+    };
 
     return config;
   },
