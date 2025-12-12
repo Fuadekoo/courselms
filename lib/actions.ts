@@ -40,6 +40,11 @@ export async function askCourseQuestion(
   } | null = null
   let aiProvider: AIProvider = 'gemini'
   
+  // Check API keys before processing
+  const hasOpenAIKey = !!process.env.OPENAI_API_KEY;
+  const hasGeminiKey = !!process.env.GEMINI_API_KEY;
+  console.log('🔑 API Key Status:', { hasOpenAIKey, hasGeminiKey });
+  
   try {
     console.log('🤖 askCourseQuestion called:', { courseId, question: question.substring(0, 50) })
     
@@ -162,7 +167,15 @@ If documents need to be set up, let your instructor know. I'll be back up and ru
         uploadedAt: new Date().toISOString()
       }
       
-      console.log('🤖 Calling AI with PDF data...')
+      // Validate API key before processing
+      if (aiProvider === 'openai' && !hasOpenAIKey) {
+        throw new Error("OpenAI API key is not configured. Please set OPENAI_API_KEY in your environment variables.");
+      }
+      if (aiProvider === 'gemini' && !hasGeminiKey) {
+        throw new Error("Gemini API key is not configured. Please set GEMINI_API_KEY in your environment variables.");
+      }
+      
+      console.log('🤖 Calling AI with PDF data...', { provider: aiProvider, hasApiKey: aiProvider === 'openai' ? hasOpenAIKey : hasGeminiKey })
       
       // Use the AI to answer the question
       try {
@@ -180,6 +193,20 @@ If documents need to be set up, let your instructor know. I'll be back up and ru
         }
       } catch (aiError: any) {
         console.error('❌ Error calling AI with PDF:', aiError)
+        console.error('Error type:', aiError?.errorType)
+        console.error('Error message:', aiError?.message)
+        console.error('Is PDF error:', aiError?.isPdfError)
+        
+        // Check if it's an API key error - don't try fallback, just return helpful message
+        const errorMessage = aiError?.message || String(aiError || 'Unknown error')
+        if (errorMessage.includes('API key') || errorMessage.includes('not configured') || errorMessage.includes('authentication')) {
+          console.error('🔑 API key issue detected - returning helpful message')
+          return {
+            success: true,
+            answer: "Hey! Darulkubra AI here. There's a setup issue - your instructor needs to configure the AI service API key. Let them know! 🔧",
+            aiProvider
+          }
+        }
         
         // If PDF processing failed, try fallback with course context
         if (aiError?.isPdfError) {

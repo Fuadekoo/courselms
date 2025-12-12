@@ -3,10 +3,12 @@ import OpenAI from "openai";
 import { PDFDocument } from "pdf-lib";
 import sharp from "sharp";
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!,
-});
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+const openai = process.env.OPENAI_API_KEY 
+  ? new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
+  : null;
 
 export type AIProvider = "gemini" | "openai";
 
@@ -26,6 +28,11 @@ export async function askLLM(
 
   try {
     if (aiProvider === "openai") {
+      // Check if OpenAI is configured
+      if (!openai || !process.env.OPENAI_API_KEY) {
+        throw new Error("OpenAI API key is not configured. Please set OPENAI_API_KEY in your environment variables.");
+      }
+      
       const systemContent = hasContext
         ? "You are Darulkubra AI, a helpful AI assistant for Darulkubra Academy. You answer questions based on the provided course information. Always identify yourself as Darulkubra AI in your responses. Use information from the provided course content to answer questions. If a question is related to the course but specific details aren't in the provided context, use your knowledge to provide a helpful answer that relates to the course topic."
         : "You are Darulkubra AI, a helpful AI assistant for Darulkubra Academy. Always identify yourself as Darulkubra AI in your responses. Answer questions clearly and concisely.";
@@ -49,6 +56,11 @@ export async function askLLM(
       return completion.choices[0]?.message?.content || "No response generated";
     } else {
       // Default to Gemini
+      // Check if Gemini is configured
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error("Gemini API key is not configured. Please set GEMINI_API_KEY in your environment variables.");
+      }
+      
       const model = genAI.getGenerativeModel({ 
         model: "gemini-2.5-flash",
         systemInstruction: hasContext
@@ -109,6 +121,11 @@ export async function askLLMWithPDFs(
 ) {
   try {
     if (aiProvider === "openai") {
+      // Check if OpenAI is configured
+      if (!openai || !process.env.OPENAI_API_KEY) {
+        throw new Error("OpenAI API key is not configured. Please set OPENAI_API_KEY in your environment variables.");
+      }
+      
       console.log("🤖 Using OpenAI for PDF processing");
 
       // For OpenAI, we'll use the vision model to process PDFs
@@ -168,13 +185,43 @@ Please provide a detailed answer that uses the document as the foundation, and s
       ];
 
       console.log("📤 Sending to OpenAI GPT-4o with vision");
-
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4o",
-        messages: messages,
-        max_tokens: 2000,
-        temperature: 0.4,
+      console.log("📊 Request details:", {
+        pdfCount: pdfFiles.length,
+        imageCount: userContent.filter(c => c.type === "image_url").length,
+        questionLength: question.length,
+        hasApiKey: !!process.env.OPENAI_API_KEY
       });
+
+      if (!openai) {
+        throw new Error("OpenAI client is not initialized. Please check your API key configuration.");
+      }
+
+      let completion;
+      try {
+        completion = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: messages,
+          max_tokens: 2000,
+          temperature: 0.4,
+        });
+      } catch (apiError: any) {
+        console.error("❌ OpenAI API call failed:", apiError);
+        const apiErrorMessage = apiError?.message || String(apiError || 'Unknown error');
+        
+        // Check for specific OpenAI API errors
+        if (apiErrorMessage.includes('API key') || apiErrorMessage.includes('Invalid API key') || apiErrorMessage.includes('authentication')) {
+          throw new Error("OpenAI API key is invalid or not configured. Please set a valid OPENAI_API_KEY in your environment variables.");
+        }
+        if (apiErrorMessage.includes('rate limit') || apiErrorMessage.includes('quota')) {
+          throw new Error("OpenAI API rate limit exceeded. Please try again later.");
+        }
+        if (apiErrorMessage.includes('model') || apiErrorMessage.includes('not found')) {
+          throw new Error("OpenAI model not available. Please check your API access.");
+        }
+        
+        // Re-throw with more context
+        throw new Error(`OpenAI API error: ${apiErrorMessage}`);
+      }
 
       const response =
         completion.choices[0]?.message?.content || "No response generated";
@@ -194,6 +241,11 @@ Please provide a detailed answer that uses the document as the foundation, and s
     } else {
       // Gemini PDF processing
       console.log("🤖 Using Gemini for PDF processing");
+      
+      // Check if Gemini is configured
+      if (!process.env.GEMINI_API_KEY) {
+        throw new Error("Gemini API key is not configured. Please set GEMINI_API_KEY in your environment variables.");
+      }
 
       const model = genAI.getGenerativeModel({
         model: "gemini-2.5-flash",
