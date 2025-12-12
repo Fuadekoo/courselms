@@ -71,7 +71,7 @@ const nextConfig: NextConfig = {
   },
   // Disable source maps completely for faster builds
   productionBrowserSourceMaps: false,
-  webpack: (config, { isServer, dev }) => {
+  webpack: (config, { isServer, dev, nextRuntime }) => {
     // Optimize module resolution for faster builds
     config.resolve = config.resolve || {};
     config.resolve.modules = [
@@ -87,6 +87,22 @@ const nextConfig: NextConfig = {
     config.resolve.alias = {
       ...config.resolve.alias,
     };
+
+    // Exclude Prisma and native modules from Edge Runtime (middleware)
+    if (nextRuntime === "edge") {
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        "@prisma/client": false,
+        ".prisma/client": false,
+      };
+      config.externals = [
+        ...(Array.isArray(config.externals)
+          ? config.externals
+          : [config.externals]),
+        "@prisma/client",
+        ".prisma/client",
+      ].filter(Boolean);
+    }
 
     // Optimize extension resolution order (most common first)
     config.resolve.extensions = [
@@ -120,16 +136,24 @@ const nextConfig: NextConfig = {
 
     // Enable filesystem cache for ALL builds (dev and production)
     // Use webpack's default cache location (safer and faster)
+    // Use path.resolve to ensure cross-platform compatibility
     if (!config.cache) {
       config.cache = {
         type: "filesystem",
         buildDependencies: {
-          config: [__filename],
+          config: [path.resolve(__filename)],
         },
         // Let webpack use default cache directory (node_modules/.cache/webpack)
         // This avoids path resolution issues and is optimized by webpack
         compression: "gzip",
         maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+        // Clear stale cache entries to avoid cross-platform path issues
+        cacheDirectory: path.resolve(
+          process.cwd(),
+          "node_modules",
+          ".cache",
+          "webpack"
+        ),
       };
     } else {
       // Merge with existing cache config
@@ -138,8 +162,15 @@ const nextConfig: NextConfig = {
         type: "filesystem",
         buildDependencies: {
           ...(config.cache.buildDependencies || {}),
-          config: [__filename],
+          config: [path.resolve(__filename)],
         },
+        // Ensure cache directory uses current platform paths
+        cacheDirectory: path.resolve(
+          process.cwd(),
+          "node_modules",
+          ".cache",
+          "webpack"
+        ),
       };
     }
 
@@ -168,8 +199,15 @@ const nextConfig: NextConfig = {
       config.cache = {
         type: "filesystem",
         buildDependencies: {
-          config: [__filename],
+          config: [path.resolve(__filename)],
         },
+        // Ensure cache directory uses current platform paths
+        cacheDirectory: path.resolve(
+          process.cwd(),
+          "node_modules",
+          ".cache",
+          "webpack"
+        ),
       };
     }
 

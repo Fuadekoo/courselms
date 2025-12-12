@@ -3,8 +3,14 @@ import { DefaultJWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { z } from "zod";
-import prisma from "./db";
 import { Role } from "@prisma/client";
+
+// Lazy load Prisma to avoid bundling it in Edge Runtime (middleware)
+// Prisma is only used in API route callbacks, not in middleware
+const getPrisma = async () => {
+  const { default: prisma } = await import("./db");
+  return prisma;
+};
 
 declare module "next-auth" {
   interface User {
@@ -70,6 +76,9 @@ const authConfig = {
       // Handle Google OAuth sign-in
       if (account?.provider === "google" && user.email) {
         try {
+          // Lazy load Prisma (only runs in API routes, not middleware)
+          const prisma = await getPrisma();
+          
           // Check if user exists by email
           const existingUser = await prisma.user.findUnique({
             where: { email: user.email },
@@ -152,6 +161,8 @@ const authConfig = {
       authorize: async (credentials) => {
         // Lazy import bcryptjs to avoid bundling it in Edge Runtime (middleware)
         const bcryptjs = (await import("bcryptjs")).default;
+        // Lazy load Prisma (only runs in API routes, not middleware)
+        const prisma = await getPrisma();
         
         const { userName, password } = z
             .object({
