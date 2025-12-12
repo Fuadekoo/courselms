@@ -19,15 +19,15 @@ export async function askLLM(
   const hasContext = context && context.length > 0;
 
   const prompt = hasContext
-    ? `Answer the question based only on the following course content:\n\n${context.join(
+    ? `You are helping a student with questions about their course. Use the following course information to answer their question. If the question is related to the course but the specific information isn't in the provided context, use your knowledge to provide a helpful answer that relates to the course topic.\n\nCourse Information:\n${context.join(
         "\n\n"
-      )}\n\nQuestion: ${question}`
+      )}\n\nQuestion: ${question}\n\nProvide a helpful answer based on the course information above.`
     : question;
 
   try {
     if (aiProvider === "openai") {
       const systemContent = hasContext
-        ? "You are Darulkubra AI, a helpful AI assistant for Darulkubra Academy. You answer questions based on the provided document. Always identify yourself as Darulkubra AI in your responses. Use information from the provided content to answer questions professionally."
+        ? "You are Darulkubra AI, a helpful AI assistant for Darulkubra Academy. You answer questions based on the provided course information. Always identify yourself as Darulkubra AI in your responses. Use information from the provided course content to answer questions. If a question is related to the course but specific details aren't in the provided context, use your knowledge to provide a helpful answer that relates to the course topic."
         : "You are Darulkubra AI, a helpful AI assistant for Darulkubra Academy. Always identify yourself as Darulkubra AI in your responses. Answer questions clearly and concisely.";
 
       const completion = await openai.chat.completions.create({
@@ -52,7 +52,7 @@ export async function askLLM(
       const model = genAI.getGenerativeModel({ 
         model: "gemini-2.5-flash",
         systemInstruction: hasContext
-          ? "You are Darulkubra AI, a helpful AI assistant for Darulkubra Academy. You answer questions based on the provided document. Always identify yourself as Darulkubra AI in your responses. Use information from the provided content to answer questions professionally."
+          ? "You are Darulkubra AI, a helpful AI assistant for Darulkubra Academy. You answer questions based on the provided course information. Always identify yourself as Darulkubra AI in your responses. Use information from the provided course content to answer questions. If a question is related to the course but specific details aren't in the provided context, use your knowledge to provide a helpful answer that relates to the course topic."
           : "You are Darulkubra AI, a helpful AI assistant for Darulkubra Academy. Always identify yourself as Darulkubra AI in your responses. Answer questions clearly and concisely."
       });
 
@@ -275,29 +275,29 @@ Please provide a detailed answer that uses the document as the foundation, and s
       return response;
     }
   } catch (error) {
-    console.error(`Error processing PDFs with ${aiProvider}:`, error);
+    console.error(`❌ Error processing PDFs with ${aiProvider}:`, error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      name: error instanceof Error ? error.name : undefined
+    });
     
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     
-    // Provide helpful default response instead of throwing
-    if (errorMessage.includes('API key') || errorMessage.includes('authentication')) {
-      return `Hey! Darulkubra AI here. There's a setup issue - your instructor needs to configure the AI service. Let them know! 🔧`;
-    }
+    // Create a custom error that can be caught and handled by caller
+    const pdfError = new Error(`PDF processing failed: ${errorMessage}`) as Error & {
+      isPdfError: boolean;
+      errorType: string;
+    };
+    pdfError.isPdfError = true;
+    pdfError.errorType = errorMessage.includes('API key') || errorMessage.includes('authentication') 
+      ? 'AUTH_ERROR'
+      : errorMessage.includes('network') || errorMessage.includes('timeout') || errorMessage.includes('fetch')
+      ? 'NETWORK_ERROR'
+      : 'UNKNOWN_ERROR';
     
-    if (errorMessage.includes('network') || errorMessage.includes('timeout') || errorMessage.includes('fetch')) {
-      return `Hi! Darulkubra AI here. Having trouble connecting while reading the course materials. Check your internet and try again! If it keeps happening, let your instructor know. 📡`;
-    }
-    
-    // Generic helpful response
-    return `Hey! Darulkubra AI here. Hmm, I hit a snag while looking through the document: ${errorMessage}
-
-Try these:
-• Ask your question a different way
-• Check your internet connection
-• Make sure documents are uploaded
-• Let your instructor know if you need help
-
-I'll be ready to help once this is sorted! 🚀`;
+    // Throw the error so caller can catch and try fallback
+    throw pdfError;
   }
 }
 

@@ -29,7 +29,15 @@ export async function askCourseQuestion(
   courseId: string, 
   question: string
 ) {
-  let course: { pdfData: string | null; aiProvider: string | null } | null = null
+  let course: { 
+    pdfData: string | null; 
+    aiProvider: string | null;
+    titleEn: string | null;
+    titleAm: string | null;
+    aboutEn: string | null;
+    aboutAm: string | null;
+    courseMaterials: string | null;
+  } | null = null
   let aiProvider: AIProvider = 'gemini'
   
   try {
@@ -37,21 +45,60 @@ export async function askCourseQuestion(
     
     const prisma = (await import('@/lib/db')).default
     
-    // Get the course with AI PDF data
+    // Get the course with AI PDF data and course information
     course = await prisma.course.findUnique({
       where: { id: courseId },
-      select: { pdfData: true, aiProvider: true }
+      select: { 
+        pdfData: true, 
+        aiProvider: true,
+        titleEn: true,
+        titleAm: true,
+        aboutEn: true,
+        aboutAm: true,
+        courseMaterials: true
+      }
     })
     
     aiProvider = (course?.aiProvider as AIProvider) || 'gemini'
     
-    // If no PDF is provided, use the selected AI to respond directly
+    // If no PDF is provided, use course data as context for AI
     if (!course?.pdfData) {
-      console.log('⚠️ No PDF found, using AI provider directly:', aiProvider)
+      console.log('⚠️ No PDF found, using course data as context:', aiProvider)
       
       try {
         const { askLLM } = await import('@/lib/ask')
-        const directAnswer = await askLLM(question, [], aiProvider)
+        const { getCourseMaterials } = await import('@/lib/action/courseMaterials')
+        
+        // Build context from course information
+        const context: string[] = []
+        
+        // Add course title and description
+        if (course.titleEn) {
+          context.push(`Course Title (English): ${course.titleEn}`)
+        }
+        if (course.titleAm) {
+          context.push(`Course Title (Amharic): ${course.titleAm}`)
+        }
+        if (course.aboutEn) {
+          context.push(`Course Description (English): ${course.aboutEn}`)
+        }
+        if (course.aboutAm) {
+          context.push(`Course Description (Amharic): ${course.aboutAm}`)
+        }
+        
+        // Add course materials information
+        try {
+          const materials = await getCourseMaterials(courseId)
+          if (materials && materials.length > 0) {
+            const materialsList = materials.map(m => `- ${m.name} (${m.type})`).join('\n')
+            context.push(`Course Materials Available:\n${materialsList}`)
+          }
+        } catch (materialsError) {
+          console.log('⚠️ Could not fetch course materials:', materialsError)
+        }
+        
+        // Use course context to answer the question
+        const directAnswer = await askLLM(question, context, aiProvider)
         
         return {
           success: true,
@@ -59,7 +106,7 @@ export async function askCourseQuestion(
           aiProvider
         }
       } catch (aiError) {
-        console.error('❌ Error calling AI provider directly:', aiError)
+        console.error('❌ Error calling AI provider with course context:', aiError)
         // Return default helpful response when AI processing fails
         const defaultResponse = `Hey! Darulkubra AI here. I'm having a bit of trouble processing your question right now. 😅
 
@@ -118,20 +165,106 @@ If documents need to be set up, let your instructor know. I'll be back up and ru
       console.log('🤖 Calling AI with PDF data...')
       
       // Use the AI to answer the question
-      const answer = await askLLMWithPDFs(question, [pdfMetadata], aiProvider)
-      
-      console.log('✅ AI response received, length:', answer.length)
-      
-      // Cache the response
-      await setCachedResponse(question, contentHash, aiProvider, answer)
-      
-      return { 
-        success: true, 
-        answer, 
-        aiProvider 
+      try {
+        const answer = await askLLMWithPDFs(question, [pdfMetadata], aiProvider)
+        
+        console.log('✅ AI response received, length:', answer.length)
+        
+        // Cache the response
+        await setCachedResponse(question, contentHash, aiProvider, answer)
+        
+        return { 
+          success: true, 
+          answer, 
+          aiProvider 
+        }
+      } catch (aiError: any) {
+        console.error('❌ Error calling AI with PDF:', aiError)
+        
+        // If PDF processing failed, try fallback with course context
+        if (aiError?.isPdfError) {
+          console.log('⚠️ PDF processing failed, trying with course context as fallback...')
+          
+          try {
+            const { askLLM } = await import('@/lib/ask')
+            const { getCourseMaterials } = await import('@/lib/action/courseMaterials')
+            
+            const context: string[] = []
+            if (course.titleEn) context.push(`Course Title: ${course.titleEn}`)
+            if (course.titleAm) context.push(`Course Title (Amharic): ${course.titleAm}`)
+            if (course.aboutEn) context.push(`Course Description: ${course.aboutEn}`)
+            if (course.aboutAm) context.push(`Course Description (Amharic): ${course.aboutAm}`)
+            
+            try {
+              const materials = await getCourseMaterials(courseId)
+              if (materials && materials.length > 0) {
+                const materialsList = materials.map(m => `- ${m.name} (${m.type})`).join('\n')
+                context.push(`Course Materials Available:\n${materialsList}`)
+              }
+            } catch {}
+            
+            const fallbackAnswer = await askLLM(question, context, aiProvider)
+            console.log('✅ Fallback answer received using course context')
+            
+            return {
+              success: true,
+              answer: fallbackAnswer,
+              aiProvider
+            }
+          } catch (fallbackError) {
+            console.error('❌ Fallback also failed:', fallbackError)
+            // Provide helpful error message
+            const errorMsg = aiError.errorType === 'AUTH_ERROR'
+              ? "Hey! Darulkubra AI here. There's a setup issue - your instructor needs to configure the AI service. Let them know! 🔧"
+              : aiError.errorType === 'NETWORK_ERROR'
+              ? "Hi! Darulkubra AI here. Having trouble connecting. Check your internet and try again! 📡"
+              : `Hey! Darulkubra AI here. I encountered an issue: ${aiError.message || 'Unknown error'}. Please try again or contact your instructor.`
+            
+            return {
+              success: true,
+              answer: errorMsg,
+              aiProvider
+            }
+          }
+        }
+        
+        // Re-throw if we couldn't handle it
+        throw aiError
       }
     } catch (fileError) {
       console.error('❌ Error reading PDF file:', fileError)
+      const errorMessage = fileError instanceof Error ? fileError.message : String(fileError)
+      
+      // If file doesn't exist, try with course context
+      if (errorMessage.includes('ENOENT') || errorMessage.includes('not found')) {
+        console.log('⚠️ PDF file not found, using course context instead...')
+        try {
+          const { askLLM } = await import('@/lib/ask')
+          const { getCourseMaterials } = await import('@/lib/action/courseMaterials')
+          
+          const context: string[] = []
+          if (course?.titleEn) context.push(`Course Title: ${course.titleEn}`)
+          if (course?.aboutEn) context.push(`Course Description: ${course.aboutEn}`)
+          
+          try {
+            const materials = await getCourseMaterials(courseId)
+            if (materials && materials.length > 0) {
+              const materialsList = materials.map(m => `- ${m.name}`).join('\n')
+              context.push(`Course Materials: ${materialsList}`)
+            }
+          } catch {}
+          
+          const fallbackAnswer = await askLLM(question, context, aiProvider)
+          return {
+            success: true,
+            answer: fallbackAnswer,
+            aiProvider
+          }
+        } catch (fallbackError) {
+          console.error('❌ Fallback failed:', fallbackError)
+        }
+      }
+      
       // Return default response when PDF file cannot be read
       const defaultResponse = `Hey! Darulkubra AI here. Oops! I can't find the document right now. 📚
 
