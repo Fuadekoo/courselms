@@ -13,6 +13,13 @@ import {
 } from "lucide-react";
 import { getCourseMaterials } from "@/lib/data/courseMaterials";
 import useData from "@/hooks/useData";
+import {
+  Modal,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  Button,
+} from "@heroui/react";
 
 interface CourseMaterial {
   name: string;
@@ -151,7 +158,9 @@ export default function CourseMaterials({
             className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow"
           >
             <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 mt-1">{getFileIcon(material.type)}</div>
+              <div className="flex-shrink-0 mt-1">
+                {getFileIcon(material.type)}
+              </div>
               <div className="flex-1 min-w-0">
                 <h3 className="font-medium text-gray-900 dark:text-white truncate">
                   {material.name}
@@ -186,55 +195,125 @@ export default function CourseMaterials({
         ))}
       </div>
 
-      {viewerOpen && viewing && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-          <div
-            className="absolute inset-0 bg-black/60"
-            onClick={closeViewer}
-          />
-          <div className="relative z-10 w-full max-w-5xl bg-white dark:bg-gray-900 rounded-xl shadow-2xl p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2 min-w-0">
-                {getFileIcon(viewing.type)}
-                <h4 className="font-semibold text-gray-900 dark:text-white truncate">
-                  {viewing.name}
-                </h4>
-                <span className="ml-2 text-xs px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                  {getFileTypeLabel(viewing.type)}
-                </span>
+      {/* Course Material Preview Modal */}
+      <Modal
+        isOpen={viewerOpen}
+        onClose={closeViewer}
+        size="full"
+        classNames={{
+          base: "!w-screen !h-screen !max-w-none !max-h-none !m-0 !p-0 !rounded-none",
+          backdrop: "bg-black/60",
+          wrapper: "!p-0",
+        }}
+        hideCloseButton
+        scrollBehavior="inside"
+      >
+        <ModalContent className="!w-full !h-full !max-w-none !max-h-none !m-0 !p-0 !rounded-none">
+          <ModalHeader className="px-6 py-4 border-b flex-shrink-0">
+            <div className="flex items-center justify-between w-full">
+              <div className="flex items-center gap-3 min-w-0">
+                {getFileIcon(viewing?.type || "")}
+                <div className="min-w-0">
+                  <h2 className="text-2xl font-semibold text-gray-900 dark:text-white truncate">
+                    {viewing?.name || "Course Material Preview"}
+                  </h2>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">
+                    {getFileTypeLabel(viewing?.type || "")} •{" "}
+                    {lang === "en" ? "Course Material" : "የኮርስ ቅረጽ"}
+                  </p>
+                </div>
               </div>
-              <button
-                onClick={closeViewer}
-                className="p-2 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
-                aria-label={lang === "en" ? "Close" : "ዝጋ"}
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="border rounded-lg bg-white dark:bg-gray-900 overflow-hidden">
-              {viewerContent}
-            </div>
-
-            {/* Fallback link for non-previewable types */}
-            {!canInlinePreview(viewing.type) && (
-              <div className="mt-3 text-sm text-gray-600 dark:text-gray-300">
-                {lang === "en"
-                  ? "Preview is provided via Office Online viewer. If it doesn't load, open in a new tab:"
-                  : "ቅኝት በ Office Online ቪውወር ተሰጥቷል። ካልጫነ በአዲስ ታብ ይክፈቱ፦"}
-                <a
-                  href={officeViewerUrl(viewing.url)}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="ml-2 text-blue-600 hover:text-blue-800 dark:text-blue-400"
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <Button
+                  variant="bordered"
+                  size="sm"
+                  startContent={<Download className="h-4 w-4" />}
+                  onPress={() => {
+                    if (viewing) {
+                      const link = document.createElement("a");
+                      link.href = viewing.url;
+                      link.download = viewing.name;
+                      link.target = "_blank";
+                      link.click();
+                    }
+                  }}
                 >
-                  {lang === "en" ? "Open in new tab" : "በአዲስ ታብ ክፈት"}
-                </a>
+                  {lang === "en" ? "Download" : "አውርድ"}
+                </Button>
+                <Button
+                  isIconOnly
+                  variant="light"
+                  size="sm"
+                  onPress={closeViewer}
+                  aria-label={lang === "en" ? "Close" : "ዝጋ"}
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              </div>
+            </div>
+          </ModalHeader>
+          <ModalBody className="flex-1 overflow-auto bg-muted/30 !p-0">
+            {viewing ? (
+              <div className="w-full h-full flex items-center justify-center p-6">
+                {viewing.url.startsWith("data:application/pdf") ||
+                viewing.url.includes(".pdf") ? (
+                  <iframe
+                    src={viewing.url}
+                    className="w-full h-full min-h-[600px] border border-border rounded-lg bg-white"
+                    title={viewing.name}
+                  />
+                ) : viewing.url.startsWith("data:image/") ||
+                  ["jpg", "jpeg", "png", "gif"].includes(
+                    viewing.type.toLowerCase()
+                  ) ? (
+                  <img
+                    src={viewing.url}
+                    alt={viewing.name}
+                    className="max-w-full max-h-full object-contain border border-border rounded-lg shadow-lg bg-white"
+                  />
+                ) : ["doc", "docx", "ppt", "pptx", "xls", "xlsx"].includes(
+                    viewing.type.toLowerCase()
+                  ) ? (
+                  <iframe
+                    src={officeViewerUrl(viewing.url)}
+                    className="w-full h-full min-h-[600px] border border-border rounded-lg bg-white"
+                    title={viewing.name}
+                  />
+                ) : (
+                  <div className="text-center p-8">
+                    <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                    <p className="text-muted-foreground mb-4">
+                      {lang === "en"
+                        ? "Unable to preview this file type"
+                        : "ይህንን የፋይል አይነት ማየት አይቻልም"}
+                    </p>
+                    <Button
+                      variant="bordered"
+                      startContent={<Download className="h-4 w-4" />}
+                      onPress={() => {
+                        const link = document.createElement("a");
+                        link.href = viewing.url;
+                        link.download = viewing.name;
+                        link.target = "_blank";
+                        link.click();
+                      }}
+                    >
+                      {lang === "en" ? "Download to View" : "ለመመልከት አውርድ"}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div className="text-center p-8">
+                <FileText className="h-16 w-16 mx-auto mb-4 text-muted-foreground" />
+                <p className="text-muted-foreground">
+                  {lang === "en" ? "No material available" : "ቅረጽ አልተገኘም"}
+                </p>
               </div>
             )}
-          </div>
-        </div>
-      )}
+          </ModalBody>
+        </ModalContent>
+      </Modal>
     </>
   );
 }
