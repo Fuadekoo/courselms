@@ -3,13 +3,26 @@ import { DefaultJWT } from "next-auth/jwt";
 import Credentials from "next-auth/providers/credentials";
 import Google from "next-auth/providers/google";
 import { z } from "zod";
-import { Role } from "@prisma/client";
+
+// Define Role type manually to avoid importing from @prisma/client in Edge Runtime
+// This matches the Role enum in prisma/schema.prisma
+type Role = "admin" | "manager" | "instructor" | "seller" | "affiliate" | "student" | "scanner" | "employee" | "tester" | "ustaz";
 
 // Lazy load Prisma to avoid bundling it in Edge Runtime (middleware)
 // Prisma is only used in API route callbacks, not in middleware
 const getPrisma = async () => {
-  const { default: prisma } = await import("./db");
-  return prisma;
+  try {
+    // Dynamic import - this will only be executed in Node.js runtime (API routes)
+    // Not in Edge Runtime (middleware) where it would fail
+    const dbModule = await import("./db");
+    return dbModule.default;
+  } catch (error) {
+    console.error("Failed to load Prisma client:", error);
+    // Re-throw with more context
+    throw new Error(
+      `Prisma client initialization failed: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
 };
 
 declare module "next-auth" {
@@ -160,7 +173,8 @@ const authConfig = {
     Credentials({
       authorize: async (credentials) => {
         // Lazy import bcryptjs to avoid bundling it in Edge Runtime (middleware)
-        const bcryptjs = (await import("bcryptjs")).default;
+        const bcryptjsModule = await import("bcryptjs");
+        const bcryptjs = bcryptjsModule.default || bcryptjsModule;
         // Lazy load Prisma (only runs in API routes, not middleware)
         const prisma = await getPrisma();
         
