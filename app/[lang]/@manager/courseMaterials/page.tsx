@@ -1,4 +1,5 @@
 import { getCourses } from "@/actions/manager/course-materials";
+import { CourseMaterialsSelector } from "@/components/course-materials-selector";
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -52,18 +53,7 @@ export default async function CourseMaterialsPage() {
             <div className="h-full overflow-y-auto">
               <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 pb-24">
                 {courseList.length > 0 ? (
-                  <div className="bg-white/70 backdrop-blur-sm shadow-sm border-0 rounded-lg p-6">
-                    <p className="text-sm text-gray-600 mb-4">
-                      {courseList.length} course package(s) found. Course materials management will be available soon.
-                    </p>
-                    <div className="space-y-2">
-                      {courseList.map((pkg) => (
-                        <div key={pkg.id} className="p-2 bg-gray-50 rounded">
-                          <p className="font-medium">{pkg.titleEn}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
+                  <CourseMaterialsSelector coursePackages={courseList} />
                 ) : (
                   <div className="bg-white/70 backdrop-blur-sm shadow-sm border-0 rounded-lg p-16 flex flex-col items-center justify-center">
                     <div className="rounded-full bg-slate-100 p-6 mb-4">

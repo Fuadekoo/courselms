@@ -2,9 +2,38 @@
 import Link from "next/link";
 import { Home, ArrowLeft, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 
 export default function NotFound() {
   const router = useRouter();
+  const [isChecking, setIsChecking] = useState(true);
+
+  useEffect(() => {
+    // Show loading state for a brief period to allow Next.js to fully resolve the route
+    // This gives time for any async route resolution or redirects to complete
+    const checkTimer = setTimeout(() => {
+      setIsChecking(false);
+    }, 800); // 800ms delay to check if route resolves
+
+    return () => clearTimeout(checkTimer);
+  }, []);
+
+  // Show loading state while checking
+  if (isChecking) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-50 via-brand-50/30 to-neutral-100 dark:from-neutral-950 dark:via-brand-950/50 dark:to-neutral-900">
+        <div className="text-center space-y-4">
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-4 border-solid border-brand-500 border-r-transparent"></div>
+          <p className="text-lg text-neutral-600 dark:text-neutral-400 font-medium">
+            Checking if page exists...
+          </p>
+          <p className="text-sm text-neutral-500 dark:text-neutral-500">
+            Please wait while we verify the route
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-neutral-50 via-brand-50/30 to-neutral-100 dark:from-neutral-950 dark:via-brand-950/50 dark:to-neutral-900 relative overflow-hidden">

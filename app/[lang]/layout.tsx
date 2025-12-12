@@ -23,30 +23,37 @@ export default async function Layout({
   children: React.ReactNode;
   params: Promise<{ lang: string}>;
 }>) {
-  await params; // Await params to satisfy Next.js requirements
-  const session = await auth();
-  if (!session) return children;
+  try {
+    await params; // Await params to satisfy Next.js requirements
+    const session = await auth();
+    if (!session) return children;
 
-  const user = await prisma.user.findFirst({
-    where: { id: session.user?.id || "unknown" },
-    select: { status: true, role: true },
-  });
+    const user = await prisma.user.findFirst({
+      where: { id: session.user?.id || "unknown" },
+      select: { status: true, role: true },
+    });
 
-  if (!user) return children;
+    if (!user) return children;
 
-  return user.status == "pending"
-    ? pending ?? children
-    : user.status == "inactive"
-    ? inactive ?? children
-    : session.user?.role === "manager"
-    ? manager ?? children
-    : session.user?.role === "seller"
-    ? seller ?? children
-    : session.user?.role === "affiliate"
-    ? affiliate ?? children
-    : session.user?.role === "instructor"
-    ? instructor ?? children
-    : session.user?.role === "student"
-    ? student ?? children
-    : children;
+    return user.status == "pending"
+      ? pending ?? children
+      : user.status == "inactive"
+      ? inactive ?? children
+      : session.user?.role === "manager"
+      ? manager ?? children
+      : session.user?.role === "seller"
+      ? seller ?? children
+      : session.user?.role === "affiliate"
+      ? affiliate ?? children
+      : session.user?.role === "instructor"
+      ? instructor ?? children
+      : session.user?.role === "student"
+      ? student ?? children
+      : children;
+  } catch (error) {
+    console.error("Error in [lang]/layout.tsx:", error);
+    // If there's a database error (e.g., missing role column), just return children
+    // This allows the app to continue working while the database is being fixed
+    return children;
+  }
 }
