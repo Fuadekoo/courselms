@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import {
   File,
   Download,
@@ -41,6 +41,25 @@ export default function CourseMaterials({
 
   const [viewerOpen, setViewerOpen] = useState(false);
   const [viewing, setViewing] = useState<CourseMaterial | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  // Detect mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent =
+        navigator.userAgent || navigator.vendor || (window as any).opera;
+      const isMobileDevice =
+        /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(
+          userAgent.toLowerCase()
+        );
+      const isSmallScreen = window.innerWidth < 768;
+      setIsMobile(isMobileDevice || isSmallScreen);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
 
   const getFileIcon = (type: string) => {
     switch (type.toLowerCase()) {
@@ -86,6 +105,29 @@ export default function CourseMaterials({
   };
 
   const openViewer = (material: CourseMaterial) => {
+    const type = material.type.toLowerCase();
+
+    // On mobile, open PDFs and Office files in new tab instead of modal
+    if (
+      isMobile &&
+      (type === "pdf" ||
+        ["doc", "docx", "ppt", "pptx", "xls", "xlsx"].includes(type))
+    ) {
+      const url = material.url.startsWith("http")
+        ? material.url
+        : `${window.location.origin}${material.url}`;
+
+      if (type === "pdf") {
+        // Open PDF directly in new tab
+        window.open(url, "_blank");
+      } else {
+        // Open Office files in Office viewer
+        const viewerUrl = officeViewerUrl(material.url);
+        window.open(viewerUrl, "_blank");
+      }
+      return;
+    }
+
     setViewing(material);
     setViewerOpen(true);
   };
@@ -169,22 +211,27 @@ export default function CourseMaterials({
                   <span className="inline-flex items-center px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded">
                     {getFileTypeLabel(material.type)}
                   </span>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                     <button
                       onClick={() => openViewer(material)}
-                      className="inline-flex items-center gap-1 text-sm font-medium text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
+                      className="inline-flex items-center gap-1 text-xs sm:text-sm font-medium text-emerald-600 hover:text-emerald-800 dark:text-emerald-400 dark:hover:text-emerald-300"
                       title={lang === "en" ? "Read" : "አንብብ"}
                     >
-                      <Eye className="w-4 h-4" />
-                      {lang === "en" ? "Read" : "አንብብ"}
+                      <Eye className="w-3 h-3 sm:w-4 sm:h-4" />
+                      <span className="hidden sm:inline">
+                        {lang === "en" ? "Read" : "አንብብ"}
+                      </span>
+                      <span className="sm:hidden">
+                        {lang === "en" ? "View" : "አሳይ"}
+                      </span>
                     </button>
                     <a
                       href={material.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
+                      className="inline-flex items-center gap-1 text-xs sm:text-sm font-medium text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
                     >
-                      <Download className="w-4 h-4" />
+                      <Download className="w-3 h-3 sm:w-4 sm:h-4" />
                       {lang === "en" ? "Download" : "አውርድ"}
                     </a>
                   </div>
@@ -254,13 +301,17 @@ export default function CourseMaterials({
           </ModalHeader>
           <ModalBody className="flex-1 overflow-auto bg-muted/30 !p-0">
             {viewing ? (
-              <div className="w-full h-full flex items-center justify-center p-6">
+              <div className="w-full h-full flex items-center justify-center p-3 sm:p-6">
                 {viewing.url.startsWith("data:application/pdf") ||
                 viewing.url.includes(".pdf") ? (
                   <iframe
                     src={viewing.url}
-                    className="w-full h-full min-h-[600px] border border-border rounded-lg bg-white"
+                    className="w-full h-full min-h-[400px] sm:min-h-[600px] border border-border rounded-lg bg-white"
                     title={viewing.name}
+                    allow="fullscreen"
+                    style={{
+                      minHeight: isMobile ? "calc(100vh - 200px)" : "600px",
+                    }}
                   />
                 ) : viewing.url.startsWith("data:image/") ||
                   ["jpg", "jpeg", "png", "gif"].includes(
@@ -270,14 +321,21 @@ export default function CourseMaterials({
                     src={viewing.url}
                     alt={viewing.name}
                     className="max-w-full max-h-full object-contain border border-border rounded-lg shadow-lg bg-white"
+                    style={{
+                      maxHeight: isMobile ? "calc(100vh - 200px)" : "80vh",
+                    }}
                   />
                 ) : ["doc", "docx", "ppt", "pptx", "xls", "xlsx"].includes(
                     viewing.type.toLowerCase()
                   ) ? (
                   <iframe
                     src={officeViewerUrl(viewing.url)}
-                    className="w-full h-full min-h-[600px] border border-border rounded-lg bg-white"
+                    className="w-full h-full min-h-[400px] sm:min-h-[600px] border border-border rounded-lg bg-white"
                     title={viewing.name}
+                    allow="fullscreen"
+                    style={{
+                      minHeight: isMobile ? "calc(100vh - 200px)" : "600px",
+                    }}
                   />
                 ) : (
                   <div className="text-center p-8">
