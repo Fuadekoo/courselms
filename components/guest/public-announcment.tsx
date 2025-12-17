@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Card, CardBody, Button } from "@heroui/react";
 import { Bell, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { getPublicAnnouncements } from "@/actions/manager/public-announcement";
@@ -20,6 +20,7 @@ export default function PublicAnnouncement() {
   const [loading, setLoading] = useState(true);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isVisible, setIsVisible] = useState(true);
+  const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Only fetch on client side and ensure we're not in an error state
@@ -27,6 +28,25 @@ export default function PublicAnnouncement() {
       fetchAnnouncements();
     }
   }, []);
+
+  // Handle click outside to close announcement
+  useEffect(() => {
+    if (!isVisible) return;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (cardRef.current && !cardRef.current.contains(event.target as Node)) {
+        setIsVisible(false);
+      }
+    };
+
+    // Add event listener
+    document.addEventListener("mousedown", handleClickOutside);
+
+    // Cleanup
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isVisible]);
 
   const fetchAnnouncements = async () => {
     try {
@@ -70,7 +90,10 @@ export default function PublicAnnouncement() {
   };
 
   return (
-    <div className="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4 animate-in slide-in-from-top-5 duration-500">
+    <div 
+      ref={cardRef}
+      className="fixed top-20 left-1/2 -translate-x-1/2 z-50 w-full max-w-4xl px-4 animate-in slide-in-from-top-5 duration-500"
+    >
       <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-2 border-primary/20 shadow-2xl">
         <CardBody className="p-4 md:p-6">
           <div className="flex items-start gap-4">
