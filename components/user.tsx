@@ -60,6 +60,8 @@ export default function User({ userName, navItems = [] }: UserProps) {
       error: lang == "en" ? "Logged out failed" : "መውጣት አልተሳካም።",
     }),
     { isOpen, onOpen, onOpenChange } = useDisclosure();
+  
+  const { isOpen: isPopoverOpen, onOpenChange: onPopoverOpenChange } = useDisclosure();
 
   useEffect(() => {
     if (isOpen) reset();
@@ -72,7 +74,12 @@ export default function User({ userName, navItems = [] }: UserProps) {
           {userName}
         </span>
       )}
-      <Popover placement="bottom-end" showArrow>
+      <Popover 
+        placement="bottom-end" 
+        showArrow
+        isOpen={isPopoverOpen}
+        onOpenChange={onPopoverOpenChange}
+      >
         <PopoverTrigger>
           <button className="p-1.5 rounded-full border border-gray-300 dark:border-gray-700 hover:border-blue-500 dark:hover:border-blue-400 transition-colors">
             <UserRound className="size-6 text-gray-600 dark:text-gray-400" />
@@ -85,6 +92,7 @@ export default function User({ userName, navItems = [] }: UserProps) {
               <Link
                 key={index}
                 href={`/${lang}/${item.url}`}
+                onClick={() => onPopoverOpenChange(false)}
                 className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm text-gray-700 dark:text-gray-300"
               >
                 <span className="text-gray-600 dark:text-gray-400">{item.icon}</span>
