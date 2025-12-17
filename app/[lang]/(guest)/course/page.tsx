@@ -19,6 +19,7 @@ import Link from "next/link";
 import { useCourseFilterStore } from "@/stores";
 import PriceDisplay from "@/components/PriceDisplay";
 import TruncatedDescription from "@/components/TruncatedDescription";
+import { fuzzySearch } from "@/lib/utils/fuzzySearch";
 
 export default function Page() {
   const params = useParams<{ lang: string }>(),
@@ -38,22 +39,31 @@ export default function Page() {
     clearFilters,
   } = useCourseFilterStore();
 
-  // Filter courses based on store state
+  // Read search parameter from URL (from header search)
+  useEffect(() => {
+    const urlSearch = searchParams?.get("search");
+    if (urlSearch && urlSearch !== searchTerm) {
+      setSearchTerm(urlSearch);
+    }
+  }, [searchParams, setSearchTerm, searchTerm]);
+
+  // Filter courses based on store state with fuzzy search
   const filteredCourses = useMemo(() => {
     if (!data) return [];
 
-    return data.filter((course: any) => {
-      // Search filter
-      const matchesSearch =
-        !searchTerm ||
-        course.titleEn?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        course.titleAm?.toLowerCase().includes(searchTerm.toLowerCase());
+    // First apply fuzzy search
+    let courses = searchTerm
+      ? fuzzySearch(data, searchTerm)
+      : data;
 
-      // Level filter
-      const matchesLevel = !selectedLevel || course.level === selectedLevel;
+    // Then apply level filter
+    if (selectedLevel) {
+      courses = courses.filter(
+        (course: any) => course.level === selectedLevel
+      );
+    }
 
-      return matchesSearch && matchesLevel;
-    });
+    return courses;
   }, [data, searchTerm, selectedLevel]);
 
   // Keep previous page visible while loading (TopLoadingBar will show progress)

@@ -48,7 +48,7 @@ export default function CourseCardAffiliate({
   const lang = params?.lang || "en";
 
   return (
-    <div className="h-full relative bg-background dark:bg-background/95 rounded-xl overflow-hidden flex flex-col border border-divider dark:border-white/10 shadow-lg dark:shadow-2xl dark:shadow-black/20 hover:shadow-xl dark:hover:shadow-black/30 transition-all duration-500 ease-out hover:scale-[1.02] hover:-translate-y-1">
+    <div className="h-full relative bg-background dark:bg-background/95 rounded-xl flex flex-col border border-divider dark:border-white/10 shadow-lg dark:shadow-2xl dark:shadow-black/20 hover:shadow-xl dark:hover:shadow-black/30 transition-all duration-500 ease-out hover:scale-[1.02] hover:-translate-y-1 overflow-hidden">
       <Link
         href={
           titleLink ||
@@ -74,17 +74,9 @@ export default function CourseCardAffiliate({
               titleLink ||
               `/${lang}/course/${id}?code=${searchParams?.get("code") || ""}`
             }
-            className="text-lg font-bold text-foreground dark:text-white overflow-hidden hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-300 ease-out leading-tight min-h-[3.5rem] group"
+            className="text-lg font-bold text-foreground dark:text-white hover:text-primary-600 dark:hover:text-primary-400 transition-colors duration-300 ease-out leading-tight group"
           >
-            <span
-              className="group-hover:text-primary transition-colors duration-300"
-              style={{
-                display: "-webkit-box",
-                WebkitLineClamp: 2,
-                WebkitBoxOrient: "vertical",
-                textOverflow: "ellipsis",
-              }}
-            >
+            <span className="group-hover:text-primary transition-colors duration-300">
               {lang == "en" ? titleEn : titleAm}
             </span>
           </Link>
@@ -140,12 +132,12 @@ export default function CourseCardAffiliate({
           ))}
         </div>
 
-        <div className="pt-4 pb-2 grid mt-auto flex-shrink-0">{btn}</div>
+        <div className="pt-4 pb-4 grid mt-auto flex-shrink-0">{btn}</div>
       </div>
 
       <div
         className={cn(
-          "absolute top-0 right-0 px-3 py-2 rounded-bl-xl shadow-lg text-sm transition-all duration-300 ease-out backdrop-blur-sm",
+          "absolute top-0 right-0 px-1.5 py-0.5 rounded-bl-lg shadow-md text-[10px] transition-all duration-300 ease-out backdrop-blur-sm",
           (birrPrice ?? 0) > 0 || (dolarPrice ?? 0) > 0
             ? "bg-background/95 dark:bg-background/90 border-l border-b border-divider dark:border-white/10"
             : "bg-gradient-to-br from-success-500 to-success-600 dark:from-success-600 dark:to-success-700 text-white shadow-success-900/50"

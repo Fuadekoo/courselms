@@ -60,7 +60,7 @@ export default function User({ userName, navItems = [] }: UserProps) {
       error: lang == "en" ? "Logged out failed" : "መውጣት አልተሳካም።",
     }),
     { isOpen, onOpen, onOpenChange } = useDisclosure();
-  
+
   const { isOpen: isPopoverOpen, onOpenChange: onPopoverOpenChange } = useDisclosure();
 
   useEffect(() => {

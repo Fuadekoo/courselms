@@ -58,9 +58,9 @@ export default function PriceDisplay({
 
   if (hasDiscount && discount) {
     return (
-      <div className={`flex flex-col gap-1 ${className}`}>
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-2xl font-bold text-primary">
+      <div className={`flex flex-col gap-0 ${className}`}>
+        <div className="flex items-center gap-1 flex-wrap">
+          <span className="text-xs font-bold text-primary leading-none">
             {isEthiopia ? "ETB " : "$"}
             {discountedPrice.toFixed(2)}
             {!isEthiopia && " USD"}
@@ -70,21 +70,21 @@ export default function PriceDisplay({
               size="sm"
               color="danger"
               variant="flat"
-              className="font-semibold"
+              className="font-bold text-[7px] px-0.5 py-0 min-w-0 h-3 leading-none scale-90"
             >
               -{discount.value}%
             </Chip>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          <span className="text-lg text-default-400 line-through">
+        <div className="flex items-center gap-1">
+          <span className="text-[9px] text-red-600 dark:text-red-500 line-through leading-none">
             {isEthiopia ? "ETB " : "$"}
             {originalWithDiscount.toFixed(2)}
             {!isEthiopia && " USD"}
           </span>
         </div>
         {discount.endDate && (
-          <CountdownTimer endDate={discount.endDate} className="mt-1" />
+          <CountdownTimer endDate={discount.endDate} className="mt-0 text-[8px]" />
         )}
       </div>
     );

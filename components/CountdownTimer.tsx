@@ -54,9 +54,16 @@ export default function CountdownTimer({
     return null;
   }
 
+  // Use green if there are days remaining or more than 12 hours, red if less than 12 hours
+  const totalHours = timeLeft.days * 24 + timeLeft.hours;
+  const isUrgent = timeLeft.days === 0 && totalHours < 12;
+  const textColor = isUrgent 
+    ? "text-red-600 dark:text-red-500" 
+    : "text-green-600 dark:text-green-500";
+
   return (
-    <div className={`text-sm text-default-600 ${className}`}>
-      <span className="font-medium">
+    <div className={`text-[8px] font-medium ${textColor} ${className}`}>
+      <span className="leading-none">
         {timeLeft.days}d {timeLeft.hours}h {timeLeft.minutes}m {timeLeft.seconds}s
       </span>
     </div>

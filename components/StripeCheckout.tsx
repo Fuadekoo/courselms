@@ -270,7 +270,7 @@ export default function StripeCheckout({
 
   const handleSuccess = () => {
     onOpenChange();
-    router.push(`/${lang}/student/mycourse`);
+    router.push(`/${lang}/mycourse/${courseId}`);
   };
 
   const handleClose = () => {

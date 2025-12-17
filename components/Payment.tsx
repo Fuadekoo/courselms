@@ -179,7 +179,7 @@ export default function Payment({
 
       if (response.ok) {
         onOpenChange(); // Close modal
-        router.push(`/${lang}/mycourse`);
+        router.push(`/${lang}/mycourse/${id}`);
       } else {
         throw new Error("Failed to enroll in free course");
       }
