@@ -419,6 +419,25 @@ function Player({
     typeof window !== "undefined" &&
     /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
+  // Hide controls after 2 seconds of no mouse movement (for desktop)
+  useEffect(() => {
+    if (isMobile || !showControls || !playing) return;
+
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+
+    controlsTimeoutRef.current = setTimeout(() => {
+      setShowControls(false);
+    }, 2000);
+
+    return () => {
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+    };
+  }, [showControls, isMobile, playing]);
+
   // Hide controls after a few seconds on mobile
   useEffect(() => {
     if (!isMobile || !showControls || !playing) return;
@@ -437,6 +456,44 @@ function Player({
       }
     };
   }, [showControls, isMobile, playing]);
+
+  // Handle mouse movement to show controls
+  const handleMouseMove = () => {
+    if (isMobile) return;
+    setShowControls(true);
+    
+    // Clear existing timeout
+    if (controlsTimeoutRef.current) {
+      clearTimeout(controlsTimeoutRef.current);
+    }
+    
+    // Set new timeout to hide after 2 seconds
+    controlsTimeoutRef.current = setTimeout(() => {
+      setShowControls(false);
+    }, 2000);
+  };
+
+  // Handle click on video container (free space) to toggle play/pause
+  const handleContainerClick = (e: React.MouseEvent) => {
+    // Don't toggle if clicking on controls, buttons, video element, or interactive elements
+    const target = e.target as HTMLElement;
+    if (
+      target.closest('[data-settings-menu]') ||
+      target.closest('.video-player-controls') ||
+      target.closest('button') ||
+      target.closest('input') ||
+      target.closest('[role="slider"]') ||
+      target.closest('video') ||
+      target.tagName === 'BUTTON' ||
+      target.tagName === 'INPUT' ||
+      target.tagName === 'VIDEO'
+    ) {
+      return;
+    }
+    
+    // Toggle play/pause for all other clicks (empty space, overlays, etc.)
+    togglePlay();
+  };
 
   // Network status detection
   useEffect(() => {
@@ -1543,7 +1600,10 @@ function Player({
         alignItems: "center",
         justifyContent: "center",
         backgroundColor: "#000",
+        cursor: "pointer",
       }}
+      onMouseMove={handleMouseMove}
+      onClick={handleContainerClick}
     >
       {/* Ambient backdrop gradient */}
       <div
@@ -1655,7 +1715,7 @@ function Player({
             backgroundColor: "#000",
           }}
           onClick={(e) => {
-            e.stopPropagation();
+            // Don't stop propagation - let container handle it
             togglePlay();
           }}
         >
@@ -1761,8 +1821,27 @@ function Player({
           onVideoPause?.();
         }}
         onClick={(e) => {
-          e.stopPropagation();
-          if (isMobile) setShowControls((v) => !v);
+          // On mobile, toggle controls
+          if (isMobile) {
+            e.stopPropagation();
+            setShowControls((v) => !v);
+          } else {
+            // On desktop, check if clicking on controls
+            const target = e.target as HTMLElement;
+            if (
+              target.closest('.video-player-controls') ||
+              target.closest('button') ||
+              target.closest('[data-settings-menu]') ||
+              target.closest('input') ||
+              target.closest('[role="slider"]')
+            ) {
+              e.stopPropagation();
+              return;
+            }
+            // Otherwise, toggle play/pause
+            e.stopPropagation(); // Stop here to prevent double-trigger from container
+            togglePlay();
+          }
         }}
         onTouchStart={(e) => {
           // For iOS: show controls on touch
@@ -1830,8 +1909,8 @@ function Player({
       {/* Dynamic Watermark - Shows user info or protection message, changes position every 10 seconds */}
       {videoAvailable && !hasError && <DynamicWatermark />}
 
-      {/* Center Play Button - Show when paused and not loading */}
-      {!playing && !isLoading && isOnline && (
+      {/* Center Play Button - Always show when paused */}
+      {!playing && (
         <div
           style={{
             position: "absolute",
@@ -1845,7 +1924,7 @@ function Player({
         >
           <button
             onClick={(e) => {
-              e.stopPropagation();
+              // Don't stop propagation - clicking button should also work
               togglePlay();
             }}
             style={{
@@ -2038,6 +2117,7 @@ function Player({
       {/* --- DESKTOP CONTROLS --- */}
       {!isMobile && (
         <div
+          className="video-player-controls"
           style={{
             position: "absolute",
             left: 0,
