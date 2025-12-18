@@ -80,6 +80,7 @@ function Player({
   );
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const tokenRefreshInterval = useRef<NodeJS.Timeout | null>(null);
+  const isTogglingRef = useRef<boolean>(false); // Prevent double-toggle
   const originalMp4UrlRef = useRef<string | null>(null); // Store original MP4 URL for fallback
   const hlsRef = useRef<Hls | null>(null);
   const [windowWidth, setWindowWidth] = useState<number>(
@@ -551,6 +552,7 @@ function Player({
       target.closest('.video-player-controls') ||
       target.closest('button') ||
       target.closest('button[aria-label="Play"]') ||
+      target.closest('[data-center-play-button]') ||
       target.closest('[style*="zIndex: 200"]') ||
       target.closest('input') ||
       target.closest('[role="slider"]') ||
@@ -1365,16 +1367,33 @@ function Player({
 
   // Toggle play/pause
   const togglePlay = () => {
+    // Prevent double-toggle within 300ms
+    if (isTogglingRef.current) {
+      return;
+    }
+    
+    isTogglingRef.current = true;
     const video = videoRef.current;
-    if (!video) return;
+    if (!video) {
+      isTogglingRef.current = false;
+      return;
+    }
+    
     if (video.paused) {
-      video.play().catch(() => {});
+      video.play().catch(() => {
+        isTogglingRef.current = false;
+      });
       setPlaying(true);
     } else {
       video.pause();
       setPlaying(false);
       onVideoPause?.();
     }
+    
+    // Reset the flag after a short delay
+    setTimeout(() => {
+      isTogglingRef.current = false;
+    }, 300);
   };
 
   // Handle seeking
@@ -1701,6 +1720,8 @@ function Player({
         if (
           target.closest('.video-player-controls') ||
           target.closest('button') ||
+          target.closest('button[aria-label="Play"]') ||
+          target.closest('[data-center-play-button]') ||
           target.closest('[data-settings-menu]') ||
           target.closest('input') ||
           target.closest('[role="slider"]') ||
@@ -1964,6 +1985,7 @@ function Player({
             target.closest('.video-player-controls') ||
             target.closest('button') ||
             target.closest('button[aria-label="Play"]') ||
+            target.closest('[data-center-play-button]') ||
             target.closest('[style*="zIndex: 200"]') ||
             target.closest('[data-settings-menu]') ||
             target.closest('input') ||
@@ -1971,6 +1993,7 @@ function Player({
             target.closest('.volume-control')
           ) {
             e.stopPropagation();
+            e.preventDefault();
             return;
           }
           
@@ -2008,6 +2031,8 @@ function Player({
             if (
               target.closest('.video-player-controls') ||
               target.closest('button') ||
+              target.closest('button[aria-label="Play"]') ||
+              target.closest('[data-center-play-button]') ||
               target.closest('[data-settings-menu]') ||
               target.closest('input') ||
               target.closest('[role="slider"]') ||
@@ -2105,6 +2130,7 @@ function Player({
             const isSettings = target.closest('[data-settings-menu]');
             const isVolume = target.closest('.volume-control');
             const isCenterPlay = target.closest('button[aria-label="Play"]') || 
+                                 target.closest('[data-center-play-button]') ||
                                  target.closest('[style*="zIndex: 200"]');
             
             if (isControl || isButton || isInput || isSettings || isVolume || isCenterPlay) {
@@ -2145,7 +2171,8 @@ function Player({
             const isInput = target.closest('input') || target.closest('[role="slider"]');
             const isSettings = target.closest('[data-settings-menu]');
             const isVolume = target.closest('.volume-control');
-            const isCenterPlay = target.closest('button[aria-label="Play"]');
+            const isCenterPlay = target.closest('button[aria-label="Play"]') ||
+                                 target.closest('[data-center-play-button]');
             
             if (isControl || isButton || isInput || isSettings || isVolume || isCenterPlay) {
               return;
@@ -2174,6 +2201,19 @@ function Player({
       {/* Center Play Button - Always show when paused */}
       {!playing && (
         <div
+          data-center-play-button="true"
+          onClick={(e) => {
+            // Stop propagation at the container level
+            e.stopPropagation();
+            e.preventDefault();
+            e.nativeEvent.stopImmediatePropagation();
+          }}
+          onTouchStart={(e) => {
+            // Stop propagation at the container level
+            e.stopPropagation();
+            e.preventDefault();
+            e.nativeEvent.stopImmediatePropagation();
+          }}
           style={{
             position: "absolute",
             top: "50%",
