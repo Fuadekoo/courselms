@@ -6,10 +6,12 @@ import { cn } from "@/lib/utils";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div className={cn(
-      "min-h-screen relative",
-      "bg-gradient-to-br from-gray-50 via-gray-50/50 to-white dark:from-gray-950 dark:via-gray-900/50 dark:to-gray-900"
-    )}>
+    <div
+      className={cn(
+        "min-h- relative",
+        "bg-gradient-to-br from-gray-50 via-gray-50/50 to-white dark:from-gray-950 dark:via-gray-900/50 dark:to-gray-900"
+      )}
+    >
       {/* Background layers - applied to all pages */}
       <>
         {/* Layer 1 - First blur layer (12px) */}
@@ -51,11 +53,9 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         {/* Overlay for better content readability */}
         <div className="absolute inset-0 bg-white/20 dark:bg-gray-900/25 pointer-events-none" />
       </>
-      
+
       <GuestHeader />
-      <main className="w-full relative z-10 pt-0">
-        {children}
-      </main>
+      <main className="w-full relative z-10 pt-0">{children}</main>
     </div>
   );
 }
