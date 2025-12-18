@@ -550,6 +550,8 @@ function Player({
       target.closest('[data-settings-menu]') ||
       target.closest('.video-player-controls') ||
       target.closest('button') ||
+      target.closest('button[aria-label="Play"]') ||
+      target.closest('[style*="zIndex: 200"]') ||
       target.closest('input') ||
       target.closest('[role="slider"]') ||
       target.closest('video') ||
@@ -1929,10 +1931,6 @@ function Player({
           WebkitTapHighlightColor: "transparent",
           touchAction: "manipulation",
           pointerEvents: "auto", // Enable interaction but with protections
-          // On mobile, allow touches to pass through to center play button
-          ...(isMobile && !playing && {
-            pointerEvents: "auto",
-          }),
           userSelect: "none", // Disable text selection
           WebkitUserSelect: "none", // Safari
           MozUserSelect: "none", // Firefox
@@ -1960,11 +1958,13 @@ function Player({
           onVideoPause?.();
         }}
         onClick={(e) => {
-          // Don't toggle if clicking on controls
+          // Don't toggle if clicking on controls or center play button
           const target = e.target as HTMLElement;
           if (
             target.closest('.video-player-controls') ||
             target.closest('button') ||
+            target.closest('button[aria-label="Play"]') ||
+            target.closest('[style*="zIndex: 200"]') ||
             target.closest('[data-settings-menu]') ||
             target.closest('input') ||
             target.closest('[role="slider"]') ||
@@ -1999,44 +1999,25 @@ function Player({
           }
         }}
         onTouchStart={(e) => {
-          // For mobile: handle touch on free space
-          const target = e.target as HTMLElement;
-          
-          // Check if touching center play button - let it handle its own touch
-          if (target.closest('button[aria-label="Play"]') || target.closest('[style*="zIndex: 100"]')) {
-            return; // Let center play button handle it
-          }
-          
-          if (
-            target.closest('.video-player-controls') ||
-            target.closest('button') ||
-            target.closest('[data-settings-menu]') ||
-            target.closest('input') ||
-            target.closest('[role="slider"]') ||
-            target.closest('.volume-control')
-          ) {
-            return; // Let controls handle their own touches
-          }
-          
-          // On mobile touch, show controls (like mouse movement) and toggle play/pause
+          // On mobile, let the invisible overlay handle touches on free space
+          // Only handle touches here if they're directly on the video element and not on free space
           if (isMobile) {
-            e.preventDefault(); // Prevent default video touch behavior
-            e.stopPropagation(); // Stop propagation to container
-            setShowControls(true);
+            const target = e.target as HTMLElement;
             
-            // Clear existing timeout
-            if (controlsTimeoutRef.current) {
-              clearTimeout(controlsTimeoutRef.current);
+            // If touching controls or buttons, let them handle it
+            if (
+              target.closest('.video-player-controls') ||
+              target.closest('button') ||
+              target.closest('[data-settings-menu]') ||
+              target.closest('input') ||
+              target.closest('[role="slider"]') ||
+              target.closest('.volume-control')
+            ) {
+              return;
             }
             
-            // Set new timeout to hide after 2 seconds (only if playing)
-            if (playing) {
-              controlsTimeoutRef.current = setTimeout(() => {
-                setShowControls(false);
-              }, 2000);
-            }
-            
-            togglePlay();
+            // For touches directly on video (not on overlay), allow default behavior
+            // The overlay will handle free space touches
           }
         }}
         onError={(e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
@@ -2098,8 +2079,8 @@ function Player({
       {/* Dynamic Watermark - Shows user info or protection message, changes position every 10 seconds */}
       {videoAvailable && !hasError && <DynamicWatermark />}
 
-      {/* Invisible touch overlay for free space - Only when video is playing on mobile */}
-      {isMobile && playing && videoAvailable && !hasError && (
+      {/* Invisible touch overlay for free space - Always on mobile when video is available */}
+      {isMobile && videoAvailable && !hasError && (
         <div
           style={{
             position: "absolute",
@@ -2107,26 +2088,30 @@ function Player({
             left: 0,
             right: 0,
             bottom: 0,
-            zIndex: 50, // Above video (zIndex: 1) but below center play button (zIndex: 200)
+            zIndex: 50, // Above video (zIndex: 1) but below center play button (zIndex: 200) and controls (zIndex: 100)
             pointerEvents: "auto",
             touchAction: "manipulation",
+            backgroundColor: "transparent", // Invisible but captures touches
+            WebkitTapHighlightColor: "transparent",
           }}
           onTouchStart={(e) => {
             const target = e.target as HTMLElement;
             
-            // Don't handle if touching controls or buttons
-            if (
-              target.closest('.video-player-controls') ||
-              target.closest('button') ||
-              target.closest('[data-settings-menu]') ||
-              target.closest('input') ||
-              target.closest('[role="slider"]') ||
-              target.closest('.volume-control') ||
-              target.closest('[style*="zIndex: 200"]') // Center play button
-            ) {
-              return;
+            // Don't handle if touching controls, buttons, or center play button
+            // Check by looking at the actual element, not just closest
+            const isControl = target.closest('.video-player-controls');
+            const isButton = target.closest('button') && !target.closest('button[aria-label="Play"]');
+            const isInput = target.closest('input') || target.closest('[role="slider"]');
+            const isSettings = target.closest('[data-settings-menu]');
+            const isVolume = target.closest('.volume-control');
+            const isCenterPlay = target.closest('button[aria-label="Play"]') || 
+                                 target.closest('[style*="zIndex: 200"]');
+            
+            if (isControl || isButton || isInput || isSettings || isVolume || isCenterPlay) {
+              return; // Let those elements handle their own touches
             }
             
+            // This is a touch on free space
             e.preventDefault();
             e.stopPropagation();
             
@@ -2138,6 +2123,43 @@ function Player({
             }
             
             // Set new timeout to hide after 2 seconds (only if playing)
+            if (playing) {
+              controlsTimeoutRef.current = setTimeout(() => {
+                setShowControls(false);
+              }, 2000);
+            }
+            
+            togglePlay();
+          }}
+          onTouchEnd={(e) => {
+            // Prevent any default behavior
+            e.preventDefault();
+            e.stopPropagation();
+          }}
+          onClick={(e) => {
+            // Also handle click for consistency (for devices that support both)
+            const target = e.target as HTMLElement;
+            
+            const isControl = target.closest('.video-player-controls');
+            const isButton = target.closest('button') && !target.closest('button[aria-label="Play"]');
+            const isInput = target.closest('input') || target.closest('[role="slider"]');
+            const isSettings = target.closest('[data-settings-menu]');
+            const isVolume = target.closest('.volume-control');
+            const isCenterPlay = target.closest('button[aria-label="Play"]');
+            
+            if (isControl || isButton || isInput || isSettings || isVolume || isCenterPlay) {
+              return;
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            setShowControls(true);
+            
+            if (controlsTimeoutRef.current) {
+              clearTimeout(controlsTimeoutRef.current);
+            }
+            
             if (playing) {
               controlsTimeoutRef.current = setTimeout(() => {
                 setShowControls(false);
@@ -2195,18 +2217,65 @@ function Player({
 
           <button
             onClick={(e) => {
+              // Stop all event propagation immediately
               e.stopPropagation();
               e.preventDefault();
+              e.nativeEvent.stopImmediatePropagation();
+              
+              // Show controls (like free space touch)
+              setShowControls(true);
+              
+              // Clear existing timeout
+              if (controlsTimeoutRef.current) {
+                clearTimeout(controlsTimeoutRef.current);
+              }
+              
+              // Toggle play/pause
+              const wasPlaying = playing;
               togglePlay();
+              
+              // Set new timeout to hide after 2 seconds (only if video will be playing)
+              // Since we're paused, after toggle it will be playing
+              if (!wasPlaying) {
+                controlsTimeoutRef.current = setTimeout(() => {
+                  setShowControls(false);
+                }, 2000);
+              }
             }}
             onTouchStart={(e) => {
+              // Stop all event propagation immediately
               e.stopPropagation();
               e.preventDefault();
+              e.nativeEvent.stopImmediatePropagation();
+              
+              // Show controls (like free space touch)
+              setShowControls(true);
+              
+              // Clear existing timeout
+              if (controlsTimeoutRef.current) {
+                clearTimeout(controlsTimeoutRef.current);
+              }
+              
+              // Toggle play/pause
+              const wasPlaying = playing;
               togglePlay();
+              
+              // Set new timeout to hide after 2 seconds (only if video will be playing)
+              // Since we're paused, after toggle it will be playing
+              if (!wasPlaying) {
+                controlsTimeoutRef.current = setTimeout(() => {
+                  setShowControls(false);
+                }, 2000);
+              }
             }}
             onTouchEnd={(e) => {
               e.stopPropagation();
               e.preventDefault();
+              e.nativeEvent.stopImmediatePropagation();
+            }}
+            onMouseDown={(e) => {
+              // Also stop on mousedown to prevent any event bubbling
+              e.stopPropagation();
             }}
             style={{
               pointerEvents: "auto",
