@@ -29,22 +29,24 @@ export default function PublicAnnouncement() {
     }
   }, []);
 
-  // Handle click outside to close announcement
+  // Handle click/touch outside to close announcement (works on all devices)
   useEffect(() => {
     if (!isVisible) return;
 
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (cardRef.current && !cardRef.current.contains(event.target as Node)) {
         setIsVisible(false);
       }
     };
 
-    // Add event listener
+    // Add event listeners for both mouse and touch
     document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
 
     // Cleanup
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
     };
   }, [isVisible]);
 

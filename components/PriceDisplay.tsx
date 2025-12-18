@@ -84,7 +84,10 @@ export default function PriceDisplay({
           </span>
         </div>
         {discount.endDate && (
-          <CountdownTimer endDate={discount.endDate} className="mt-0 text-[8px]" />
+          <CountdownTimer
+            endDate={discount.endDate}
+            className="mt-0 text-[8px]"
+          />
         )}
       </div>
     );

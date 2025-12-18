@@ -1,6 +1,6 @@
 "use client";
 import React, { useRef, useState, useEffect, memo } from "react";
-import { Play, Pause, Settings } from "lucide-react";
+import { Play, Pause, Settings, Volume, VolumeOff } from "lucide-react";
 import Playlist from "./Playlist";
 import ProgressBar from "./ProgressBar";
 import VolumeControl from "./VolumeControl";
@@ -82,6 +82,75 @@ function Player({
   const tokenRefreshInterval = useRef<NodeJS.Timeout | null>(null);
   const originalMp4UrlRef = useRef<string | null>(null); // Store original MP4 URL for fallback
   const hlsRef = useRef<Hls | null>(null);
+  const [windowWidth, setWindowWidth] = useState<number>(
+    typeof window !== "undefined" ? window.innerWidth : 1920
+  );
+
+  // Track window width for responsive sizing
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
+
+    window.addEventListener("resize", handleResize);
+    handleResize(); // Initial call
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  // Calculate responsive sizes based on window width - standard video player sizes
+  const getCenterPlayButtonSize = () => {
+    if (windowWidth < 480) return { button: 64, icon: 28, outerRing: 90, middleRing: 75 }; // Small mobile
+    if (windowWidth < 768) return { button: 72, icon: 32, outerRing: 100, middleRing: 85 }; // Large mobile
+    if (windowWidth < 1024) return { button: 80, icon: 36, outerRing: 110, middleRing: 95 }; // Tablet
+    return { button: 88, icon: 40, outerRing: 120, middleRing: 105 }; // Desktop
+  };
+
+  const getControlIconSize = () => {
+    if (windowWidth < 360) return { button: 32, icon: 14, fontSize: 10 }; // Very small mobile - compact
+    if (windowWidth < 480) return { button: 36, icon: 16, fontSize: 11 }; // Small mobile - touch-friendly but compact
+    if (windowWidth < 768) return { button: 40, icon: 18, fontSize: 12 }; // Large mobile - clear visibility
+    if (windowWidth < 1024) return { button: 44, icon: 20, fontSize: 13 }; // Tablet
+    return { button: 48, icon: 22, fontSize: 14 }; // Desktop - larger for better visibility
+  };
+
+  const centerPlaySizes = getCenterPlayButtonSize();
+  const controlSizes = getControlIconSize();
+
+  // Inject CSS animation for pulse ring effect
+  useEffect(() => {
+    const styleId = "player-pulse-animation";
+    if (document.getElementById(styleId)) return;
+
+    const style = document.createElement("style");
+    style.id = styleId;
+    style.textContent = `
+      @keyframes pulse-ring {
+        0% {
+          transform: scale(0.95);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.1);
+          opacity: 0.7;
+        }
+        100% {
+          transform: scale(1.3);
+          opacity: 0;
+        }
+      }
+    `;
+    document.head.appendChild(style);
+
+    return () => {
+      const existingStyle = document.getElementById(styleId);
+      if (existingStyle) {
+        document.head.removeChild(existingStyle);
+      }
+    };
+  }, []);
 
   // Check if HLS master playlist exists for a video file
   const checkForHlsMasterPlaylist = React.useCallback(
@@ -419,7 +488,7 @@ function Player({
     typeof window !== "undefined" &&
     /iPhone|iPad|iPod/i.test(navigator.userAgent);
 
-  // Hide controls after 2 seconds of no mouse movement (for desktop)
+  // Hide controls after 2 seconds of no mouse movement (for desktop) - only when playing
   useEffect(() => {
     if (isMobile || !showControls || !playing) return;
 
@@ -438,7 +507,7 @@ function Player({
     };
   }, [showControls, isMobile, playing]);
 
-  // Hide controls after a few seconds on mobile
+  // Hide controls after 2 seconds on mobile - only when playing
   useEffect(() => {
     if (!isMobile || !showControls || !playing) return;
 
@@ -448,7 +517,7 @@ function Player({
 
     controlsTimeoutRef.current = setTimeout(() => {
       setShowControls(false);
-    }, 3000);
+    }, 2000);
 
     return () => {
       if (controlsTimeoutRef.current) {
@@ -474,7 +543,7 @@ function Player({
   };
 
   // Handle click on video container (free space) to toggle play/pause
-  const handleContainerClick = (e: React.MouseEvent) => {
+  const handleContainerClick = (e: React.MouseEvent | React.TouchEvent) => {
     // Don't toggle if clicking on controls, buttons, video element, or interactive elements
     const target = e.target as HTMLElement;
     if (
@@ -484,11 +553,29 @@ function Player({
       target.closest('input') ||
       target.closest('[role="slider"]') ||
       target.closest('video') ||
+      target.closest('.volume-control') ||
       target.tagName === 'BUTTON' ||
       target.tagName === 'INPUT' ||
       target.tagName === 'VIDEO'
     ) {
       return;
+    }
+    
+    // On mobile, show controls (like mouse movement) and set timeout to hide
+    if (isMobile) {
+      setShowControls(true);
+      
+      // Clear existing timeout
+      if (controlsTimeoutRef.current) {
+        clearTimeout(controlsTimeoutRef.current);
+      }
+      
+            // Set new timeout to hide after 2 seconds (only if playing)
+            if (playing) {
+              controlsTimeoutRef.current = setTimeout(() => {
+                setShowControls(false);
+              }, 2000);
+            }
     }
     
     // Toggle play/pause for all other clicks (empty space, overlays, etc.)
@@ -1604,6 +1691,44 @@ function Player({
       }}
       onMouseMove={handleMouseMove}
       onClick={handleContainerClick}
+      onTouchStart={(e) => {
+        // Handle touch on container free space (not on controls)
+        const target = e.target as HTMLElement;
+        
+        // Don't handle if touching interactive elements
+        if (
+          target.closest('.video-player-controls') ||
+          target.closest('button') ||
+          target.closest('[data-settings-menu]') ||
+          target.closest('input') ||
+          target.closest('[role="slider"]') ||
+          target.closest('.volume-control') ||
+          target.closest('video') ||
+          target.closest('img') // Don't handle thumbnail image touches
+        ) {
+          return; // Let those elements handle their own touches
+        }
+        
+        // On mobile, show controls (like mouse movement) and toggle play/pause when touching free space
+        if (isMobile) {
+          e.preventDefault(); // Prevent default touch behavior
+          setShowControls(true);
+          
+          // Clear existing timeout
+          if (controlsTimeoutRef.current) {
+            clearTimeout(controlsTimeoutRef.current);
+          }
+          
+          // Set new timeout to hide after 2 seconds (only if playing)
+          if (playing) {
+            controlsTimeoutRef.current = setTimeout(() => {
+              setShowControls(false);
+            }, 2000);
+          }
+          
+          togglePlay();
+        }
+      }}
     >
       {/* Ambient backdrop gradient */}
       <div
@@ -1715,7 +1840,11 @@ function Player({
             backgroundColor: "#000",
           }}
           onClick={(e) => {
-            // Don't stop propagation - let container handle it
+            e.stopPropagation();
+            togglePlay();
+          }}
+          onTouchStart={(e) => {
+            e.stopPropagation();
             togglePlay();
           }}
         >
@@ -1800,6 +1929,10 @@ function Player({
           WebkitTapHighlightColor: "transparent",
           touchAction: "manipulation",
           pointerEvents: "auto", // Enable interaction but with protections
+          // On mobile, allow touches to pass through to center play button
+          ...(isMobile && !playing && {
+            pointerEvents: "auto",
+          }),
           userSelect: "none", // Disable text selection
           WebkitUserSelect: "none", // Safari
           MozUserSelect: "none", // Firefox
@@ -1818,36 +1951,92 @@ function Player({
         onPause={(e) => {
           e.stopPropagation();
           setPlaying(false);
+          // Show controls when paused and clear any timeout
+          setShowControls(true);
+          if (controlsTimeoutRef.current) {
+            clearTimeout(controlsTimeoutRef.current);
+            controlsTimeoutRef.current = null;
+          }
           onVideoPause?.();
         }}
         onClick={(e) => {
-          // On mobile, toggle controls
+          // Don't toggle if clicking on controls
+          const target = e.target as HTMLElement;
+          if (
+            target.closest('.video-player-controls') ||
+            target.closest('button') ||
+            target.closest('[data-settings-menu]') ||
+            target.closest('input') ||
+            target.closest('[role="slider"]') ||
+            target.closest('.volume-control')
+          ) {
+            e.stopPropagation();
+            return;
+          }
+          
+          // On mobile, show controls (like mouse movement) and toggle play/pause
           if (isMobile) {
             e.stopPropagation();
-            setShowControls((v) => !v);
-          } else {
-            // On desktop, check if clicking on controls
-            const target = e.target as HTMLElement;
-            if (
-              target.closest('.video-player-controls') ||
-              target.closest('button') ||
-              target.closest('[data-settings-menu]') ||
-              target.closest('input') ||
-              target.closest('[role="slider"]')
-            ) {
-              e.stopPropagation();
-              return;
+            setShowControls(true);
+            
+            // Clear existing timeout
+            if (controlsTimeoutRef.current) {
+              clearTimeout(controlsTimeoutRef.current);
             }
-            // Otherwise, toggle play/pause
+            
+            // Set new timeout to hide after 2 seconds (only if playing)
+            if (playing) {
+              controlsTimeoutRef.current = setTimeout(() => {
+                setShowControls(false);
+              }, 2000);
+            }
+            
+            togglePlay();
+          } else {
+            // On desktop, toggle play/pause
             e.stopPropagation(); // Stop here to prevent double-trigger from container
             togglePlay();
           }
         }}
         onTouchStart={(e) => {
-          // For iOS: show controls on touch
+          // For mobile: handle touch on free space
+          const target = e.target as HTMLElement;
+          
+          // Check if touching center play button - let it handle its own touch
+          if (target.closest('button[aria-label="Play"]') || target.closest('[style*="zIndex: 100"]')) {
+            return; // Let center play button handle it
+          }
+          
+          if (
+            target.closest('.video-player-controls') ||
+            target.closest('button') ||
+            target.closest('[data-settings-menu]') ||
+            target.closest('input') ||
+            target.closest('[role="slider"]') ||
+            target.closest('.volume-control')
+          ) {
+            return; // Let controls handle their own touches
+          }
+          
+          // On mobile touch, show controls (like mouse movement) and toggle play/pause
           if (isMobile) {
-            e.stopPropagation();
-            setShowControls((v) => !v);
+            e.preventDefault(); // Prevent default video touch behavior
+            e.stopPropagation(); // Stop propagation to container
+            setShowControls(true);
+            
+            // Clear existing timeout
+            if (controlsTimeoutRef.current) {
+              clearTimeout(controlsTimeoutRef.current);
+            }
+            
+            // Set new timeout to hide after 2 seconds (only if playing)
+            if (playing) {
+              controlsTimeoutRef.current = setTimeout(() => {
+                setShowControls(false);
+              }, 2000);
+            }
+            
+            togglePlay();
           }
         }}
         onError={(e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
@@ -1909,6 +2098,57 @@ function Player({
       {/* Dynamic Watermark - Shows user info or protection message, changes position every 10 seconds */}
       {videoAvailable && !hasError && <DynamicWatermark />}
 
+      {/* Invisible touch overlay for free space - Only when video is playing on mobile */}
+      {isMobile && playing && videoAvailable && !hasError && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            zIndex: 50, // Above video (zIndex: 1) but below center play button (zIndex: 200)
+            pointerEvents: "auto",
+            touchAction: "manipulation",
+          }}
+          onTouchStart={(e) => {
+            const target = e.target as HTMLElement;
+            
+            // Don't handle if touching controls or buttons
+            if (
+              target.closest('.video-player-controls') ||
+              target.closest('button') ||
+              target.closest('[data-settings-menu]') ||
+              target.closest('input') ||
+              target.closest('[role="slider"]') ||
+              target.closest('.volume-control') ||
+              target.closest('[style*="zIndex: 200"]') // Center play button
+            ) {
+              return;
+            }
+            
+            e.preventDefault();
+            e.stopPropagation();
+            
+            setShowControls(true);
+            
+            // Clear existing timeout
+            if (controlsTimeoutRef.current) {
+              clearTimeout(controlsTimeoutRef.current);
+            }
+            
+            // Set new timeout to hide after 2 seconds (only if playing)
+            if (playing) {
+              controlsTimeoutRef.current = setTimeout(() => {
+                setShowControls(false);
+              }, 2000);
+            }
+            
+            togglePlay();
+          }}
+        />
+      )}
+
       {/* Center Play Button - Always show when paused */}
       {!playing && (
         <div
@@ -1917,48 +2157,122 @@ function Player({
             top: "50%",
             left: "50%",
             transform: "translate(-50%, -50%)",
-            zIndex: 100,
-            pointerEvents: "none",
+            zIndex: 200, // Higher than video and other elements
+            pointerEvents: "auto", // Allow touches on mobile
             WebkitTapHighlightColor: "transparent",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            touchAction: "manipulation", // Enable touch on mobile
           }}
         >
+          {/* Outer glow ring - Responsive size */}
+          <div
+            style={{
+              position: "absolute",
+              width: `${centerPlaySizes.outerRing}px`,
+              height: `${centerPlaySizes.outerRing}px`,
+              borderRadius: "50%",
+              background: "radial-gradient(circle, rgba(59, 130, 246, 0.4) 0%, rgba(59, 130, 246, 0) 70%)",
+              animation: "pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+              pointerEvents: "none",
+            }}
+          />
+          
+          {/* Middle ring - Responsive size */}
+          <div
+            style={{
+              position: "absolute",
+              width: `${centerPlaySizes.middleRing}px`,
+              height: `${centerPlaySizes.middleRing}px`,
+              borderRadius: "50%",
+              background: "rgba(59, 130, 246, 0.15)",
+              border: "2px solid rgba(147, 197, 253, 0.3)",
+              animation: "pulse-ring 2s cubic-bezier(0.4, 0, 0.6, 1) infinite 0.3s",
+              pointerEvents: "none",
+            }}
+          />
+
           <button
             onClick={(e) => {
-              // Don't stop propagation - clicking button should also work
+              e.stopPropagation();
+              e.preventDefault();
               togglePlay();
+            }}
+            onTouchStart={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
+              togglePlay();
+            }}
+            onTouchEnd={(e) => {
+              e.stopPropagation();
+              e.preventDefault();
             }}
             style={{
               pointerEvents: "auto",
-              background: "rgba(59, 130, 246, 0.9)", // Regular blue
-              border: "none",
+              background: "linear-gradient(135deg, rgba(59, 130, 246, 0.95) 0%, rgba(37, 99, 235, 0.95) 100%)",
+              backdropFilter: "blur(10px)",
+              WebkitBackdropFilter: "blur(10px)",
+              border: "2px solid rgba(255, 255, 255, 0.2)",
               color: "#fff",
-              fontSize: 32,
+              fontSize: centerPlaySizes.icon,
               borderRadius: "50%",
-              width: 80,
-              height: 80,
+              width: centerPlaySizes.button,
+              height: centerPlaySizes.button,
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               cursor: "pointer",
               boxShadow:
-                "0 4px 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.3)",
-              transition: "all 0.3s ease",
-              WebkitTapHighlightColor: "transparent", // Fix iPhone touch
-              touchAction: "manipulation", // Fix iPhone touch
+                "0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset, 0 4px 20px rgba(59, 130, 246, 0.6), 0 0 40px rgba(59, 130, 246, 0.4)",
+              transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
+              WebkitTapHighlightColor: "transparent",
+              touchAction: "manipulation",
+              position: "relative",
+              overflow: "hidden",
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.transform = "scale(1.1)";
-              e.currentTarget.style.boxShadow =
-                "0 6px 25px rgba(59, 130, 246, 1), 0 0 40px rgba(59, 130, 246, 0.5)";
+              if (!isMobile) {
+                e.currentTarget.style.transform = "scale(1.12) translateZ(0)";
+                e.currentTarget.style.boxShadow =
+                  "0 12px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.2) inset, 0 6px 30px rgba(59, 130, 246, 0.8), 0 0 60px rgba(59, 130, 246, 0.6)";
+                e.currentTarget.style.background =
+                  "linear-gradient(135deg, rgba(59, 130, 246, 1) 0%, rgba(37, 99, 235, 1) 100%)";
+              }
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.transform = "scale(1)";
-              e.currentTarget.style.boxShadow =
-                "0 4px 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.3)";
+              if (!isMobile) {
+                e.currentTarget.style.transform = "scale(1) translateZ(0)";
+                e.currentTarget.style.boxShadow =
+                  "0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset, 0 4px 20px rgba(59, 130, 246, 0.6), 0 0 40px rgba(59, 130, 246, 0.4)";
+                e.currentTarget.style.background =
+                  "linear-gradient(135deg, rgba(59, 130, 246, 0.95) 0%, rgba(37, 99, 235, 0.95) 100%)";
+              }
             }}
             aria-label="Play"
           >
-            <Play size={32} />
+            {/* Inner shine effect */}
+            <div
+              style={{
+                position: "absolute",
+                top: "15%",
+                left: "20%",
+                width: "40%",
+                height: "40%",
+                borderRadius: "50%",
+                background: "radial-gradient(circle, rgba(255, 255, 255, 0.3) 0%, transparent 70%)",
+                pointerEvents: "none",
+              }}
+            />
+            <Play
+              size={centerPlaySizes.icon}
+              style={{
+                marginLeft: windowWidth < 768 ? "3px" : "4px",
+                filter: "drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))",
+                position: "relative",
+                zIndex: 1,
+              }}
+            />
           </button>
         </div>
       )}
@@ -1978,20 +2292,20 @@ function Player({
             justifyContent: "center",
             backgroundColor: "rgba(59, 130, 246, 0.9)", // Regular blue background
             borderRadius: "50%",
-            width: "80px",
-            height: "80px",
+            width: windowWidth < 480 ? "64px" : windowWidth < 768 ? "72px" : "80px",
+            height: windowWidth < 480 ? "64px" : windowWidth < 768 ? "72px" : "80px",
             pointerEvents: "none",
             boxShadow:
               "0 4px 20px rgba(59, 130, 246, 0.8), 0 0 30px rgba(59, 130, 246, 0.3)",
           }}
         >
-          <CustomSpinner size={32} color="#fff" />
+          <CustomSpinner size={windowWidth < 480 ? 24 : windowWidth < 768 ? 28 : 32} color="#fff" />
           {!isOnline && (
             <span
               style={{
                 color: "#fff",
-                fontSize: "12px",
-                marginTop: "8px",
+                fontSize: windowWidth < 480 ? "10px" : "12px",
+                marginTop: windowWidth < 480 ? "6px" : "8px",
                 textAlign: "center",
               }}
             >
@@ -2010,15 +2324,18 @@ function Player({
             right: 0,
             bottom: 0,
             background: "rgba(30, 58, 138, 0.95)", // Dark blue background like in image
-            padding: "8px 16px",
+            padding: windowWidth < 360 ? "3px 6px" : windowWidth < 480 ? "4px 8px" : windowWidth < 640 ? "6px 10px" : "8px 16px",
             borderBottomLeftRadius: 8,
             borderBottomRightRadius: 8,
             display: "flex",
             flexDirection: "row",
             alignItems: "center",
-            gap: 12,
+            gap: windowWidth < 360 ? 3 : windowWidth < 480 ? 4 : windowWidth < 640 ? 6 : 12,
             zIndex: 100,
             WebkitTapHighlightColor: "transparent",
+            overflowX: "auto",
+            overflowY: "hidden",
+            minHeight: "52px",
           }}
         >
           {/* Play/Pause Button */}
@@ -2032,10 +2349,10 @@ function Player({
               background: "rgba(59, 130, 246, 0.8)", // Glassy blue background
               border: "none",
               color: "#fff",
-              fontSize: 20,
+              fontSize: controlSizes.fontSize,
               borderRadius: "50%",
-              width: 40,
-              height: 40,
+              width: windowWidth < 480 ? 36 : controlSizes.button,
+              height: windowWidth < 480 ? 36 : controlSizes.button,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
@@ -2043,16 +2360,21 @@ function Player({
               boxShadow: "0 2px 8px rgba(59, 130, 246, 0.3)",
               WebkitTapHighlightColor: "transparent", // Fix iPhone touch
               touchAction: "manipulation", // Fix iPhone touch
-              minHeight: "44px", // iOS minimum touch target
-              minWidth: "44px", // iOS minimum touch target
+              flexShrink: 0,
             }}
           >
-            {playing ? <Pause /> : <Play />}
+            {playing ? <Pause size={controlSizes.icon} /> : <Play size={controlSizes.icon} />}
           </button>
 
           {/* Progress Bar */}
           <div
-            style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}
+            style={{ 
+              flex: 1, 
+              display: "flex", 
+              alignItems: "center", 
+              gap: windowWidth < 480 ? 2 : 4,
+              minWidth: 0, // Allow shrinking
+            }}
           >
             <ProgressBar
               currentTime={currentTime}
@@ -2062,18 +2384,61 @@ function Player({
             />
           </div>
 
-          {/* Time Display */}
-          <span style={{ color: "#fff", fontSize: 14, minWidth: 50 }}>
-            -{formatTime(duration - currentTime)}
-          </span>
+          {/* Time Display - Hide on very small screens */}
+          {windowWidth >= 320 && (
+            <span 
+              style={{ 
+                color: "#fff", 
+                fontSize: controlSizes.fontSize, 
+                minWidth: windowWidth < 360 ? 35 : windowWidth < 480 ? 38 : 45,
+                flexShrink: 0,
+                whiteSpace: "nowrap",
+              }}
+            >
+              -{formatTime(duration - currentTime)}
+            </span>
+          )}
 
-          {/* Volume Control */}
-          <VolumeControl
-            volume={volume}
-            muted={muted}
-            onVolumeChange={handleVolumeChange}
-            onMuteToggle={handleMuteToggle}
-          />
+          {/* Volume Control - Hidden on small screens, shown on larger screens */}
+          {windowWidth >= 480 && (
+            <VolumeControl
+              volume={volume}
+              muted={muted}
+              onVolumeChange={handleVolumeChange}
+              onMuteToggle={handleMuteToggle}
+              vertical={false}
+              iconSize={controlSizes.icon}
+              buttonSize={controlSizes.button}
+            />
+          )}
+          
+          {/* Mute Toggle Button - Only on small screens */}
+          {windowWidth < 480 && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                handleMuteToggle();
+              }}
+              style={{
+                background: "rgba(59, 130, 246, 0.6)",
+                border: "none",
+                color: "#fff",
+                padding: windowWidth < 360 ? 2 : 4,
+                borderRadius: 4,
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                minWidth: controlSizes.button,
+                minHeight: controlSizes.button,
+                width: controlSizes.button,
+                height: controlSizes.button,
+                flexShrink: 0,
+              }}
+            >
+              {muted || volume === 0 ? <VolumeOff size={controlSizes.icon} /> : <Volume size={controlSizes.icon} />}
+            </button>
+          )}
 
           {/* Settings Button (Mobile) */}
           <button
@@ -2089,28 +2454,30 @@ function Player({
                 : "rgba(0, 0, 0, 0.3)",
               border: "none",
               color: "#fff",
-              fontSize: 20,
+              fontSize: controlSizes.fontSize,
               borderRadius: "8px",
-              width: 40,
-              height: 40,
+              width: controlSizes.button,
+              height: controlSizes.button,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
               transition: "all 0.2s",
-              minHeight: "44px",
-              minWidth: "44px",
-              marginLeft: 8,
+              flexShrink: 0,
             }}
           >
-            <Settings size={20} />
+            <Settings size={controlSizes.icon} />
           </button>
 
-          {/* Fullscreen Button */}
-          <FullscreenButton
-            onClick={handleFullscreen}
-            isFullscreen={isFullscreen}
-          />
+          {/* Fullscreen Button - Always visible */}
+          <div style={{ flexShrink: 0 }}>
+            <FullscreenButton
+              onClick={handleFullscreen}
+              isFullscreen={isFullscreen}
+              size={controlSizes.icon}
+              buttonSize={controlSizes.button}
+            />
+          </div>
         </div>
       )}
 
@@ -2131,14 +2498,14 @@ function Player({
                 : "none",
             transition: "opacity 0.3s",
             background: "rgba(30, 58, 138, 0.95)", // Dark blue background like in image
-            padding: "8px 16px",
+            padding: windowWidth < 1024 ? (windowWidth < 768 ? "6px 12px" : "8px 14px") : "8px 16px",
             borderBottomLeftRadius: 8,
             borderBottomRightRadius: 8,
             display: "flex",
             zIndex: 100,
             flexDirection: "row",
             alignItems: "center",
-            gap: 12,
+            gap: windowWidth < 1024 ? (windowWidth < 768 ? 8 : 10) : 12,
           }}
         >
           {/* Play/Pause Button */}
@@ -2152,10 +2519,10 @@ function Player({
               background: "rgba(59, 130, 246, 0.8)", // Glassy blue background
               border: "none",
               color: "#fff",
-              fontSize: 20,
+              fontSize: controlSizes.fontSize,
               borderRadius: "50%",
-              width: 40,
-              height: 40,
+              width: controlSizes.button,
+              height: controlSizes.button,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
@@ -2163,12 +2530,12 @@ function Player({
               boxShadow: "0 2px 8px rgba(59, 130, 246, 0.3)",
             }}
           >
-            {playing ? <Pause /> : <Play />}
+            {playing ? <Pause size={controlSizes.icon} /> : <Play size={controlSizes.icon} />}
           </button>
 
           {/* Progress Bar */}
           <div
-            style={{ flex: 1, display: "flex", alignItems: "center", gap: 8 }}
+            style={{ flex: 1, display: "flex", alignItems: "center", gap: windowWidth < 480 ? 4 : 8 }}
           >
             <ProgressBar
               currentTime={currentTime}
@@ -2179,7 +2546,7 @@ function Player({
           </div>
 
           {/* Time Display */}
-          <span style={{ color: "#fff", fontSize: 14, minWidth: 50 }}>
+          <span style={{ color: "#fff", fontSize: controlSizes.fontSize, minWidth: windowWidth < 480 ? 45 : 50 }}>
             -{formatTime(duration - currentTime)}
           </span>
 
@@ -2189,6 +2556,9 @@ function Player({
             muted={muted}
             onVolumeChange={handleVolumeChange}
             onMuteToggle={handleMuteToggle}
+            vertical={false}
+            iconSize={controlSizes.icon}
+            buttonSize={controlSizes.button}
           />
 
           {/* Settings Button */}
@@ -2205,10 +2575,10 @@ function Player({
                 : "rgba(0, 0, 0, 0.3)",
               border: "none",
               color: "#fff",
-              fontSize: 20,
+              fontSize: controlSizes.fontSize,
               borderRadius: "8px",
-              width: 40,
-              height: 40,
+              width: controlSizes.button,
+              height: controlSizes.button,
               cursor: "pointer",
               display: "flex",
               alignItems: "center",
@@ -2226,13 +2596,15 @@ function Player({
               }
             }}
           >
-            <Settings size={20} />
+            <Settings size={controlSizes.icon} />
           </button>
 
           {/* Fullscreen Button */}
           <FullscreenButton
             onClick={handleFullscreen}
             isFullscreen={isFullscreen}
+            size={controlSizes.icon}
+            buttonSize={controlSizes.button}
           />
         </div>
       )}
