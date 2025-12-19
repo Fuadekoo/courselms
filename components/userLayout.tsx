@@ -17,7 +17,7 @@ function UserLayoutContent({
   
   return (
     <div className={cn(
-      "min-h-screen relative",
+      "relative",
       "bg-gradient-to-br from-gray-50 via-gray-50/50 to-white dark:from-gray-950 dark:via-gray-900/50 dark:to-gray-900"
     )}>
       {/* Background layers - applied to all pages */}

@@ -2129,16 +2129,26 @@ function Player({
             const isInput = target.closest('input') || target.closest('[role="slider"]');
             const isSettings = target.closest('[data-settings-menu]');
             const isVolume = target.closest('.volume-control');
+            // More robust check for center play button - check both container and button
             const isCenterPlay = target.closest('button[aria-label="Play"]') || 
                                  target.closest('[data-center-play-button]') ||
-                                 target.closest('[style*="zIndex: 200"]');
+                                 target.closest('[style*="zIndex: 200"]') ||
+                                 (target.getAttribute && target.getAttribute('data-center-play-button') === 'true') ||
+                                 (target.closest && target.closest('[data-center-play-button="true"]'));
             
             if (isControl || isButton || isInput || isSettings || isVolume || isCenterPlay) {
+              // On iOS, don't preventDefault if it's the center play button - let it handle the touch
+              if (isIOS && isCenterPlay) {
+                return; // Let center play button handle it completely
+              }
               return; // Let those elements handle their own touches
             }
             
             // This is a touch on free space
-            e.preventDefault();
+            // On iOS, be more careful with preventDefault
+            if (!isIOS) {
+              e.preventDefault();
+            }
             e.stopPropagation();
             
             setShowControls(true);
@@ -2158,8 +2168,14 @@ function Player({
             togglePlay();
           }}
           onTouchEnd={(e) => {
-            // Prevent any default behavior
-            e.preventDefault();
+            const target = e.target as HTMLElement;
+            // Don't prevent default if it's the center play button on iOS
+            const isCenterPlay = target.closest('button[aria-label="Play"]') || 
+                                 target.closest('[data-center-play-button]');
+            
+            if (!isIOS || !isCenterPlay) {
+              e.preventDefault();
+            }
             e.stopPropagation();
           }}
           onClick={(e) => {
@@ -2209,10 +2225,22 @@ function Player({
             e.nativeEvent.stopImmediatePropagation();
           }}
           onTouchStart={(e) => {
-            // Stop propagation at the container level
-            e.stopPropagation();
-            e.preventDefault();
-            e.nativeEvent.stopImmediatePropagation();
+            // On iOS, don't preventDefault on container - let the button handle it
+            if (!isIOS) {
+              e.stopPropagation();
+              e.preventDefault();
+              e.nativeEvent.stopImmediatePropagation();
+            } else {
+              // On iOS, just stop propagation but allow touches to reach the button
+              e.stopPropagation();
+            }
+          }}
+          onTouchEnd={(e) => {
+            // On iOS, prevent container from handling touchEnd
+            if (isIOS) {
+              e.stopPropagation();
+              e.preventDefault();
+            }
           }}
           style={{
             position: "absolute",
@@ -2262,6 +2290,11 @@ function Player({
               e.preventDefault();
               e.nativeEvent.stopImmediatePropagation();
               
+              // On iOS, click might fire after touchEnd, so check if already handled
+              if (isIOS && isTogglingRef.current) {
+                return;
+              }
+              
               // Show controls (like free space touch)
               setShowControls(true);
               
@@ -2283,35 +2316,49 @@ function Player({
               }
             }}
             onTouchStart={(e) => {
-              // Stop all event propagation immediately
-              e.stopPropagation();
-              e.preventDefault();
-              e.nativeEvent.stopImmediatePropagation();
-              
-              // Show controls (like free space touch)
-              setShowControls(true);
-              
-              // Clear existing timeout
-              if (controlsTimeoutRef.current) {
-                clearTimeout(controlsTimeoutRef.current);
-              }
-              
-              // Toggle play/pause
-              const wasPlaying = playing;
-              togglePlay();
-              
-              // Set new timeout to hide after 2 seconds (only if video will be playing)
-              // Since we're paused, after toggle it will be playing
-              if (!wasPlaying) {
-                controlsTimeoutRef.current = setTimeout(() => {
-                  setShowControls(false);
-                }, 2000);
+              // On iOS, don't preventDefault on touchStart - it can block the click event
+              if (!isIOS) {
+                e.stopPropagation();
+                e.preventDefault();
+                e.nativeEvent.stopImmediatePropagation();
+              } else {
+                // On iOS, just stop propagation but allow default behavior
+                e.stopPropagation();
               }
             }}
             onTouchEnd={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
-              e.nativeEvent.stopImmediatePropagation();
+              // On iOS, handle the action on touchEnd for better reliability
+              if (isIOS) {
+                // Stop all event propagation immediately
+                e.stopPropagation();
+                e.preventDefault();
+                e.nativeEvent.stopImmediatePropagation();
+                
+                // Show controls (like free space touch)
+                setShowControls(true);
+                
+                // Clear existing timeout
+                if (controlsTimeoutRef.current) {
+                  clearTimeout(controlsTimeoutRef.current);
+                }
+                
+                // Toggle play/pause
+                const wasPlaying = playing;
+                togglePlay();
+                
+                // Set new timeout to hide after 2 seconds (only if video will be playing)
+                // Since we're paused, after toggle it will be playing
+                if (!wasPlaying) {
+                  controlsTimeoutRef.current = setTimeout(() => {
+                    setShowControls(false);
+                  }, 2000);
+                }
+              } else {
+                // On Android, just stop propagation
+                e.stopPropagation();
+                e.preventDefault();
+                e.nativeEvent.stopImmediatePropagation();
+              }
             }}
             onMouseDown={(e) => {
               // Also stop on mousedown to prevent any event bubbling
@@ -2336,9 +2383,13 @@ function Player({
                 "0 8px 32px rgba(0, 0, 0, 0.4), 0 0 0 1px rgba(255, 255, 255, 0.1) inset, 0 4px 20px rgba(59, 130, 246, 0.6), 0 0 40px rgba(59, 130, 246, 0.4)",
               transition: "all 0.4s cubic-bezier(0.4, 0, 0.2, 1)",
               WebkitTapHighlightColor: "transparent",
-              touchAction: "manipulation",
+              touchAction: isIOS ? "auto" : "manipulation", // iOS needs 'auto' for better touch handling
+              WebkitTouchCallout: "none", // Prevent iOS callout menu
+              WebkitUserSelect: "none", // Prevent text selection on iOS
+              userSelect: "none",
               position: "relative",
               overflow: "hidden",
+              zIndex: 201, // Ensure it's above everything, including overlay
             }}
             onMouseEnter={(e) => {
               if (!isMobile) {
