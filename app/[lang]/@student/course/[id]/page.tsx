@@ -1,7 +1,7 @@
 "use client";
 
 // import "./youtube.css";
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useSearchParams } from "next/navigation";
 import {
   ChartBarIncreasing,
@@ -41,6 +41,7 @@ export default function Page() {
   const [currentVideo, setCurrentVideo] = useState<string>("");
   const [currentThumbnail, setCurrentThumbnail] = useState<string>("");
   const [shouldAutoplay, setShouldAutoplay] = useState<boolean>(false);
+  const videoPlayerRef = useRef<HTMLDivElement>(null);
   
   // Set initial video (always use main course video as introduction)
   useEffect(() => {
@@ -66,6 +67,16 @@ export default function Page() {
       setCurrentVideo(video);
       setCurrentThumbnail(thumbnail || "");
       setShouldAutoplay(true); // Enable autoplay when subactivity is selected
+      
+      // Scroll to video player after a short delay to ensure DOM is updated
+      setTimeout(() => {
+        if (videoPlayerRef.current) {
+          videoPlayerRef.current.scrollIntoView({
+            behavior: "smooth",
+            block: "start",
+          });
+        }
+      }, 100);
     },
     []
   );
@@ -133,15 +144,17 @@ export default function Page() {
         <NoData />
       ) : (
         <div className="px-2 md:pl-4 lg:pl-6 xl:pl-8 pt-4 md:pt-6 pb-6 md:pr-[28rem] lg:pr-[32rem] h-full flex flex-col gap-6 md:gap-8 overflow-y-auto overflow-x-hidden smooth-">
-          <CourseTopOverview
-            {...{
-              title: lang == "en" ? data.titleEn : data.titleAm,
-              by: `${data.instructor.firstName} ${data.instructor.fatherName}`,
-              thumbnail: currentThumbnail || data.thumbnail,
-              video: currentVideo || data.video,
-              autoplay: shouldAutoplay,
-            }}
-          />
+          <div ref={videoPlayerRef}>
+            <CourseTopOverview
+              {...{
+                title: lang == "en" ? data.titleEn : data.titleAm,
+                by: `${data.instructor.firstName} ${data.instructor.fatherName}`,
+                thumbnail: currentThumbnail || data.thumbnail,
+                video: currentVideo || data.video,
+                autoplay: shouldAutoplay,
+              }}
+            />
+          </div>
           <div className="p-4 rounded-xl border border-primary-500/30 space-y-8">
             <CourseAbout data={lang == "en" ? data.aboutEn : data.aboutAm} />
             <CourseMainDescription
