@@ -86,8 +86,14 @@ export async function getCoursesForCustomer() {
             id,
             ...rest,
             price: Number(price),
-            birrPrice: birrPrice !== null && birrPrice !== undefined ? Number(birrPrice) : Number(price),
-            dolarPrice: dolarPrice !== null && dolarPrice !== undefined ? Number(dolarPrice) : Number(price),
+            birrPrice:
+              birrPrice !== null && birrPrice !== undefined
+                ? Number(birrPrice)
+                : Number(price),
+            dolarPrice:
+              dolarPrice !== null && dolarPrice !== undefined
+                ? Number(dolarPrice)
+                : Number(price),
             instructorRate: Number(instructorRate),
             sellerRate: Number(sellerRate),
             affiliateRate: Number(affiliateRate),
@@ -179,8 +185,14 @@ export async function getCoursesForLoginCustomer() {
             id,
             ...rest,
             price: Number(price),
-            birrPrice: birrPrice !== null && birrPrice !== undefined ? Number(birrPrice) : Number(price),
-            dolarPrice: dolarPrice !== null && dolarPrice !== undefined ? Number(dolarPrice) : Number(price),
+            birrPrice:
+              birrPrice !== null && birrPrice !== undefined
+                ? Number(birrPrice)
+                : Number(price),
+            dolarPrice:
+              dolarPrice !== null && dolarPrice !== undefined
+                ? Number(dolarPrice)
+                : Number(price),
             instructorRate: Number(instructorRate),
             sellerRate: Number(sellerRate),
             affiliateRate: Number(affiliateRate),
@@ -240,6 +252,7 @@ export async function getCourseForManager(id: string) {
                 titleAm: true,
                 video: true,
                 thumbnail: true,
+                isFree: true,
               },
             },
             question: {
@@ -374,10 +387,10 @@ export async function getCourseForManager(id: string) {
             question: q.question,
             options: q.questionOptions.map((opt: any) => opt.option),
             answers: q.questionAnswer.map((ans: any) => ans.answer.option),
-            explanation: 
-              q.answerExplanation && typeof q.answerExplanation === 'string'
+            explanation:
+              q.answerExplanation && typeof q.answerExplanation === "string"
                 ? q.answerExplanation
-                : q.answerExplanation && typeof q.answerExplanation === 'object'
+                : q.answerExplanation && typeof q.answerExplanation === "object"
                 ? JSON.stringify(q.answerExplanation)
                 : undefined,
             sourceActivityIndex,
@@ -390,10 +403,10 @@ export async function getCourseForManager(id: string) {
             question: q.question,
             options: q.questionOptions.map((opt: any) => opt.option),
             answers: q.questionAnswer.map((ans: any) => ans.answer.option),
-            explanation: 
-              q.answerExplanation && typeof q.answerExplanation === 'string'
+            explanation:
+              q.answerExplanation && typeof q.answerExplanation === "string"
                 ? q.answerExplanation
-                : q.answerExplanation && typeof q.answerExplanation === 'object'
+                : q.answerExplanation && typeof q.answerExplanation === "object"
                 ? JSON.stringify(q.answerExplanation)
                 : undefined,
             sourceActivityIndex: undefined,
@@ -452,6 +465,11 @@ export async function getCourseForAffiliate(id: string) {
 
 export async function getCourseForCustomer(id: string) {
   try {
+    if (!id || id === "undefined" || id === "null") {
+      console.error("getCourseForCustomer: Invalid id provided:", id);
+      return null;
+    }
+
     const course = await prisma.course
       .findFirst({
         where: { id },
@@ -490,6 +508,14 @@ export async function getCourseForCustomer(id: string) {
               titleAm: true,
               subActivity: {
                 orderBy: { order: "asc" },
+                select: {
+                  id: true,
+                  titleEn: true,
+                  titleAm: true,
+                  video: true,
+                  thumbnail: true,
+                  isFree: true,
+                },
               },
             },
           },
@@ -499,21 +525,44 @@ export async function getCourseForCustomer(id: string) {
           _count: { select: { order: true } },
         },
       })
-      .then((res) =>
-        res
-          ? {
-              ...res,
-              price: Number(res.price),
-              instructorRate: Number(res.instructorRate),
-              sellerRate: Number(res.sellerRate),
-              affiliateRate: Number(res.affiliateRate),
-              birrPrice: res.birrPrice,
-              dolarPrice: res.dolarPrice,
-            }
-          : res
-      );
+      .then((res) => {
+        if (!res) {
+          return null;
+        }
+
+        // Ensure all data is serializable and handle null/undefined values
+        return {
+          ...res,
+          price: Number(res.price),
+          instructorRate: Number(res.instructorRate),
+          sellerRate: Number(res.sellerRate),
+          affiliateRate: Number(res.affiliateRate),
+          birrPrice:
+            res.birrPrice !== null && res.birrPrice !== undefined
+              ? Number(res.birrPrice)
+              : null,
+          dolarPrice:
+            res.dolarPrice !== null && res.dolarPrice !== undefined
+              ? Number(res.dolarPrice)
+              : null,
+          // Ensure subActivity isFree is always a boolean and handle null values
+          activity: res.activity.map((activity) => ({
+            ...activity,
+            subActivity: activity.subActivity.map((sub) => ({
+              ...sub,
+              id: sub.id,
+              isFree: sub.isFree ?? false,
+              video: sub.video || null,
+              thumbnail: sub.thumbnail || null,
+            })),
+          })),
+        };
+      });
+
     return course;
-  } catch {
+  } catch (error) {
+    console.error("Error in getCourseForCustomer:", error);
+    // Return null instead of throwing to prevent "unexpected response" errors
     return null;
   }
 }

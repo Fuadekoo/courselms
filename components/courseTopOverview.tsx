@@ -11,11 +11,13 @@ export default function CourseTopOverview({
   by,
   thumbnail,
   video,
+  autoplay = false,
 }: {
   title: string;
   by: string;
   thumbnail: string;
   video: string;
+  autoplay?: boolean;
 }) {
   const params = useParams<{ lang: string }>();
   const lang = params?.lang || "en";
@@ -47,9 +49,11 @@ export default function CourseTopOverview({
         {video && (
           <div className="relative w-full aspect-video bg-black overflow-hidden">
             <Player 
+              key={video} // Force remount when video changes
               src={video} 
               type="local"
               poster={thumbnail} // Pass thumbnail as poster
+              autoplay={autoplay} // Enable autoplay when subactivity is selected
               onVideoPlay={() => {
                 // Hide thumbnail when video actually starts playing
                 setShowThumbnail(false);

@@ -139,6 +139,7 @@ export const courseSchema = z.object({
             .string({ message: "" })
             .nonempty("thumbnail is required"),
           order: z.number().optional(), // Order field for subActivity ordering
+          isFree: z.boolean().optional(), // Free status for subactivity
         })
       ),
       questions: z
@@ -157,7 +158,7 @@ export const courseSchema = z.object({
   ),
   // .nonempty("activity is required"),
   instructorId: z.string({ message: "" }).nonempty("instructor is required"),
-  channelId: z.string({ message: "" }).nonempty("channel is required"),
+  channelId: z.union([z.string().min(1), z.literal("")]).optional(),
   finalExamQuestions: z
     .array(
       z.object({

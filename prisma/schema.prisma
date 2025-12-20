@@ -191,6 +191,7 @@ model SubActivity {
   titleAm         String
   activity        Activity          @relation(fields: [activityId], references: [id], onDelete: Cascade)
   activityId      String
+  isFree          Boolean           @default(false)
   order           Int
   video           String
   thumbnail       String?

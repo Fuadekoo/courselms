@@ -208,6 +208,7 @@ export async function courseRegistration(
                           video: sub.video || "", // Ensure video is always a string
                           thumbnail: sub.thumbnail || "", // Ensure thumbnail is always a string
                           order: subOrder ?? subIndex + 1, // Use the order field from the data, fallback to subIndex + 1
+                          isFree: sub.isFree ?? false, // Ensure isFree is always a boolean, default to false
                         };
                       }),
                   },
@@ -436,6 +437,7 @@ export async function courseRegistration(
                       video: sub.video || "", // Ensure video is always a string
                       thumbnail: sub.thumbnail || "", // Ensure thumbnail is always a string
                       order: subOrder ?? subIndex + 1, // Use the order field from the data, fallback to subIndex + 1
+                      isFree: sub.isFree ?? false, // Ensure isFree is always a boolean, default to false
                     };
                   }),
               },

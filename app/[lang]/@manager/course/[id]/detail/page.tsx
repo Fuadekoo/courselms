@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useParams } from "next/navigation";
 import {
   ChartBarIncreasing,
@@ -28,7 +28,48 @@ export default function Page() {
     { data, loading } = useData({ func: getCourse, args: [id] });
 
   const globalLoading = useGlobalLoading();
-  
+
+  // Video player state for subactivity previews
+  const [currentVideo, setCurrentVideo] = useState<string>("");
+  const [currentThumbnail, setCurrentThumbnail] = useState<string>("");
+  const [shouldAutoplay, setShouldAutoplay] = useState<boolean>(false);
+
+  // Set initial video (main course video)
+  useEffect(() => {
+    if (data?.video) {
+      setCurrentVideo(data.video);
+      setCurrentThumbnail(data.thumbnail);
+      // Don't autoplay on initial load
+      setShouldAutoplay(false);
+    }
+  }, [data]);
+
+  // Handle video selection from subactivities
+  const handleSelectVideo = useCallback(
+    (
+      video: string,
+      title: string,
+      subActivityId?: string,
+      thumbnail?: string
+    ) => {
+      setCurrentVideo(video);
+      setCurrentThumbnail(thumbnail || "");
+      setShouldAutoplay(true); // Enable autoplay when subactivity is selected
+    },
+    []
+  );
+
+  // Reset autoplay after video starts playing
+  useEffect(() => {
+    if (shouldAutoplay && currentVideo) {
+      // Reset autoplay flag after a short delay to allow video to start
+      const timer = setTimeout(() => {
+        setShouldAutoplay(false);
+      }, 1000);
+      return () => clearTimeout(timer);
+    }
+  }, [shouldAutoplay, currentVideo]);
+
   // Keep previous page visible while loading (TopLoadingBar will show progress)
   if (globalLoading || loading) return null;
 
@@ -39,8 +80,9 @@ export default function Page() {
           {...{
             title: lang == "en" ? data.titleEn : data.titleAm,
             by: `${data.instructor.firstName} ${data.instructor.fatherName} ${data.instructor.lastName}`,
-            thumbnail: data.thumbnail,
-            video: data.video,
+            thumbnail: currentThumbnail || data.thumbnail,
+            video: currentVideo || data.video,
+            autoplay: shouldAutoplay,
           }}
         />
         <div className="p-4 rounded-xl border border-primary-500/30 space-y-10">
@@ -60,7 +102,8 @@ export default function Page() {
               {
                 icon: <Clock className="" />,
                 label: lang == "en" ? "Duration" : "ቆይታ",
-                value: data.duration || (lang == "en" ? "Not specified" : "አልተገለጸም"),
+                value:
+                  data.duration || (lang == "en" ? "Not specified" : "አልተገለጸም"),
               },
               {
                 icon: <Logs className="" />,
@@ -106,7 +149,12 @@ export default function Page() {
           />
           <CourseRequirement data={data.requirement} />
           <CourseFor data={data.courseFor} />
-          <CourseActivity data={data.activity} />
+          <CourseActivity
+            data={data.activity}
+            onSelectVideo={handleSelectVideo}
+            currentVideoUrl={currentVideo}
+            allowAllSubactivities={true}
+          />
         </div>
       </div>
     )

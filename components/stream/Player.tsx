@@ -25,6 +25,7 @@ interface PlayerProps {
   title?: string;
   poster?: string; // Thumbnail image URL
   qualities?: QualityOption[]; // Quality options for the video (for non-HLS)
+  autoplay?: boolean; // Automatically play when source changes
   onVideoPlay?: () => void;
   onVideoPause?: () => void;
   onVideoEnd?: () => void;
@@ -38,6 +39,7 @@ function Player({
   title,
   poster,
   qualities = [],
+  autoplay = false,
   onVideoPlay,
   onVideoPause,
   onVideoEnd,
@@ -846,6 +848,18 @@ function Player({
         setHlsLevels(levels);
         setCurrentHlsLevel(hls.currentLevel);
 
+        // Autoplay if enabled
+        if (autoplay) {
+          video.play()
+            .then(() => {
+              setPlaying(true);
+              console.log("[Player] HLS autoplay started");
+            })
+            .catch((err) => {
+              console.warn("[Player] HLS autoplay prevented:", err);
+            });
+        }
+
         // If user selected a specific quality, set it (otherwise use auto/adaptive)
         const cq = toQualityValue(currentQuality);
         if (cq !== "auto" && hls.levels.length > 0) {
@@ -1000,12 +1014,28 @@ function Player({
       // Native HLS support (Safari)
       video.src = currentSrc;
       setIsHls(true);
+      
+      // Autoplay if enabled (for native HLS)
+      if (autoplay) {
+        video.addEventListener("loadedmetadata", () => {
+          video.play()
+            .then(() => {
+              setPlaying(true);
+              setIsLoading(false);
+              console.log("[Player] Native HLS autoplay started");
+            })
+            .catch((err) => {
+              console.warn("[Player] Native HLS autoplay prevented:", err);
+              setIsLoading(false);
+            });
+        }, { once: true });
+      }
     } else {
       console.error("HLS is not supported in this browser");
       setHasError(true);
       setIsLoading(false);
     }
-  }, [currentSrc, isHlsSource]); // Removed currentQuality - quality changes should only update level, not re-initialize
+  }, [currentSrc, isHlsSource, autoplay]); // Added autoplay dependency
 
   // Update video source when currentSrc changes (for non-HLS)
   useEffect(() => {
@@ -1021,12 +1051,20 @@ function Player({
       if (!savedStateRef.current) {
       const wasPlaying = !video.paused;
       const savedTime = video.currentTime;
-      savedStateRef.current = { time: savedTime, playing: wasPlaying };
+      // If autoplay is enabled, always set playing to true for new source
+      savedStateRef.current = { 
+        time: savedTime, 
+        playing: autoplay ? true : wasPlaying 
+      };
         console.log("[Player] Source change - saved playback state:", {
           wasPlaying,
           savedTime,
           newSrc: currentSrc,
+          autoplay,
         });
+      } else if (autoplay) {
+        // If autoplay is enabled, override saved state to play
+        savedStateRef.current.playing = true;
       }
 
       prevSrcRef.current = currentSrc;
@@ -1161,7 +1199,21 @@ function Player({
             setTimeout(restorePlayback, 500);
           }
         } else {
-          setIsLoading(false);
+          // No saved state - if autoplay is enabled, start playing
+          if (autoplay) {
+            video.play()
+              .then(() => {
+                setIsLoading(false);
+                setPlaying(true);
+                console.log("[Player] Autoplay started for new source");
+              })
+              .catch((err) => {
+                console.warn("[Player] Autoplay prevented:", err);
+                setIsLoading(false);
+              });
+          } else {
+            setIsLoading(false);
+          }
         }
         video.removeEventListener("canplay", handleCanPlayAfterLoad);
       };

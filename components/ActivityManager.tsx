@@ -6,6 +6,8 @@ import {
   HelpCircle,
   GripVertical,
   Edit,
+  Lock,
+  Unlock,
 } from "lucide-react";
 import { useState } from "react";
 import { useParams } from "next/navigation";
@@ -25,6 +27,7 @@ type TSubActivity = {
   video?: string;
   thumbnail?: string;
   order?: number;
+  isFree?: boolean;
 };
 
 type TQuestion = {
@@ -66,6 +69,8 @@ export default function ActivityManager({
   addToFinalExam,
   removeFromFinalExam,
   finalExamQuestions,
+  updateSubActivityFree,
+  updateAllSubActivitiesFree,
 }: {
   list: TActivity[];
   addActivity: (payload: TInput) => void;
@@ -105,6 +110,12 @@ export default function ActivityManager({
     toIndex: number
   ) => void;
   errorMessage: string;
+  updateSubActivityFree?: (
+    activityIndex: number,
+    subActivityIndex: number,
+    isFree: boolean
+  ) => void;
+  updateAllSubActivitiesFree?: (activityIndex: number, isFree: boolean) => void;
 }) {
   const params = useParams<{ lang: string }>();
   const lang = params?.lang || "en";
@@ -232,9 +243,41 @@ export default function ActivityManager({
                 )}
 
                 <div className="space-y-2">
-                  <h4 className="font-medium">
-                    {lang === "en" ? "Sub Activities" : "ንዑስ እንቅስቃሴዎች"}
-                  </h4>
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">
+                      {lang === "en" ? "Sub Activities" : "ንዑስ እንቅስቃሴዎች"}
+                    </h4>
+                    {updateAllSubActivitiesFree && (
+                      <div className="flex gap-2">
+                        <Button
+                          type="button"
+                          size="sm"
+                          color="success"
+                          variant="light"
+                          onPress={() =>
+                            updateAllSubActivitiesFree(activityIndex, true)
+                          }
+                          className="text-xs"
+                        >
+                          <Unlock className="size-3 mr-1" />
+                          {lang === "en" ? "All Free" : "ሁሉም ነፃ"}
+                        </Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          color="default"
+                          variant="light"
+                          onPress={() =>
+                            updateAllSubActivitiesFree(activityIndex, false)
+                          }
+                          className="text-xs"
+                        >
+                          <Lock className="size-3 mr-1" />
+                          {lang === "en" ? "All Locked" : "ሁሉም ተቆልፏል"}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
                   <Add
                     add={(input) => addSubActivity(activityIndex, input)}
                     label={lang === "en" ? "Sub Activity" : "ንዑስ እንቅስቃሴ"}
@@ -300,6 +343,36 @@ export default function ActivityManager({
                             </span>
                           </div>
                           <div className="flex gap-1">
+                            {updateSubActivityFree && (
+                              <Button
+                                type="button"
+                                size="sm"
+                                color={sub.isFree ? "success" : "default"}
+                                variant="light"
+                                onPress={() =>
+                                  updateSubActivityFree(
+                                    activityIndex,
+                                    subIndex,
+                                    !sub.isFree
+                                  )
+                                }
+                                title={
+                                  sub.isFree
+                                    ? lang === "en"
+                                      ? "Click to lock"
+                                      : "ለመቆለፍ ይጫኑ"
+                                    : lang === "en"
+                                    ? "Click to unlock"
+                                    : "ለመክፈት ይጫኑ"
+                                }
+                              >
+                                {sub.isFree ? (
+                                  <Unlock className="size-4 text-success-600" />
+                                ) : (
+                                  <Lock className="size-4 text-gray-500" />
+                                )}
+                              </Button>
+                            )}
                             {updateSubActivity && (
                               <Button
                                 type="button"

@@ -1003,9 +1003,27 @@ Perfect for beginners who want to start their Hifz journey with the most commonl
     );
 
     // ========== ORDERS ==========
-    // Create sample orders
-    await prisma.order.create({
-      data: {
+    // Create sample orders (use upsert to handle existing orders)
+    await prisma.order.upsert({
+      where: { tx_ref: "seed-order-001" },
+      update: {
+        userId: manager.id,
+        courseId: createdCourses[0].id,
+        date: new Date(),
+        status: "paid",
+        totalPrice: 200,
+        price: 200,
+        paymentType: "chapa",
+        currency: "ETB",
+        instructorIncome: 180,
+        img: "/receipts/receipt-001.jpg",
+        reference: "REF-001",
+        code: "CODE-001",
+        income: 20,
+        birrPrice: 1500,
+        dolarPrice: 10,
+      },
+      create: {
         userId: manager.id,
         courseId: createdCourses[0].id,
         date: new Date(),
@@ -1025,8 +1043,24 @@ Perfect for beginners who want to start their Hifz journey with the most commonl
       },
     });
 
-    await prisma.order.create({
-      data: {
+    await prisma.order.upsert({
+      where: { tx_ref: "seed-order-002" },
+      update: {
+        userId: manager.id,
+        courseId: createdCourses[3].id, // Quran Memorization course
+        date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago
+        status: "paid",
+        totalPrice: 500,
+        price: 500,
+        paymentType: "free",
+        currency: "ETB",
+        instructorIncome: 450,
+        img: "/receipts/receipt-002.jpg",
+        reference: "REF-002",
+        birrPrice: 3000,
+        dolarPrice: 25,
+      },
+      create: {
         userId: manager.id,
         courseId: createdCourses[3].id, // Quran Memorization course
         date: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000), // 7 days ago

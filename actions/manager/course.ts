@@ -395,6 +395,14 @@ export async function getCourse(id: string) {
             titleAm: true,
             subActivity: {
               orderBy: { order: "asc" },
+              select: {
+                id: true,
+                titleEn: true,
+                titleAm: true,
+                video: true,
+                thumbnail: true,
+                isFree: true,
+              },
             },
             question: true,
           },

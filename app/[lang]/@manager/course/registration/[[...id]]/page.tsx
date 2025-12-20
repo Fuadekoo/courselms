@@ -230,6 +230,7 @@ export default function Page() {
                 .map((sub: any, subIndex: number) => ({
                   ...sub,
                   order: sub.order ?? subIndex + 1, // Assign sequential order if missing
+                  isFree: sub.isFree ?? false, // Ensure isFree is always a boolean
                 })),
               order: activity.order ?? index + 1, // Assign sequential order if missing
               questions:
@@ -266,15 +267,17 @@ export default function Page() {
         // Load final exam questions if they exist
         if (data && "finalExamQuestions" in data && data.finalExamQuestions) {
           // Transform finalExamQuestions to ensure explanation is always a string or undefined
-          const examQuestions = (data.finalExamQuestions as TQuestion[]).map((q: any) => ({
-            ...q,
-            explanation: 
-              q.explanation && typeof q.explanation === 'string'
-                ? q.explanation
-                : q.explanation && typeof q.explanation === 'object'
-                ? JSON.stringify(q.explanation)
-                : undefined,
-          }));
+          const examQuestions = (data.finalExamQuestions as TQuestion[]).map(
+            (q: any) => ({
+              ...q,
+              explanation:
+                q.explanation && typeof q.explanation === "string"
+                  ? q.explanation
+                  : q.explanation && typeof q.explanation === "object"
+                  ? JSON.stringify(q.explanation)
+                  : undefined,
+            })
+          );
           setFinalExamQuestions(examQuestions);
           setValue("finalExamQuestions", examQuestions, {
             shouldValidate: false,
@@ -336,7 +339,7 @@ export default function Page() {
       errors: formState.errors,
       errorCount: Object.keys(formState.errors).length,
     });
-    
+
     // Ensure video is set before validation - critical for updates
     if (!data.video && !selectedVideoFile) {
       // Try to get video from various sources
@@ -348,7 +351,7 @@ export default function Page() {
         console.log("📹 Restored video from state:", existingVideo);
       }
     }
-    
+
     console.log("📦 Form Data Summary:", {
       titleEn: data.titleEn,
       titleAm: data.titleAm,
@@ -1216,6 +1219,7 @@ export default function Page() {
                           video: "",
                           thumbnail: "",
                           order: maxOrder + 1, // Next sequential order
+                          isFree: false,
                         };
 
                         // Add new subActivity and re-sort to maintain order
@@ -1514,6 +1518,75 @@ export default function Page() {
                   });
                 }}
                 finalExamQuestions={finalExamQuestions}
+                updateSubActivityFree={(
+                  activityIndex: number,
+                  subActivityIndex: number,
+                  isFree: boolean
+                ) => {
+                  const currentActivities = watch("activity") || [];
+                  // Sort activities by order to get the correct activity
+                  const sortedActivities = [...currentActivities].sort(
+                    (a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)
+                  );
+
+                  const updatedActivities = sortedActivities.map(
+                    (activity, aIndex) => {
+                      if (aIndex === activityIndex) {
+                        // Sort subActivities by order to get the correct subactivity
+                        const sortedSubActivities = [
+                          ...(activity.subActivity || []),
+                        ].sort(
+                          (a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)
+                        );
+
+                        const updatedSubActivities = sortedSubActivities.map(
+                          (sub, sIndex) =>
+                            sIndex === subActivityIndex
+                              ? { ...sub, isFree }
+                              : sub
+                        );
+
+                        return {
+                          ...activity,
+                          subActivity: updatedSubActivities,
+                        };
+                      }
+                      return activity;
+                    }
+                  );
+                  setValue("activity", updatedActivities);
+                  // Sync to Zustand for persistence
+                  setActivities(updatedActivities);
+                }}
+                updateAllSubActivitiesFree={(
+                  activityIndex: number,
+                  isFree: boolean
+                ) => {
+                  const currentActivities = watch("activity") || [];
+                  // Sort activities by order to get the correct activity
+                  const sortedActivities = [...currentActivities].sort(
+                    (a: any, b: any) => (a.order ?? 0) - (b.order ?? 0)
+                  );
+
+                  const updatedActivities = sortedActivities.map(
+                    (activity, aIndex) => {
+                      if (aIndex === activityIndex) {
+                        const updatedSubActivities = (
+                          activity.subActivity || []
+                        ).map((sub: any) => ({ ...sub, isFree }));
+
+                        return {
+                          ...activity,
+                          subActivity: updatedSubActivities,
+                        };
+                      }
+                      return activity;
+                    }
+                  );
+                  setValue("activity", updatedActivities);
+                  // Sync to Zustand for persistence
+                  setActivities(updatedActivities);
+                }}
               />
 
               <Card className="shadow-lg border-0 bg-white/90 backdrop-blur-sm">
@@ -1783,10 +1856,36 @@ export default function Page() {
                             formValid: formState.isValid,
                             formDirty: formState.isDirty,
                           });
-                          console.log(
-                            "❌ Form Errors (detailed):",
-                            JSON.stringify((formState as any).errors, null, 2)
-                          );
+                          try {
+                            const errorDetails = Object.keys(
+                              (formState as any).errors || {}
+                            ).reduce((acc, key) => {
+                              try {
+                                const error = (formState as any).errors[key];
+                                acc[key] = {
+                                  type: error?.type || "unknown",
+                                  message:
+                                    error?.message ||
+                                    String(error?.message || ""),
+                                };
+                              } catch (e) {
+                                acc[key] = {
+                                  type: "error",
+                                  message: "Could not extract error details",
+                                };
+                              }
+                              return acc;
+                            }, {} as Record<string, any>);
+                            console.log(
+                              "❌ Form Errors (detailed):",
+                              errorDetails
+                            );
+                          } catch (e) {
+                            console.log(
+                              "❌ Form Errors (detailed):",
+                              "Could not extract error details"
+                            );
+                          }
                           console.log("📋 Form Values:", {
                             id: watch("id"),
                             titleEn: watch("titleEn"),
@@ -1802,22 +1901,58 @@ export default function Page() {
                           if (!formState.isSubmitting && !isVideoUploading) {
                             // Ensure video is set before validation (critical for updates)
                             const currentVideo = watch("video");
-                            if (!currentVideo && !selectedVideoFile && isEditing) {
+                            if (
+                              !currentVideo &&
+                              !selectedVideoFile &&
+                              isEditing
+                            ) {
                               // Try to restore video from Zustand or preview URL
-                              const existingVideo = videoPreviewUrl || formData.video;
+                              const existingVideo =
+                                videoPreviewUrl || formData.video;
                               if (existingVideo) {
-                                setValue("video", existingVideo, { shouldValidate: true });
-                                console.log("📹 Restored video before validation:", existingVideo);
+                                setValue("video", existingVideo, {
+                                  shouldValidate: true,
+                                });
+                                console.log(
+                                  "📹 Restored video before validation:",
+                                  existingVideo
+                                );
                               }
                             }
-                            
+
                             console.log("✅ Calling handleSubmit...");
                             // Use handleSubmit which will validate and call handleFormSubmit if valid
                             handleSubmit(handleFormSubmit, (errors) => {
-                              console.error("❌ Form validation failed:", errors);
-                              // Log detailed error information
+                              console.group("❌ Form Validation Errors");
+                              console.error(
+                                "Validation failed with errors:",
+                                errors
+                              );
+                              console.log("Error keys:", Object.keys(errors));
+
+                              // Log detailed error information for each field
+                              Object.entries(errors).forEach(
+                                ([field, error]) => {
+                                  console.error(`❌ ${field} error:`, error);
+                                  if (
+                                    field === "activity" &&
+                                    error &&
+                                    typeof error === "object" &&
+                                    "message" in error
+                                  ) {
+                                    console.error(
+                                      "Activity error message:",
+                                      error.message
+                                    );
+                                  }
+                                }
+                              );
+
                               if (errors.video) {
-                                console.error("❌ Video validation error:", errors.video);
+                                console.error(
+                                  "❌ Video validation error:",
+                                  errors.video
+                                );
                                 console.log("📹 Video state:", {
                                   formVideo: watch("video"),
                                   videoPreviewUrl,
@@ -1825,6 +1960,39 @@ export default function Page() {
                                   selectedVideoFile: !!selectedVideoFile,
                                 });
                               }
+
+                              if (errors.activity) {
+                                console.error(
+                                  "❌ Activity validation error:",
+                                  errors.activity
+                                );
+                                const activities = watch("activity");
+                                console.log("📋 Activities data:", {
+                                  count: activities?.length || 0,
+                                  activities: activities?.map(
+                                    (a: any, i: number) => ({
+                                      index: i,
+                                      titleEn: a.titleEn,
+                                      titleAm: a.titleAm,
+                                      subActivityCount:
+                                        a.subActivity?.length || 0,
+                                      subActivities: a.subActivity?.map(
+                                        (sub: any, si: number) => ({
+                                          subIndex: si,
+                                          titleEn: sub.titleEn,
+                                          titleAm: sub.titleAm,
+                                          hasVideo: !!sub.video,
+                                          hasThumbnail: !!sub.thumbnail,
+                                          isFree: sub.isFree,
+                                        })
+                                      ),
+                                    })
+                                  ),
+                                });
+                              }
+
+                              console.groupEnd();
+
                               toast.error(
                                 lang === "en"
                                   ? "Please fix the form errors before submitting"
@@ -1832,7 +2000,11 @@ export default function Page() {
                                 {
                                   description:
                                     Object.keys(errors).length > 0
-                                      ? `${Object.keys(errors).length} field(s) have errors: ${Object.keys(errors).join(", ")}`
+                                      ? `${
+                                          Object.keys(errors).length
+                                        } field(s) have errors: ${Object.keys(
+                                          errors
+                                        ).join(", ")}`
                                       : "Form validation failed",
                                 }
                               );
