@@ -20,6 +20,7 @@ import { useCourseFilterStore } from "@/stores";
 import PriceDisplay from "@/components/PriceDisplay";
 import TruncatedDescription from "@/components/TruncatedDescription";
 import { fuzzySearch } from "@/lib/utils/fuzzySearch";
+import { cn } from "@/lib/utils";
 
 export default function Page() {
   const params = useParams<{ lang: string }>(),
@@ -250,13 +251,29 @@ export default function Page() {
                             {lang === "en" ? course.titleEn : course.titleAm}
                           </h3>
                         </Link>
-                        <div className="ml-4">
-                          <PriceDisplay
-                            courseId={course.id}
-                            birrPrice={course.birrPrice || course.price}
-                            dolarPrice={course.dolarPrice || course.price}
-                          />
+                        <div
+                          className={cn(
+                            "absolute top-0 right-0 px-1.5 py-0.5 rounded-bl-lg shadow-md text-[10px] transition-all duration-300 ease-out backdrop-blur-sm",
+                            (course.birrPrice ?? 0) > 0 || (course.dolarPrice ?? 0) > 0
+                              ? "bg-background/95 dark:bg-background/90 border-l border-b border-divider dark:border-white/10"
+                              : "bg-gradient-to-br from-success-500 to-success-600 dark:from-success-600 dark:to-success-700 text-white shadow-success-900/50"
+                          )}
+                        >
+                          {(course.birrPrice ?? 0) > 0 || (course.dolarPrice ?? 0) > 0 ? (
+                            <PriceDisplay
+                              courseId={course.id}
+                              birrPrice={course.birrPrice || course.price}
+                              dolarPrice={course.dolarPrice || course.price}
+                              className="text-xs"
+                              showDiscountBadge={false}
+                            />
+                          ) : (
+                            <span className="font-bold">
+                              {lang == "en" ? "Free" : "ነፃ"}
+                            </span>
+                          )}
                         </div>
+                        
                       </div>
 
                       <TruncatedDescription
