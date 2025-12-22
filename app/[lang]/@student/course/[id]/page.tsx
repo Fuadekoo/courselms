@@ -145,15 +145,15 @@ export default function Page() {
       ) : (
         <div className="px-2 md:pl-4 lg:pl-6 xl:pl-8 pt-4 md:pt-6 pb-6 md:pr-[28rem] lg:pr-[32rem] h-full flex flex-col gap-6 md:gap-8 overflow-y-auto overflow-x-hidden smooth-">
           <div ref={videoPlayerRef}>
-            <CourseTopOverview
-              {...{
-                title: lang == "en" ? data.titleEn : data.titleAm,
-                by: `${data.instructor.firstName} ${data.instructor.fatherName}`,
+          <CourseTopOverview
+            {...{
+              title: lang == "en" ? data.titleEn : data.titleAm,
+              by: `${data.instructor.firstName} ${data.instructor.fatherName}`,
                 thumbnail: currentThumbnail || data.thumbnail,
                 video: currentVideo || data.video,
                 autoplay: shouldAutoplay,
-              }}
-            />
+            }}
+          />
           </div>
           <div className="p-4 rounded-xl border border-primary-500/30 space-y-8">
             <CourseAbout data={lang == "en" ? data.aboutEn : data.aboutAm} />

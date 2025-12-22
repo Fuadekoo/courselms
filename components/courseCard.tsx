@@ -137,7 +137,7 @@ export default function CourseCardAffiliate({
 
       <div
         className={cn(
-          "absolute top-0 right-0 px-4 py-2 rounded-bl-xl shadow-lg text-sm font-semibold transition-all duration-300 ease-out backdrop-blur-sm",
+          "absolute top-0 right-0 px-4 py-2 rounded-bl-xl shadow-lg text-base font-bold transition-all duration-300 ease-out backdrop-blur-sm",
           (birrPrice ?? 0) > 0 || (dolarPrice ?? 0) > 0
             ? "bg-background/95 dark:bg-background/90 border-l border-b border-divider dark:border-white/10"
             : "bg-gradient-to-br from-success-500 to-success-600 dark:from-success-600 dark:to-success-700 text-white shadow-success-900/50"
@@ -148,11 +148,11 @@ export default function CourseCardAffiliate({
             courseId={id}
             birrPrice={birrPrice || price}
             dolarPrice={dolarPrice || price}
-            className="text-sm font-semibold"
+            className="text-base font-bold leading-tight"
             showDiscountBadge={false}
           />
         ) : (
-          <span className="font-bold text-base">
+          <span className="font-bold text-lg">
             {lang == "en" ? "Free" : "ነፃ"}
           </span>
         )}

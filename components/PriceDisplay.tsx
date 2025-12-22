@@ -57,10 +57,16 @@ export default function PriceDisplay({
   }
 
   if (hasDiscount && discount) {
+    // Use larger text when in badge context (showDiscountBadge=false)
+    const mainTextSize = showDiscountBadge ? "text-xs" : "text-base";
+    const strikeTextSize = showDiscountBadge ? "text-[9px]" : "text-xs";
+
     return (
       <div className={`flex flex-col gap-0 ${className}`}>
         <div className="flex items-center gap-1 flex-wrap">
-          <span className="text-xs font-bold text-primary leading-none">
+          <span
+            className={`${mainTextSize} font-bold text-primary leading-tight`}
+          >
             {isEthiopia ? "ETB " : "$"}
             {discountedPrice.toFixed(2)}
             {!isEthiopia && " USD"}
@@ -77,7 +83,9 @@ export default function PriceDisplay({
           )}
         </div>
         <div className="flex items-center gap-1">
-          <span className="text-[9px] text-red-600 dark:text-red-500 line-through leading-none">
+          <span
+            className={`${strikeTextSize} text-red-600 dark:text-red-500 line-through leading-tight`}
+          >
             {isEthiopia ? "ETB " : "$"}
             {originalWithDiscount.toFixed(2)}
             {!isEthiopia && " USD"}
@@ -86,7 +94,9 @@ export default function PriceDisplay({
         {discount.endDate && (
           <CountdownTimer
             endDate={discount.endDate}
-            className="mt-0 text-[8px]"
+            className={`mt-0 ${
+              showDiscountBadge ? "text-[8px]" : "text-[10px]"
+            }`}
           />
         )}
       </div>

@@ -249,7 +249,7 @@ export default function Page() {
                         </Link>
                         <div
                           className={cn(
-                            "absolute top-0 right-0 px-4 py-2 rounded-bl-xl shadow-lg text-sm font-semibold transition-all duration-300 ease-out backdrop-blur-sm",
+                            "absolute top-0 right-0 px-4 py-2 rounded-bl-xl shadow-lg text-base font-bold transition-all duration-300 ease-out backdrop-blur-sm",
                             (course.birrPrice ?? 0) > 0 ||
                               (course.dolarPrice ?? 0) > 0
                               ? "bg-background/95 dark:bg-background/90 border-l border-b border-divider dark:border-white/10"
@@ -262,11 +262,11 @@ export default function Page() {
                               courseId={course.id}
                               birrPrice={course.birrPrice || course.price}
                               dolarPrice={course.dolarPrice || course.price}
-                              className="text-sm font-semibold"
+                              className="text-base font-bold leading-tight"
                               showDiscountBadge={false}
                             />
                           ) : (
-                            <span className="font-bold text-base">
+                            <span className="font-bold text-lg">
                               {lang == "en" ? "Free" : "ነፃ"}
                             </span>
                           )}
