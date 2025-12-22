@@ -232,8 +232,8 @@ export default function Page() {
               price={data.price}
               birrPrice={discountedBirrPrice}
               dolarPrice={discountedDolarPrice}
-              originalBirrPrice={data.birrPrice}
-              originalDolarPrice={data.dolarPrice}
+              originalBirrPrice={data.birrPrice ?? undefined}
+              originalDolarPrice={data.dolarPrice ?? undefined}
             />
           )}
         </div>

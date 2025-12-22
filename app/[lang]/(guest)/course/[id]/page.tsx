@@ -35,13 +35,13 @@ export default function Page() {
     { data, loading } = useData({ func: getCourseForCustomer, args: [id] }),
     { isOpen, onOpenChange } = useDisclosure();
   const router = useRouter();
-  
+
   // Video player state for free subactivities
   const [currentVideo, setCurrentVideo] = useState<string>("");
   const [currentThumbnail, setCurrentThumbnail] = useState<string>("");
   const [shouldAutoplay, setShouldAutoplay] = useState<boolean>(false);
   const videoPlayerRef = useRef<HTMLDivElement>(null);
-  
+
   // Set initial video (always use main course video as introduction)
   useEffect(() => {
     if (data) {
@@ -54,7 +54,7 @@ export default function Page() {
       setShouldAutoplay(false);
     }
   }, [data]);
-  
+
   // Handle video selection from free subactivities
   const handleSelectVideo = useCallback(
     (
@@ -66,7 +66,7 @@ export default function Page() {
       setCurrentVideo(video);
       setCurrentThumbnail(thumbnail || "");
       setShouldAutoplay(true); // Enable autoplay when subactivity is selected
-      
+
       // Scroll to video player after a short delay to ensure DOM is updated
       setTimeout(() => {
         if (videoPlayerRef.current) {
@@ -79,7 +79,7 @@ export default function Page() {
     },
     []
   );
-  
+
   // Reset autoplay after video starts playing
   useEffect(() => {
     if (shouldAutoplay && currentVideo) {
@@ -230,8 +230,8 @@ export default function Page() {
             price={data.price}
             birrPrice={discountedBirrPrice}
             dolarPrice={discountedDolarPrice}
-            originalBirrPrice={data.birrPrice}
-            originalDolarPrice={data.dolarPrice}
+            originalBirrPrice={data.birrPrice ?? undefined}
+            originalDolarPrice={data.dolarPrice ?? undefined}
           />
         </div>
       )}

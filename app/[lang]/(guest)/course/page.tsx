@@ -53,15 +53,11 @@ export default function Page() {
     if (!data) return [];
 
     // First apply fuzzy search
-    let courses = searchTerm
-      ? fuzzySearch(data, searchTerm)
-      : data;
+    let courses = searchTerm ? fuzzySearch(data, searchTerm) : data;
 
     // Then apply level filter
     if (selectedLevel) {
-      courses = courses.filter(
-        (course: any) => course.level === selectedLevel
-      );
+      courses = courses.filter((course: any) => course.level === selectedLevel);
     }
 
     return courses;
@@ -253,27 +249,28 @@ export default function Page() {
                         </Link>
                         <div
                           className={cn(
-                            "absolute top-0 right-0 px-1.5 py-0.5 rounded-bl-lg shadow-md text-[10px] transition-all duration-300 ease-out backdrop-blur-sm",
-                            (course.birrPrice ?? 0) > 0 || (course.dolarPrice ?? 0) > 0
+                            "absolute top-0 right-0 px-4 py-2 rounded-bl-xl shadow-lg text-sm font-semibold transition-all duration-300 ease-out backdrop-blur-sm",
+                            (course.birrPrice ?? 0) > 0 ||
+                              (course.dolarPrice ?? 0) > 0
                               ? "bg-background/95 dark:bg-background/90 border-l border-b border-divider dark:border-white/10"
                               : "bg-gradient-to-br from-success-500 to-success-600 dark:from-success-600 dark:to-success-700 text-white shadow-success-900/50"
                           )}
                         >
-                          {(course.birrPrice ?? 0) > 0 || (course.dolarPrice ?? 0) > 0 ? (
+                          {(course.birrPrice ?? 0) > 0 ||
+                          (course.dolarPrice ?? 0) > 0 ? (
                             <PriceDisplay
                               courseId={course.id}
                               birrPrice={course.birrPrice || course.price}
                               dolarPrice={course.dolarPrice || course.price}
-                              className="text-xs"
+                              className="text-sm font-semibold"
                               showDiscountBadge={false}
                             />
                           ) : (
-                            <span className="font-bold">
+                            <span className="font-bold text-base">
                               {lang == "en" ? "Free" : "ነፃ"}
                             </span>
                           )}
                         </div>
-                        
                       </div>
 
                       <TruncatedDescription
