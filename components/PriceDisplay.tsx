@@ -58,8 +58,8 @@ export default function PriceDisplay({
 
   if (hasDiscount && discount) {
     // Use larger text when in badge context (showDiscountBadge=false)
-    const mainTextSize = showDiscountBadge ? "text-xs" : "text-base";
-    const strikeTextSize = showDiscountBadge ? "text-[9px]" : "text-xs";
+    const mainTextSize = showDiscountBadge ? "text-xs" : "text-lg";
+    const strikeTextSize = showDiscountBadge ? "text-[9px]" : "text-sm";
 
     return (
       <div className={`flex flex-col gap-0 ${className}`}>
@@ -94,9 +94,7 @@ export default function PriceDisplay({
         {discount.endDate && (
           <CountdownTimer
             endDate={discount.endDate}
-            className={`mt-0 ${
-              showDiscountBadge ? "text-[8px]" : "text-[10px]"
-            }`}
+            className={`mt-0 ${showDiscountBadge ? "text-[8px]" : "text-xs"}`}
           />
         )}
       </div>
