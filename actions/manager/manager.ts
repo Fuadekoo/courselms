@@ -86,7 +86,11 @@ export async function getManagers(tableData: TTableData) {
           region: true,
           city: true,
           status: true,
-          permission: true,
+          permission: {
+            select: {
+              permission: true,
+            },
+          },
         },
       })
       .then((res) => {

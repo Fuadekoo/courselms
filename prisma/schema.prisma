@@ -118,44 +118,67 @@ model Permission {
 // ------------------------- Course -----------------------------
 
 model Course {
-  id                String             @id @default(uuid())
-  titleEn           String
-  titleAm           String
-  aboutEn           String             @db.Text
-  aboutAm           String             @db.Text
-  thumbnail         String
-  video             String
-  pdfData           String?            @db.Text
-  aiProvider        String?            @default("gemini")
-  courseMaterials   String?            @db.Text
-  price             Decimal
-  dolarPrice        Int
-  birrPrice         Int
+  id                    String                  @id @default(uuid())
+  titleEn               String
+  titleAm               String
+  aboutEn               String                  @db.Text
+  aboutAm               String                  @db.Text
+  thumbnail             String
+  video                 String
+  pdfData               String?                 @db.Text
+  aiProvider            String?                 @default("gemini")
+  courseMaterials       String?                 @db.Text
+  price                 Decimal
+  dolarPrice            Int
+  birrPrice             Int
   // currency        String          @default("ETB")
-  level             CourseLevel
-  language          String             @default("Amharic")
-  duration          String?
-  accessEn          String             @default("Access on mobile, computer")
-  accessAm          String             @default("በሞባይል ፣ በኮምፒተር ላይ መጠቀም")
-  certificate       Boolean            @default(false)
-  instructorRate    Decimal
-  sellerRate        Decimal
-  affiliateRate     Decimal
-  channel           Channel?           @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  channelId         String?            @unique
-  instructor        User               @relation(fields: [instructorId], references: [id], onDelete: Cascade)
-  instructorId      String
-  status            Boolean            @default(true)
-  requirement       Requirement[]
-  courseFor         CourseFor[]
-  activity          Activity[]
-  order             Order[]
-  incomeRate        IncomeRate[]
-  question          question[]
-  chatQuestions     VideoQuestion[]
-  announcement      Announcement[]
-  feedback          Feedback[]
-  periodicDiscounts periodicDiscount[]
+  level                 CourseLevel
+  language              String                  @default("Amharic")
+  duration              String?
+  accessEn              String                  @default("Access on mobile, computer")
+  accessAm              String                  @default("በሞባይል ፣ በኮምፒተር ላይ መጠቀም")
+  certificate           Boolean                 @default(false)
+  instructorRate        Decimal
+  sellerRate            Decimal
+  affiliateRate         Decimal
+  channel               Channel?                @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  channelId             String?                 @unique
+  instructor            User                    @relation(fields: [instructorId], references: [id], onDelete: Cascade)
+  instructorId          String
+  status                Boolean                 @default(true)
+  requirement           Requirement[]
+  courseFor             CourseFor[]
+  activity              Activity[]
+  order                 Order[]
+  incomeRate            IncomeRate[]
+  question              question[]
+  chatQuestions         VideoQuestion[]
+  announcement          Announcement[]
+  feedback              Feedback[]
+  periodicDiscounts     periodicDiscount[]
+  assigningCourseToTags AssigningCourseToTags[]
+}
+
+model Tags {
+  id                    String                  @id @default(uuid())
+  name                  String                  @db.Text
+  order                 Int
+  assigningCourseToTags AssigningCourseToTags[]
+}
+
+model AssigningCourseToTags {
+  id        String   @id @default(uuid())
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  courseId  String
+  tag       Tags     @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  tagId     String
+  order     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([courseId, tagId])
+  @@index([courseId])
+  @@index([tagId])
 }
 
 model Requirement {

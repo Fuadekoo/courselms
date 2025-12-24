@@ -17,6 +17,7 @@ import {
   Bell,
   Percent,
   Video,
+  Tags,
 } from "lucide-react";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import useData from "@/hooks/useData";
@@ -105,6 +106,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           label: lang === "en" ? "Video Conversion" : "የቪዲዮ መለወጥ",
           url: "videoConversion",
           icon: <Video className="size-5" />,
+        },
+        {
+          label: lang === "en" ? "Assign Course to Tags" : "ኮርስ ወደ መለያዎች መመደብ",
+          url: "assigningCourseToTags",
+          icon: <Tags className="size-5" />,
         },
         // { label: "Student", url: "student" },
         // { label: "Ustaz", url: "ustaz" },
