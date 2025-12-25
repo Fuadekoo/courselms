@@ -266,6 +266,8 @@ export default function AssigningCourseToTagsPage() {
         toast.error(result?.message || "Failed to reorder tags");
       } else {
         toast.success("Tags reordered successfully");
+        // Refresh from server so local order matches DB (avoids stale UI)
+        fetchData();
       }
     } catch (error) {
       fetchData();
