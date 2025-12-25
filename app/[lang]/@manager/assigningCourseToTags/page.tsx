@@ -496,6 +496,7 @@ export default function AssigningCourseToTagsPage() {
               <AccordionItem
                 key={tag.id}
                 aria-label={tag.name}
+                draggable
                 title={
                   <div className="flex items-center justify-between w-full">
                     <div className="flex items-center gap-3">
@@ -510,6 +511,7 @@ export default function AssigningCourseToTagsPage() {
                     </div>
                     <div className="flex gap-2">
                       <Button
+                        as="div"
                         size="sm"
                         variant="light"
                         isIconOnly
@@ -520,6 +522,7 @@ export default function AssigningCourseToTagsPage() {
                         <Plus className="size-4" />
                       </Button>
                       <Button
+                        as="div"
                         size="sm"
                         variant="light"
                         isIconOnly
@@ -528,6 +531,7 @@ export default function AssigningCourseToTagsPage() {
                         <Edit className="size-4" />
                       </Button>
                       <Button
+                        as="div"
                         size="sm"
                         variant="light"
                         color="danger"

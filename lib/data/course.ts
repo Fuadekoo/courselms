@@ -112,101 +112,124 @@ export async function getCoursesForCustomer() {
 
 export async function getCoursesForLoginCustomer() {
   try {
-    // Get the current user session
     const session = await auth();
 
     if (!session?.user?.id) {
-      return null;
+      return { success: false, data: [], message: "Unauthorized" };
     }
 
-    // Get all course IDs that the user has already paid for (exclude unpaid orders)
+    // Courses the user already enrolled in (non-unpaid orders)
     const userOrders = await prisma.order.findMany({
       where: {
         userId: session.user.id,
         status: {
-          not: "unpaid", // Only exclude courses with paid/completed orders
+          not: "unpaid",
         },
       },
       select: { courseId: true },
     });
-
     const enrolledCourseIds = userOrders.map((order: any) => order.courseId);
 
-    // Fetch courses excluding the ones user is already enrolled in (with paid status)
-    const data = await prisma.course
-      .findMany({
-        where: {
-          id: {
-            notIn: enrolledCourseIds,
-          },
-        },
-        select: {
-          id: true,
-          titleEn: true,
-          titleAm: true,
-          aboutEn: true,
-          aboutAm: true,
-          thumbnail: true,
-          level: true,
-          duration: true,
-          price: true,
-          birrPrice: true,
-          dolarPrice: true,
-          instructorRate: true,
-          sellerRate: true,
-          affiliateRate: true,
-          pdfData: true,
-          aiProvider: true,
-          courseMaterials: true,
-          accessEn: true,
-          accessAm: true,
-          status: true,
-          channelId: true,
-          instructorId: true,
-          activity: { select: { _count: { select: { subActivity: true } } } },
-          instructor: {
-            select: { id: true, firstName: true, fatherName: true },
-          },
-        },
-      })
-      .then((res) =>
-        res.map(
-          ({
-            id,
-            price,
-            birrPrice,
-            dolarPrice,
-            instructorRate,
-            sellerRate,
-            affiliateRate,
-            activity,
-            ...rest
-          }) => ({
-            id,
-            ...rest,
-            price: Number(price),
-            birrPrice:
-              birrPrice !== null && birrPrice !== undefined
-                ? Number(birrPrice)
-                : Number(price),
-            dolarPrice:
-              dolarPrice !== null && dolarPrice !== undefined
-                ? Number(dolarPrice)
-                : Number(price),
-            instructorRate: Number(instructorRate),
-            sellerRate: Number(sellerRate),
-            affiliateRate: Number(affiliateRate),
-            _count: {
-              activity: activity.reduce((a, c) => a + c._count.subActivity, 0),
+    // Get tags with their courses, excluding already-enrolled courses
+    const tags = await prisma.tags.findMany({
+      orderBy: { order: "asc" },
+      include: {
+        assigningCourseToTags: {
+          where: {
+            course: {
+              status: true,
+              id: { notIn: enrolledCourseIds },
             },
-          })
-        )
-      );
-    console.log("data >>fuads  ", data);
-    return data;
+          },
+          orderBy: { order: "asc" },
+          include: {
+            course: {
+              select: {
+                id: true,
+                titleEn: true,
+                titleAm: true,
+                aboutEn: true,
+                aboutAm: true,
+                thumbnail: true,
+                level: true,
+                duration: true,
+                price: true,
+                birrPrice: true,
+                dolarPrice: true,
+                instructorRate: true,
+                sellerRate: true,
+                affiliateRate: true,
+                status: true,
+                activity: {
+                  select: { _count: { select: { subActivity: true } } },
+                },
+                instructor: {
+                  select: { id: true, firstName: true, fatherName: true },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    const processedTags = tags
+      .map((tag: any) => {
+        const courses = tag.assigningCourseToTags
+          .map((assignment: any) => assignment.course)
+          .filter(
+            (course: any) =>
+              course?.status === true && !enrolledCourseIds.includes(course.id)
+          )
+          .map(
+            ({
+              id,
+              price,
+              birrPrice,
+              dolarPrice,
+              instructorRate,
+              sellerRate,
+              affiliateRate,
+              activity,
+              ...rest
+            }: any) => ({
+              id,
+              ...rest,
+              price: Number(price),
+              birrPrice:
+                birrPrice !== null && birrPrice !== undefined
+                  ? Number(birrPrice)
+                  : Number(price),
+              dolarPrice:
+                dolarPrice !== null && dolarPrice !== undefined
+                  ? Number(dolarPrice)
+                  : Number(price),
+              instructorRate: Number(instructorRate),
+              sellerRate: Number(sellerRate),
+              affiliateRate: Number(affiliateRate),
+              _count: {
+                activity: activity.reduce(
+                  (a: number, c: any) => a + c._count.subActivity,
+                  0
+                ),
+              },
+            })
+          );
+
+        return {
+          id: tag.id,
+          name: tag.name,
+          order: tag.order,
+          courses,
+        };
+      })
+      .filter((tag) => tag.courses.length > 0)
+      .sort((a, b) => a.order - b.order);
+
+    return { success: true, data: processedTags };
   } catch (error) {
     console.log(error);
-    return null;
+    return { success: false, data: [], message: "Failed to fetch courses" };
   }
 }
 
