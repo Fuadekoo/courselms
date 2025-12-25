@@ -157,12 +157,14 @@ model Course {
   feedback              Feedback[]
   periodicDiscounts     periodicDiscount[]
   assigningCourseToTags AssigningCourseToTags[]
+  
+ 
 }
 
 model Tags {
   id                    String                  @id @default(uuid())
   name                  String                  @db.Text
-  order                 Int
+  order                 Int                     @default(1)
   assigningCourseToTags AssigningCourseToTags[]
 }
 
@@ -172,7 +174,7 @@ model AssigningCourseToTags {
   courseId  String
   tag       Tags     @relation(fields: [tagId], references: [id], onDelete: Cascade)
   tagId     String
-  order     Int
+  order     Int      @default(1)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

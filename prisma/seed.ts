@@ -1204,6 +1204,107 @@ Perfect for beginners who want to start their Hifz journey with the most commonl
       },
     });
 
+    // ========== TAGS ==========
+    // Create sample tags with explicit ordering
+    const tags = [
+      { name: 'Quran Studies', order: 1 },
+      { name: 'Arabic Language', order: 2 },
+      { name: 'Hadith', order: 3 },
+      { name: 'Fiqh', order: 4 },
+      { name: 'Memorization', order: 5 },
+    ];
+
+    const createdTags = [];
+    for (const tagData of tags) {
+      // First try to find if the tag exists
+      let tag = await prisma.tags.findFirst({
+        where: { name: tagData.name }
+      });
+
+      // If tag doesn't exist, create it
+      if (!tag) {
+        tag = await prisma.tags.create({
+          data: tagData
+        });
+      } else {
+        // If tag exists, update its order
+        tag = await prisma.tags.update({
+          where: { id: tag.id },
+          data: { order: tagData.order }
+        });
+      }
+      createdTags.push(tag);
+    }
+
+    // ========== COURSE TAGS ==========
+    // Assign courses to tags with proper ordering
+    if (createdCourses.length >= 4 && createdTags.length >= 5) {
+      // Assign Basic Arabic Letters to Arabic Language and Beginners
+      await prisma.assigningCourseToTags.upsert({
+        where: { 
+          courseId_tagId: { 
+            courseId: createdCourses[0].id, 
+            tagId: createdTags[1].id // Arabic Language
+          } 
+        },
+        update: { order: 1 },
+        create: {
+          courseId: createdCourses[0].id,
+          tagId: createdTags[1].id,
+          order: 1,
+        },
+      });
+
+      // Assign Quran Memorization to multiple tags
+      await prisma.assigningCourseToTags.upsert({
+        where: { 
+          courseId_tagId: { 
+            courseId: createdCourses[3].id, 
+            tagId: createdTags[0].id // Quran Studies
+          } 
+        },
+        update: { order: 1 },
+        create: {
+          courseId: createdCourses[3].id,
+          tagId: createdTags[0].id,
+          order: 1,
+        },
+      });
+
+      await prisma.assigningCourseToTags.upsert({
+        where: { 
+          courseId_tagId: { 
+            courseId: createdCourses[3].id, 
+            tagId: createdTags[4].id // Memorization
+          } 
+        },
+        update: { order: 1 },
+        create: {
+          courseId: createdCourses[3].id,
+          tagId: createdTags[4].id,
+          order: 1,
+        },
+      });
+
+      // Assign Hadith course to Hadith tag
+      if (createdCourses[4]) {
+        await prisma.assigningCourseToTags.upsert({
+          where: { 
+            courseId_tagId: { 
+              courseId: createdCourses[4].id, 
+              tagId: createdTags[2].id // Hadith
+            } 
+          },
+          update: { order: 1 },
+          create: {
+            courseId: createdCourses[4].id,
+            tagId: createdTags[2].id,
+            order: 1,
+          },
+        });
+      }
+    }
+
     // ========== PERIODIC DISCOUNTS ==========
     // Create periodic discount for courses
     const nextMonth = new Date();
@@ -1230,12 +1331,10 @@ Perfect for beginners who want to start their Hifz journey with the most commonl
       },
     });
 
-    console.log(
-      "✅ Additional Seed Data (Orders, Transfers, Video Q&A, Announcements, Feedback, Discounts) Created Successfully!"
-    );
-    console.log("SEED SUCCESS");
+    console.log('✅ Database seeded successfully!');
   } catch (error) {
-    console.log("SEED ERROR :: ", error);
+    console.error('❌ Error seeding database:', error);
+    process.exit(1);
   } finally {
     await prisma.$disconnect();
   }

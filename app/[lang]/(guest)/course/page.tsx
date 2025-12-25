@@ -1,8 +1,8 @@
 "use client";
 
 import useData from "@/hooks/useData";
-import { getCoursesForCustomer } from "@/lib/data/course";
-import React, { useEffect, useMemo } from "react";
+import { getCoursesByTags } from "@/actions/public/courses";
+import React from "react";
 import NoData from "@/components/noData";
 import { useParams, useSearchParams } from "next/navigation";
 import {
@@ -12,58 +12,25 @@ import {
   CardFooter,
   CardHeader,
   Chip,
-  Input,
 } from "@heroui/react";
-import { Clock, Users, Star, Search } from "lucide-react";
+import { Clock, Users, Star } from "lucide-react";
 import Link from "next/link";
-import { useCourseFilterStore } from "@/stores";
 import PriceDisplay from "@/components/PriceDisplay";
 import TruncatedDescription from "@/components/TruncatedDescription";
-import { fuzzySearch } from "@/lib/utils/fuzzySearch";
 import { cn } from "@/lib/utils";
 
 export default function Page() {
   const params = useParams<{ lang: string }>(),
     lang = params?.lang ?? "en",
     searchParams = useSearchParams(),
-    { data, loading } = useData({
-      func: getCoursesForCustomer,
+    { data: response, loading } = useData({
+      func: getCoursesByTags,
       args: [],
     });
 
-  // Use Zustand store for filtering and search
-  const {
-    searchTerm,
-    selectedLevel,
-    setSearchTerm,
-    setSelectedLevel,
-    clearFilters,
-  } = useCourseFilterStore();
+  // Extract the tagged courses from the response
+  const taggedCourses = response?.data || [];
 
-  // Read search parameter from URL (from header search)
-  useEffect(() => {
-    const urlSearch = searchParams?.get("search");
-    if (urlSearch && urlSearch !== searchTerm) {
-      setSearchTerm(urlSearch);
-    }
-  }, [searchParams, setSearchTerm, searchTerm]);
-
-  // Filter courses based on store state with fuzzy search
-  const filteredCourses = useMemo(() => {
-    if (!data) return [];
-
-    // First apply fuzzy search
-    let courses = searchTerm ? fuzzySearch(data, searchTerm) : data;
-
-    // Then apply level filter
-    if (selectedLevel) {
-      courses = courses.filter((course: any) => course.level === selectedLevel);
-    }
-
-    return courses;
-  }, [data, searchTerm, selectedLevel]);
-
-  // Keep previous page visible while loading (TopLoadingBar will show progress)
   if (loading) {
     return null;
   }
@@ -71,7 +38,7 @@ export default function Page() {
   return (
     <div className="min-h-screen">
       <main>
-        {!data || data.length <= 0 ? (
+        {!taggedCourses || taggedCourses.length <= 0 ? (
           <div className="flex items-center justify-center min-h-[60vh]">
             <NoData />
           </div>
@@ -90,232 +57,143 @@ export default function Page() {
                 </p>
               </div>
 
-              {/* Search and Filter Section */}
-              <div className="mb-8 space-y-4">
-                <div className="flex flex-col md:flex-row gap-4 items-center">
-                  {/* Search Bar */}
-                  <div className="w-full md:flex-1">
-                    <Input
-                      placeholder={
-                        lang === "en" ? "Search courses..." : "ኮርሶችን ፈልግ..."
-                      }
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      startContent={<Search className="w-4 h-4" />}
-                      isClearable
-                      onClear={() => setSearchTerm("")}
-                      classNames={{
-                        input: "text-base",
-                        inputWrapper: "bg-white dark:bg-gray-800",
-                      }}
-                    />
-                  </div>
-
-                  {/* Level Filter */}
-                  <div className="flex gap-2 flex-wrap">
-                    <Button
-                      size="sm"
-                      variant={selectedLevel === null ? "solid" : "bordered"}
-                      color={selectedLevel === null ? "primary" : "default"}
-                      onClick={() => setSelectedLevel(null)}
-                    >
-                      {lang === "en" ? "All" : "ሁሉም"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={
-                        selectedLevel === "BEGINNER" ? "solid" : "bordered"
-                      }
-                      color={
-                        selectedLevel === "BEGINNER" ? "primary" : "default"
-                      }
-                      onClick={() => setSelectedLevel("BEGINNER")}
-                    >
-                      {lang === "en" ? "Beginner" : "ጀማሪ"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={
-                        selectedLevel === "INTERMEDIATE" ? "solid" : "bordered"
-                      }
-                      color={
-                        selectedLevel === "INTERMEDIATE" ? "primary" : "default"
-                      }
-                      onClick={() => setSelectedLevel("INTERMEDIATE")}
-                    >
-                      {lang === "en" ? "Intermediate" : "መካከለኛ"}
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant={
-                        selectedLevel === "ADVANCED" ? "solid" : "bordered"
-                      }
-                      color={
-                        selectedLevel === "ADVANCED" ? "primary" : "default"
-                      }
-                      onClick={() => setSelectedLevel("ADVANCED")}
-                    >
-                      {lang === "en" ? "Advanced" : "ከፍተኛ"}
-                    </Button>
-                  </div>
-                </div>
-
-                {/* Results Count */}
-                <div className="flex justify-between items-center text-sm text-gray-600 dark:text-gray-400">
-                  <span>
-                    {lang === "en"
-                      ? `Showing ${filteredCourses.length} of ${data.length} courses`
-                      : `ከ ${data.length} ኮርሶች ${filteredCourses.length} በማሳየት ላይ`}
-                  </span>
-                  {(searchTerm || selectedLevel) && (
-                    <Button
-                      size="sm"
-                      variant="light"
-                      onClick={clearFilters}
-                      color="primary"
-                    >
-                      {lang === "en" ? "Clear Filters" : "ማጣሪያዎችን አጽዳ"}
-                    </Button>
-                  )}
-                </div>
-              </div>
-
-              {/* Courses Grid */}
-              <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-                {filteredCourses.map((course, i) => (
-                  <Card
-                    key={i}
-                    className="flex flex-col hover:shadow-lg transition-shadow bg-background border border-divider"
-                  >
-                    {/* Thumbnail with Play Icon - Dark Mode Compatible */}
-                    <Link
-                      href={`/${lang}/course/${course.id}?code=${
-                        searchParams?.get("code") || ""
-                      }`}
-                      className="relative aspect-video bg-gradient-to-br from-blue-100 to-green-100 dark:from-blue-900/30 dark:to-green-900/30 rounded-t-lg overflow-hidden block"
-                    >
-                      {course.thumbnail ? (
-                        <>
-                          <img
-                            src={course.thumbnail}
-                            alt={
-                              lang === "en" ? course.titleEn : course.titleAm
-                            }
-                            className="w-full h-full object-cover"
-                          />
-                          <div className="absolute inset-0 bg-black/20 dark:bg-black/40"></div>
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-16 h-16 bg-white/90 dark:bg-white/20 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm hover:scale-110 transition-transform">
-                              <div className="w-0 h-0 border-l-[12px] border-l-blue-500 dark:border-l-blue-400 border-y-[8px] border-y-transparent ml-1"></div>
-                            </div>
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-green-500/20 dark:from-blue-400/30 dark:to-green-400/30"></div>
-                          <div className="absolute inset-0 flex items-center justify-center">
-                            <div className="w-16 h-16 bg-white/90 dark:bg-white/20 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm">
-                              <div className="w-0 h-0 border-l-[12px] border-l-blue-500 dark:border-l-blue-400 border-y-[8px] border-y-transparent ml-1"></div>
-                            </div>
-                          </div>
-                        </>
-                      )}
-                    </Link>
-
-                    {/* Course Details Section - Matching Image Layout */}
-                    <CardHeader className="flex-col items-start">
-                      {/* Level Badge and Star Rating Row */}
-                      <div className="flex items-start justify-between mb-3 w-full">
-                        <Chip color="primary" variant="flat" size="sm">
-                          {course.level}
-                        </Chip>
-                        <div className="flex items-center gap-1">
-                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                          <span className="text-sm font-medium">4.8</span>
-                        </div>
-                      </div>
-
-                      {/* Title and Price Row */}
-                      <div className="flex items-start justify-between mb-3 w-full">
-                        <Link
-                          href={`/${lang}/course/${course.id}?code=${
-                            searchParams?.get("code") || ""
-                          }`}
-                          className="flex-1 group"
+              {/* Courses by Tags */}
+              <div className="space-y-16">
+                {taggedCourses.map((tag) => (
+                  <div key={tag.id} className="space-y-8">
+                    {/* Tag Header */}
+                    <div className="text-center">
+                      <h2 className="text-2xl md:text-3xl font-bold mb-2">{tag.name}</h2>
+                      <div className="w-20 h-1 bg-primary mx-auto rounded-full"></div>
+                    </div>
+                    
+                    {/* Tag Courses Grid */}
+                    <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+                      {tag.courses.map((course, i) => (
+                        <Card
+                          key={i}
+                          className="flex flex-col hover:shadow-lg transition-shadow bg-background border border-divider"
                         >
-                          <h3 className="text-xl font-bold group-hover:text-primary transition-colors cursor-pointer">
-                            {lang === "en" ? course.titleEn : course.titleAm}
-                          </h3>
-                        </Link>
-                        <div
-                          className={cn(
-                            "absolute top-0 right-0 px-2 py-1 rounded-bl-xl shadow-lg text-lg font-bold transition-all duration-300 ease-out backdrop-blur-sm",
-                            (course.birrPrice ?? 0) > 0 ||
-                              (course.dolarPrice ?? 0) > 0
-                              ? "bg-background/95 dark:bg-background/90 border-l border-b border-divider dark:border-white/10"
-                              : "bg-gradient-to-br from-success-500 to-success-600 dark:from-success-600 dark:to-success-700 text-white shadow-success-900/50"
-                          )}
-                        >
-                          {(course.birrPrice ?? 0) > 0 ||
-                          (course.dolarPrice ?? 0) > 0 ? (
-                            <PriceDisplay
-                              courseId={course.id}
-                              birrPrice={course.birrPrice || course.price}
-                              dolarPrice={course.dolarPrice || course.price}
-                              className="text-lg font-bold leading-tight"
-                              showDiscountBadge={false}
-                            />
-                          ) : (
-                            <span className="font-bold text-xl">
-                              {lang == "en" ? "Free" : "ነፃ"}
-                            </span>
-                          )}
-                        </div>
-                      </div>
+                          {/* Thumbnail */}
+                          <Link
+                            href={`/${lang}/course/${course.id}?code=${
+                              searchParams?.get("code") || ""
+                            }`}
+                            className="relative aspect-video bg-gradient-to-br from-blue-100 to-green-100 dark:from-blue-900/30 dark:to-green-900/30 rounded-t-lg overflow-hidden block"
+                          >
+                            {course.thumbnail ? (
+                              <>
+                                <img
+                                  src={course.thumbnail}
+                                  alt={lang === "en" ? course.titleEn : course.titleAm}
+                                  className="w-full h-full object-cover"
+                                />
+                                <div className="absolute inset-0 bg-black/20 dark:bg-black/40"></div>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="w-16 h-16 bg-white/90 dark:bg-white/20 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm hover:scale-110 transition-transform">
+                                    <div className="w-0 h-0 border-l-[12px] border-l-blue-500 dark:border-l-blue-400 border-y-[8px] border-y-transparent ml-1"></div>
+                                  </div>
+                                </div>
+                              </>
+                            ) : (
+                              <>
+                                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-green-500/20 dark:from-blue-400/30 dark:to-green-400/30"></div>
+                                <div className="absolute inset-0 flex items-center justify-center">
+                                  <div className="w-16 h-16 bg-white/90 dark:bg-white/20 rounded-full flex items-center justify-center shadow-lg backdrop-blur-sm">
+                                    <div className="w-0 h-0 border-l-[12px] border-l-blue-500 dark:border-l-blue-400 border-y-[8px] border-y-transparent ml-1"></div>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </Link>
 
-                      <TruncatedDescription
-                        text={lang === "en" ? course.aboutEn : course.aboutAm}
-                        maxLines={3}
-                        lang={lang as "en" | "am"}
-                        className="mb-4"
-                      />
-                    </CardHeader>
+                          {/* Course Details */}
+                          <CardHeader className="flex-col items-start">
+                            <div className="flex items-start justify-between mb-3 w-full">
+                              <Chip color="primary" variant="flat" size="sm">
+                                {course.level}
+                              </Chip>
+                              <div className="flex items-center gap-1">
+                                <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                                <span className="text-sm font-medium">4.8</span>
+                              </div>
+                            </div>
 
-                    {/* Metadata and Action Section */}
-                    <CardBody className="flex-1 pt-0">
-                      <div className="space-y-3">
-                        <div className="flex items-center gap-2 text-sm text-default-600">
-                          <Clock className="h-4 w-4" />
-                          <span>{course.duration}</span>
-                        </div>
-                        <div className="flex items-center gap-2 text-sm text-default-600">
-                          <Users className="h-4 w-4" />
-                          <span>{course._count?.activity || 0} activities</span>
-                        </div>
-                      </div>
-                    </CardBody>
+                            <div className="flex items-start justify-between mb-3 w-full">
+                              <Link
+                                href={`/${lang}/course/${course.id}?code=${
+                                  searchParams?.get("code") || ""
+                                }`}
+                                className="flex-1 group"
+                              >
+                                <h3 className="text-xl font-bold group-hover:text-primary transition-colors cursor-pointer">
+                                  {lang === "en" ? course.titleEn : course.titleAm}
+                                </h3>
+                              </Link>
+                              <div
+                                className={cn(
+                                  "absolute top-0 right-0 px-2 py-1 rounded-bl-xl shadow-lg text-lg font-bold transition-all duration-300 ease-out backdrop-blur-sm",
+                                  (course.birrPrice ?? 0) > 0 ||
+                                    (course.dolarPrice ?? 0) > 0
+                                    ? "bg-background/95 dark:bg-background/90 border-l border-b border-divider dark:border-white/10"
+                                    : "bg-gradient-to-br from-success-500 to-success-600 dark:from-success-600 dark:to-success-700 text-white shadow-success-900/50"
+                                )}
+                              >
+                                {(course.birrPrice ?? 0) > 0 ||
+                                (course.dolarPrice ?? 0) > 0 ? (
+                                  <PriceDisplay
+                                    courseId={course.id}
+                                    birrPrice={course.birrPrice || course.price}
+                                    dolarPrice={course.dolarPrice || course.price}
+                                    className="text-lg font-bold leading-tight"
+                                    showDiscountBadge={false}
+                                  />
+                                ) : (
+                                  <span className="font-bold text-xl">
+                                    {lang == "en" ? "Free" : "ነፃ"}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                          </CardHeader>
 
-                    {/* Enroll Now Button */}
-                    <CardFooter className="pt-4">
-                      <Link
-                        href={`/${lang}/course/${course.id}?code=${
-                          searchParams?.get("code") || ""
-                        }`}
-                        className="w-full"
-                      >
-                        <Button color="primary" className="w-full">
-                          {lang == "en" ? "Enroll Now" : "መዝግብ"}
-                        </Button>
-                      </Link>
-                    </CardFooter>
-                  </Card>
+                          <CardBody className="flex-1 pt-0">
+                            <div className="space-y-3">
+                              <div className="flex items-center gap-2 text-sm text-default-600">
+                                <Clock className="h-4 w-4" />
+                                <span>{course.duration}</span>
+                              </div>
+                              <div className="flex items-center gap-2 text-sm text-default-600">
+                                <Users className="h-4 w-4" />
+                                <span>
+                                  {course.instructor.firstName} {course.instructor.fatherName}
+                                </span>
+                              </div>
+                            </div>
+                          </CardBody>
+
+                          <CardFooter className="pt-4">
+                            <Link
+                              href={`/${lang}/course/${course.id}?code=${
+                                searchParams?.get("code") || ""
+                              }`}
+                              className="w-full"
+                            >
+                              <Button color="primary" className="w-full">
+                                {lang == "en" ? "Enroll Now" : "መዝግብ"}
+                              </Button>
+                            </Link>
+                          </CardFooter>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </div>
             </div>
           </section>
         )}
       </main>
-      {/* <Footer /> */}
     </div>
   );
 }

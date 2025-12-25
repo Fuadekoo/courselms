@@ -23,32 +23,43 @@ export default function PublicAnnouncement() {
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Only fetch on client side and ensure we're not in an error state
     if (typeof window !== "undefined") {
       fetchAnnouncements();
     }
   }, []);
 
-  // Handle click/touch outside to close announcement (works on all devices)
   useEffect(() => {
     if (!isVisible) return;
 
     const handleClickOutside = (event: MouseEvent | TouchEvent) => {
       if (cardRef.current && !cardRef.current.contains(event.target as Node)) {
-        setIsVisible(false);
+        handleClose();
       }
     };
 
-    // Add event listeners for both mouse and touch
     document.addEventListener("mousedown", handleClickOutside);
     document.addEventListener("touchstart", handleClickOutside);
 
-    // Cleanup
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
       document.removeEventListener("touchstart", handleClickOutside);
     };
   }, [isVisible]);
+
+  const getSeenAnnouncements = (): string[] => {
+    if (typeof window === "undefined") return [];
+    const seen = localStorage.getItem("seenAnnouncements");
+    return seen ? JSON.parse(seen) : [];
+  };
+
+  const markAnnouncementAsSeen = (announcementId: string) => {
+    if (typeof window === "undefined") return;
+    const seen = getSeenAnnouncements();
+    if (!seen.includes(announcementId)) {
+      seen.push(announcementId);
+      localStorage.setItem("seenAnnouncements", JSON.stringify(seen));
+    }
+  };
 
   const fetchAnnouncements = async () => {
     try {
@@ -58,12 +69,20 @@ export default function PublicAnnouncement() {
         limit: 5,
       });
       if (result?.data && result.data.length > 0) {
-        setAnnouncements(result.data);
-        setCurrentIndex(0);
+        const seenIds = getSeenAnnouncements();
+        const newAnnouncements = result.data.filter(
+          (announcement) => !seenIds.includes(announcement.id)
+        );
+        
+        if (newAnnouncements.length > 0) {
+          setAnnouncements(newAnnouncements);
+          setCurrentIndex(0);
+        } else {
+          setAnnouncements([]);
+        }
       }
     } catch (error) {
       console.error("Error fetching announcements:", error);
-      // Silently fail - don't show announcements if there's an error
       setAnnouncements([]);
     } finally {
       setLoading(false);
@@ -88,7 +107,20 @@ export default function PublicAnnouncement() {
   };
 
   const handleClose = () => {
-    setIsVisible(false);
+    // Mark current announcement as seen
+    markAnnouncementAsSeen(currentAnnouncement.id);
+    
+    // If there are more unseen announcements, show the next one
+    const remainingAnnouncements = announcements.filter(
+      (_, index) => index !== currentIndex
+    );
+    
+    if (remainingAnnouncements.length > 0) {
+      setAnnouncements(remainingAnnouncements);
+      setCurrentIndex(0);
+    } else {
+      setIsVisible(false);
+    }
   };
 
   return (
@@ -99,22 +131,18 @@ export default function PublicAnnouncement() {
       <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/30 dark:to-indigo-950/30 border-2 border-primary/20 shadow-2xl">
         <CardBody className="p-4 md:p-6">
           <div className="flex items-start gap-4">
-            {/* Bell Icon */}
             <div className="flex-shrink-0 mt-1">
               <div className="w-12 h-12 rounded-full bg-primary/10 dark:bg-primary/20 flex items-center justify-center">
                 <Bell className="h-6 w-6 text-primary animate-pulse" />
               </div>
             </div>
 
-            {/* Content */}
             <div className="flex-1 min-w-0">
-              {/* Header */}
               <div className="flex items-start justify-between gap-2 mb-3">
                 <h3 className="text-lg font-bold text-foreground">
-                  {lang === "en" ? "Announcement" : "ማስታወቂያ"}
+                  {lang === "en" ? "New Announcement" : "አዲስ ማስታወቂያ"}
                 </h3>
                 <div className="flex items-center gap-2">
-                  {/* Navigation Dots */}
                   {hasMultiple && (
                     <div className="flex gap-1">
                       {announcements.map((_, index) => (
@@ -131,7 +159,6 @@ export default function PublicAnnouncement() {
                       ))}
                     </div>
                   )}
-                  {/* Close Button */}
                   <Button
                     isIconOnly
                     variant="light"
@@ -144,7 +171,6 @@ export default function PublicAnnouncement() {
                 </div>
               </div>
 
-              {/* Image */}
               {currentAnnouncement.photo && (
                 <div className="mb-3 rounded-lg overflow-hidden bg-default-100">
                   <img
@@ -158,12 +184,10 @@ export default function PublicAnnouncement() {
                 </div>
               )}
 
-              {/* Message */}
               <p className="text-default-700 dark:text-default-300 text-sm md:text-base leading-relaxed whitespace-pre-wrap">
                 {currentAnnouncement.message}
               </p>
 
-              {/* Navigation Arrows */}
               {hasMultiple && (
                 <div className="flex items-center justify-between mt-4 pt-4 border-t border-divider">
                   <Button

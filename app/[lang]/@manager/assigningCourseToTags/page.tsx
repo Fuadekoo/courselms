@@ -114,7 +114,7 @@ export default function AssigningCourseToTagsPage() {
   } = useDisclosure();
 
   const [deleteAction, setDeleteAction] = useState<{
-    type: 'tag' | 'course';
+    type: "tag" | "course";
     id: string;
     name?: string;
   } | null>(null);
@@ -205,8 +205,8 @@ export default function AssigningCourseToTagsPage() {
   };
 
   const handleDeleteTag = async (tagId: string) => {
-    const tag = tags.find(t => t.id === tagId);
-    setDeleteAction({ type: 'tag', id: tagId, name: tag?.name });
+    const tag = tags.find((t) => t.id === tagId);
+    setDeleteAction({ type: "tag", id: tagId, name: tag?.name });
     onDeleteModalOpen();
   };
 
@@ -279,7 +279,11 @@ export default function AssigningCourseToTagsPage() {
   // Course assignment operations
   const handleAssignCourses = async (tagId: string, courseIds: string[]) => {
     if (courseIds.length === 0) {
-      toast.error(lang === "en" ? "Please select at least one course" : "አንድ ኮርስ እባክዎን ይምረጡ");
+      toast.error(
+        lang === "en"
+          ? "Please select at least one course"
+          : "አንድ ኮርስ እባክዎን ይምረጡ"
+      );
       return;
     }
 
@@ -302,9 +306,9 @@ export default function AssigningCourseToTagsPage() {
   };
 
   const handleToggleCourse = (courseId: string) => {
-    setSelectedCourses(prev => 
-      prev.includes(courseId) 
-        ? prev.filter(id => id !== courseId)
+    setSelectedCourses((prev) =>
+      prev.includes(courseId)
+        ? prev.filter((id) => id !== courseId)
         : [...prev, courseId]
     );
   };
@@ -313,12 +317,15 @@ export default function AssigningCourseToTagsPage() {
     if (selectedCourses.length === unassignedCourses.length) {
       setSelectedCourses([]);
     } else {
-      setSelectedCourses(unassignedCourses.map(c => c.id));
+      setSelectedCourses(unassignedCourses.map((c) => c.id));
     }
   };
 
-  const handleRemoveCourse = async (assignmentId: string, courseName?: string) => {
-    setDeleteAction({ type: 'course', id: assignmentId, name: courseName });
+  const handleRemoveCourse = async (
+    assignmentId: string,
+    courseName?: string
+  ) => {
+    setDeleteAction({ type: "course", id: assignmentId, name: courseName });
     onDeleteModalOpen();
   };
 
@@ -327,7 +334,7 @@ export default function AssigningCourseToTagsPage() {
 
     try {
       setSaving(true);
-      if (deleteAction.type === 'tag') {
+      if (deleteAction.type === "tag") {
         const result = await deleteTag(undefined, deleteAction.id);
         if (result?.status) {
           toast.success("Tag deleted successfully");
@@ -336,7 +343,10 @@ export default function AssigningCourseToTagsPage() {
           toast.error(result?.message || "Failed to delete tag");
         }
       } else {
-        const result = await removeCourseFromTagAction(undefined, deleteAction.id);
+        const result = await removeCourseFromTagAction(
+          undefined,
+          deleteAction.id
+        );
         if (result && result.status) {
           toast.success("Course removed successfully");
           fetchData();
@@ -345,7 +355,11 @@ export default function AssigningCourseToTagsPage() {
         }
       }
     } catch (error) {
-      toast.error(deleteAction.type === 'tag' ? "Failed to delete tag" : "Failed to remove course");
+      toast.error(
+        deleteAction.type === "tag"
+          ? "Failed to delete tag"
+          : "Failed to remove course"
+      );
     } finally {
       setSaving(false);
       setDeleteAction(null);
@@ -431,7 +445,9 @@ export default function AssigningCourseToTagsPage() {
   };
 
   const selectedTag = tags.find((t) => t.id === selectedTagId);
-  const assignedCourseIds = selectedTag ? selectedTag.courses.map(c => c.courseId) : [];
+  const assignedCourseIds = selectedTag
+    ? selectedTag.courses.map((c) => c.courseId)
+    : [];
   const unassignedCourses = availableCourses.filter(
     (course) => !assignedCourseIds.includes(course.id)
   );
@@ -485,7 +501,8 @@ export default function AssigningCourseToTagsPage() {
                       <div>
                         <h3 className="text-lg font-semibold">{tag.name}</h3>
                         <p className="text-sm text-default-500">
-                          {tag.courses.length} {lang === "en" ? "courses" : "ኮርሶች"}
+                          {tag.courses.length}{" "}
+                          {lang === "en" ? "courses" : "ኮርሶች"}
                         </p>
                       </div>
                     </div>
@@ -529,7 +546,8 @@ export default function AssigningCourseToTagsPage() {
                 {tag.courses.length > 0 ? (
                   <div className="space-y-2">
                     {tag.courses.map((assignment) => {
-                      const isDraggingCourse = draggedCourseId === assignment.id;
+                      const isDraggingCourse =
+                        draggedCourseId === assignment.id;
                       return (
                         <div
                           key={assignment.id}
@@ -537,9 +555,13 @@ export default function AssigningCourseToTagsPage() {
                             isDraggingCourse ? "opacity-50" : ""
                           }`}
                           draggable
-                          onDragStart={(e) => handleCourseDragStart(e, assignment.id)}
+                          onDragStart={(e) =>
+                            handleCourseDragStart(e, assignment.id)
+                          }
                           onDragOver={handleCourseDragOver}
-                          onDrop={(e) => handleCourseDrop(e, assignment.id, tag.id)}
+                          onDrop={(e) =>
+                            handleCourseDrop(e, assignment.id, tag.id)
+                          }
                         >
                           <GripVertical className="size-4 text-default-400 cursor-move flex-shrink-0" />
                           <div className="relative w-16 h-10 rounded overflow-hidden flex-shrink-0">
@@ -562,7 +584,12 @@ export default function AssigningCourseToTagsPage() {
                             variant="light"
                             color="danger"
                             isIconOnly
-                            onPress={() => handleRemoveCourse(assignment.id, assignment.course.titleEn)}
+                            onPress={() =>
+                              handleRemoveCourse(
+                                assignment.id,
+                                assignment.course.titleEn
+                              )
+                            }
                             isDisabled={isSaving}
                           >
                             <X className="size-4" />
@@ -662,17 +689,28 @@ export default function AssigningCourseToTagsPage() {
                       onPress={handleSelectAllCourses}
                     >
                       {selectedCourses.length === unassignedCourses.length
-                        ? lang === "en" ? "Deselect All" : "ሁሉንም አልመርጥ"
-                        : lang === "en" ? "Select All" : "ሁሉንም ምረጥ"}
+                        ? lang === "en"
+                          ? "Deselect All"
+                          : "ሁሉንም አልመርጥ"
+                        : lang === "en"
+                        ? "Select All"
+                        : "ሁሉንም ምረጥ"}
                     </Button>
                     <Button
                       color="primary"
                       size="sm"
-                      onPress={() => selectedTag && handleAssignCourses(selectedTag.id, selectedCourses)}
+                      onPress={() =>
+                        selectedTag &&
+                        handleAssignCourses(selectedTag.id, selectedCourses)
+                      }
                       isDisabled={selectedCourses.length === 0 || isSaving}
                       isLoading={isSaving}
                     >
-                      {lang === "en" ? `Assign ${selectedCourses.length} Course${selectedCourses.length !== 1 ? 's' : ''}` : `${selectedCourses.length} ኮርስ ምድብ`}
+                      {lang === "en"
+                        ? `Assign ${selectedCourses.length} Course${
+                            selectedCourses.length !== 1 ? "s" : ""
+                          }`
+                        : `${selectedCourses.length} ኮርስ ምድብ`}
                     </Button>
                   </div>
                 </div>
@@ -704,13 +742,21 @@ export default function AssigningCourseToTagsPage() {
                         <Button
                           size="sm"
                           color="primary"
-                          variant={selectedCourses.includes(course.id) ? "solid" : "light"}
+                          variant={
+                            selectedCourses.includes(course.id)
+                              ? "solid"
+                              : "light"
+                          }
                           onPress={() => handleToggleCourse(course.id)}
                           isDisabled={isSaving}
                         >
                           {selectedCourses.includes(course.id)
-                            ? lang === "en" ? "Selected" : "ተመርጧል"
-                            : lang === "en" ? "Select" : "ምረጥ"}
+                            ? lang === "en"
+                              ? "Selected"
+                              : "ተመርጧል"
+                            : lang === "en"
+                            ? "Select"
+                            : "ምረጥ"}
                         </Button>
                       </div>
                     ))
@@ -741,7 +787,7 @@ export default function AssigningCourseToTagsPage() {
           </ModalHeader>
           <ModalBody>
             <p>
-              {deleteAction?.type === 'tag'
+              {deleteAction?.type === "tag"
                 ? lang === "en"
                   ? `Are you sure you want to delete the tag "${deleteAction.name}"?`
                   : `"${deleteAction.name}" መለያን መሰረዝ እንደሚፈልጉ እርግጠኛ ነዎት?`
@@ -754,14 +800,14 @@ export default function AssigningCourseToTagsPage() {
             <Button variant="light" onPress={onDeleteModalClose}>
               {lang === "en" ? "Cancel" : "ይቅር"}
             </Button>
-            <Button
-              color="danger"
-              onPress={confirmDelete}
-              isLoading={isSaving}
-            >
-              {deleteAction?.type === 'tag'
-                ? lang === "en" ? "Delete Tag" : "መለያ ሰርዝ"
-                : lang === "en" ? "Remove Course" : "ኮርስ አስወግድ"}
+            <Button color="danger" onPress={confirmDelete} isLoading={isSaving}>
+              {deleteAction?.type === "tag"
+                ? lang === "en"
+                  ? "Delete Tag"
+                  : "መለያ ሰርዝ"
+                : lang === "en"
+                ? "Remove Course"
+                : "ኮርስ አስወግድ"}
             </Button>
           </ModalFooter>
         </ModalContent>

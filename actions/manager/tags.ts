@@ -279,7 +279,8 @@ export async function assignCoursesToTag(
       orderBy: { order: "desc" },
       take: 1,
     });
-    let currentMaxOrder = maxOrderResult[0]?.order ?? 0;
+    // Start order from 1 for new assignments
+    let currentMaxOrder = Math.max(0, maxOrderResult[0]?.order ?? 0);
 
     // Create assignments for new courses
     const assignments = newCourseIds.map((courseId, index) => ({
@@ -348,10 +349,11 @@ export async function assignCourseToTag(
     const existingAssignments = await prisma.assigningCourseToTags.findMany({
       where: { tagId: data.tagId },
       select: { order: true },
-      orderBy: { order: "desc" },
+      orderBy: { order: 'desc' },
       take: 1,
     });
-    const maxOrder = existingAssignments[0]?.order ?? 0;
+    // Ensure order starts from 1 for new assignments
+    const maxOrder = Math.max(0, existingAssignments[0]?.order ?? 0);
 
     await prisma.assigningCourseToTags.create({
       data: {
@@ -450,4 +452,5 @@ export async function reorderCoursesInTag(
     };
   }
 }
+
 

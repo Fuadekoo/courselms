@@ -1,23 +1,26 @@
 "use client";
 
-import { Moon, Sun, Menu, X, Home, Users } from "lucide-react";
+import { Moon, Sun, Menu, X, Home, Users, Search } from "lucide-react";
 import { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
 import {
   useParams,
   usePathname,
   useSelectedLayoutSegment,
+  useRouter,
 } from "next/navigation";
 import { useTheme } from "next-themes";
-import { Button } from "@heroui/react";
+import { Button, Input } from "@heroui/react";
 import Logo from "./Logo";
 
 export default function GuestHeader() {
   const { lang = "en" } = useParams<{ lang: string }>() ?? {};
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const selectedSegment = useSelectedLayoutSegment();
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
+  const router = useRouter();
 
   // Close menu on route change
   useEffect(() => {
@@ -36,13 +39,17 @@ export default function GuestHeader() {
     };
   }, [isMenuOpen]);
 
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(
+        `/${lang}/course?search=${encodeURIComponent(searchQuery.trim())}`
+      );
+    }
+  };
+
   const links = useMemo(
     () => [
-      {
-        label: lang == "en" ? "Home" : "መነሻ",
-        url: "",
-        icon: Home,
-      },
       {
         label: lang == "en" ? "Affiliate Registration" : "ተባባሪ",
         url: "affiliate",
@@ -82,9 +89,9 @@ export default function GuestHeader() {
         className="sticky top-0 z-40 w-full border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 transition-all duration-300"
         data-lang={lang}
       >
-        <div className="container flex h-16 items-center justify-between px-4 mx-auto max-w-7xl">
+        <div className="container flex h-16 items-center gap-4 px-4 mx-auto max-w-7xl">
           {/* Left: Menu Toggle (Mobile) + Logo */}
-          <div className="flex items-center gap-3 lg:ml-12">
+          <div className="flex items-center gap-3 flex-shrink-0">
             <button
               onClick={() => setIsMenuOpen(!isMenuOpen)}
               className="md:hidden p-2 hover:bg-default-100 rounded-lg transition-colors"
@@ -99,36 +106,58 @@ export default function GuestHeader() {
             <Logo />
           </div>
 
-          {/* Center: Desktop Navigation */}
-          <nav className="hidden md:flex items-center gap-6">
-            {links.map((item) => {
-              const isActive = (selectedSegment || "") === item.url;
-              return (
-                <Link
-                  key={item.url}
-                  href={`/${lang}/${item.url}`}
-                  aria-label={item.label}
-                  className={`relative text-sm font-semibold tracking-wide transition-colors group ${
-                    isActive
-                      ? "text-primary"
-                      : "text-foreground/60 hover:text-primary"
-                  }`}
-                >
-                  <span className="relative z-10">{item.label}</span>
-                  <span
-                    className={`absolute left-0 -bottom-1 h-[3px] rounded-full bg-primary transition-all duration-300 ${
-                      isActive
-                        ? "w-full shadow-[0_0_8px_rgba(59,130,246,0.7)]"
-                        : "w-0 group-hover:w-full"
-                    }`}
-                  />
-                </Link>
-              );
-            })}
-          </nav>
+          {/* Center: Search Bar - Takes available space */}
+          <form
+            onSubmit={handleSearch}
+            className="flex-1 max-w-lg hidden md:block"
+          >
+            <Input
+              type="text"
+              placeholder={
+                lang === "en" ? "Search courses..." : "ኮርሶችን ፈልግ..."
+              }
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              startContent={<Search className="size-4 text-primary-500" />}
+              classNames={{
+                base: "w-full",
+                input: "text-sm",
+                inputWrapper:
+                  "border-gray-300 dark:border-gray-700 hover:border-primary-500 focus-within:!border-primary-500 bg-gray-50 dark:bg-gray-800",
+              }}
+            />
+          </form>
 
-          {/* Right: Actions */}
-          <div className="flex items-center gap-2">
+          {/* Right: Navigation + Actions */}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            {/* Desktop Navigation */}
+            <nav className="hidden lg:flex items-center gap-4 mr-2">
+              {links.map((item) => {
+                const isActive = (selectedSegment || "") === item.url;
+                return (
+                  <Link
+                    key={item.url}
+                    href={`/${lang}/${item.url}`}
+                    aria-label={item.label}
+                    className={`relative text-sm font-medium transition-colors group ${
+                      isActive
+                        ? "text-primary"
+                        : "text-foreground/60 hover:text-primary"
+                    }`}
+                  >
+                    <span className="relative z-10">{item.label}</span>
+                    <span
+                      className={`absolute left-0 -bottom-1 h-[2px] rounded-full bg-primary transition-all duration-300 ${
+                        isActive
+                          ? "w-full"
+                          : "w-0 group-hover:w-full"
+                      }`}
+                    />
+                  </Link>
+                );
+              })}
+            </nav>
+
             {/* Theme Toggle */}
             <Button
               isIconOnly
@@ -136,17 +165,16 @@ export default function GuestHeader() {
               size="sm"
               aria-label="Toggle theme"
               onClick={() => setTheme(theme === "light" ? "dark" : "light")}
-              className="hover:bg-default-100 relative overflow-hidden"
+              className="hover:bg-default-100"
             >
-              <span className="absolute inset-0 opacity-0 hover:opacity-10 bg-gradient-to-br from-primary/40 to-transparent transition-opacity" />
               {theme === "dark" ? (
-                <Sun className="h-5 w-5 transition-transform duration-300 rotate-0" />
+                <Sun className="h-4 w-4" />
               ) : (
-                <Moon className="h-5 w-5 transition-transform duration-300 rotate-0" />
+                <Moon className="h-4 w-4" />
               )}
             </Button>
 
-            {/* Language Switcher - Hidden on screens 425px and smaller */}
+            {/* Language Switcher */}
             <Link
               href={targetHref}
               onClick={onLangClick}
@@ -158,17 +186,14 @@ export default function GuestHeader() {
                 color="primary"
                 variant="flat"
                 size="sm"
-                className="font-semibold relative overflow-visible group"
+                className="font-semibold"
               >
-                <span className="absolute -inset-2 rounded-full bg-primary/20 opacity-0 group-hover:opacity-100 blur-sm transition-opacity" />
-                <span className="flex items-center justify-center w-6">
-                  {lang == "en" ? "አማ" : "En"}
-                </span>
+                {lang == "en" ? "አማ" : "En"}
               </Button>
             </Link>
 
             {/* Login/Signup - Desktop */}
-            <div className="hidden md:flex items-center gap-2 ml-2">
+            <div className="hidden md:flex items-center gap-1">
               <Link href={`/${lang}/login`}>
                 <Button variant="light" color="primary" size="sm">
                   {lang == "en" ? "Login" : "መግቢያ"}
@@ -209,6 +234,27 @@ export default function GuestHeader() {
             >
               <X className="h-5 w-5" />
             </button>
+          </div>
+
+          {/* Mobile Search Bar */}
+          <div className="p-4 border-b">
+            <form onSubmit={handleSearch} className="w-full">
+              <Input
+                type="text"
+                placeholder={
+                  lang === "en" ? "What do you want to learn?" : "ምን መማር ይፈልጋሉ?"
+                }
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                startContent={<Search className="size-4 text-primary-500" />}
+                classNames={{
+                  base: "w-full",
+                  input: "text-sm",
+                  inputWrapper:
+                    "border-gray-300 dark:border-gray-700 hover:border-primary-500 focus-within:!border-primary-500 bg-gray-50 dark:bg-gray-800",
+                }}
+              />
+            </form>
           </div>
 
           {/* Navigation Links */}
