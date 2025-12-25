@@ -119,6 +119,7 @@ export async function getMyCoursesWithProgress() {
       select: {
         subActivityId: true,
         isCompleted: true,
+        updatedAt: true,
         subActivity: {
           select: {
             activity: {
@@ -132,6 +133,14 @@ export async function getMyCoursesWithProgress() {
     });
 
     // Calculate progress for each course
+    const lastViewedByCourse: Record<string, Date | undefined> = {};
+    for (const progress of studentProgress) {
+      const courseId = progress.subActivity.activity.courseId;
+      const ts = progress.updatedAt;
+      const prev = lastViewedByCourse[courseId];
+      if (!prev || ts > prev) lastViewedByCourse[courseId] = ts;
+    }
+
     const coursesWithProgress = courses.map((course) => {
       const totalSubActivities = course.activity.reduce(
         (total, activity) => total + activity.subActivity.length,
@@ -157,12 +166,20 @@ export async function getMyCoursesWithProgress() {
         aboutEn: course.aboutEn,
         aboutAm: course.aboutAm,
         progress,
+        lastViewedAt: lastViewedByCourse[course.id],
         instructorName: `${course.instructor.firstName} ${course.instructor.fatherName}`,
       };
     });
 
-    // Sort by progress (ascending) - show courses with less progress first
-    coursesWithProgress.sort((a, b) => a.progress - b.progress);
+    // Sort by most recently viewed (fallback to progress asc when no activity)
+    coursesWithProgress.sort((a, b) => {
+      if (a.lastViewedAt && b.lastViewedAt) {
+        return b.lastViewedAt.getTime() - a.lastViewedAt.getTime();
+      }
+      if (a.lastViewedAt) return -1;
+      if (b.lastViewedAt) return 1;
+      return a.progress - b.progress;
+    });
 
     console.log(
       "getMyCoursesWithProgress: Returning courses:",
