@@ -2,7 +2,7 @@
 
 import useData from "@/hooks/useData";
 import { getCoursesByTags } from "@/actions/public/courses";
-import React from "react";
+import React, { useEffect, useMemo } from "react";
 import NoData from "@/components/noData";
 import { useParams, useSearchParams } from "next/navigation";
 import {
@@ -23,10 +23,17 @@ export default function Page() {
   const params = useParams<{ lang: string }>(),
     lang = params?.lang ?? "en",
     searchParams = useSearchParams(),
+    search = searchParams?.get("search") || "",
+    // memoize args so the data fetch doesn't re-trigger on every render
+    courseArgs = useMemo(() => [{ search }], [search]),
     { data: response, loading } = useData({
       func: getCoursesByTags,
-      args: [],
+      args: [courseArgs[0]],
     });
+
+  useEffect(() => {
+    // If search query is present, we might want to scroll to results or handle focus
+  }, [search]);
 
   // Extract the tagged courses from the response
   const taggedCourses = response?.data || [];
@@ -59,17 +66,19 @@ export default function Page() {
 
               {/* Courses by Tags */}
               <div className="space-y-16">
-                {taggedCourses.map((tag) => (
+                {taggedCourses.map((tag: any) => (
                   <div key={tag.id} className="space-y-8">
                     {/* Tag Header */}
                     <div className="text-center">
-                      <h2 className="text-2xl md:text-3xl font-bold mb-2">{tag.name}</h2>
+                      <h2 className="text-2xl md:text-3xl font-bold mb-2">
+                        {tag.name}
+                      </h2>
                       <div className="w-20 h-1 bg-primary mx-auto rounded-full"></div>
                     </div>
-                    
+
                     {/* Tag Courses Grid */}
                     <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
-                      {tag.courses.map((course, i) => (
+                      {tag.courses.map((course: any, i: number) => (
                         <Card
                           key={i}
                           className="flex flex-col hover:shadow-lg transition-shadow bg-background border border-divider"
@@ -85,8 +94,16 @@ export default function Page() {
                               <>
                                 <img
                                   src={course.thumbnail}
-                                  alt={lang === "en" ? course.titleEn : course.titleAm}
+                                  alt={
+                                    lang === "en"
+                                      ? course.titleEn
+                                      : course.titleAm
+                                  }
                                   className="w-full h-full object-cover"
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).src =
+                                      "/errorphoto.png";
+                                  }}
                                 />
                                 <div className="absolute inset-0 bg-black/20 dark:bg-black/40"></div>
                                 <div className="absolute inset-0 flex items-center justify-center">
@@ -127,7 +144,9 @@ export default function Page() {
                                 className="flex-1 group"
                               >
                                 <h3 className="text-xl font-bold group-hover:text-primary transition-colors cursor-pointer">
-                                  {lang === "en" ? course.titleEn : course.titleAm}
+                                  {lang === "en"
+                                    ? course.titleEn
+                                    : course.titleAm}
                                 </h3>
                               </Link>
                               <div
@@ -144,7 +163,9 @@ export default function Page() {
                                   <PriceDisplay
                                     courseId={course.id}
                                     birrPrice={course.birrPrice || course.price}
-                                    dolarPrice={course.dolarPrice || course.price}
+                                    dolarPrice={
+                                      course.dolarPrice || course.price
+                                    }
                                     className="text-lg font-bold leading-tight"
                                     showDiscountBadge={false}
                                   />
@@ -166,7 +187,8 @@ export default function Page() {
                               <div className="flex items-center gap-2 text-sm text-default-600">
                                 <Users className="h-4 w-4" />
                                 <span>
-                                  {course.instructor.firstName} {course.instructor.fatherName}
+                                  {course.instructor.firstName}{" "}
+                                  {course.instructor.fatherName}
                                 </span>
                               </div>
                             </div>

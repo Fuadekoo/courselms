@@ -41,24 +41,12 @@ export async function GET(request: NextRequest) {
       clientIp?.trim() ||
       "127.0.0.1";
 
-    // Clean up the IP (remove port if present)
-    ip = ip.split(":")[0].trim();
-
-    console.log("Detected IP:", ip);
-    console.log("All headers:", {
-      forwarded,
-      realIp,
-      cfConnectingIp,
-      xForwardedFor,
-      xRealIp,
-      xClientIp,
-      xClusterClientIp,
-      xForwarded,
-      xForwardedForOriginal,
-      xOriginalForwardedFor,
-      remoteAddr,
-      clientIp,
-    });
+    // Clean up the IP (remove port if present) WITHOUT breaking IPv6 (e.g. ::1)
+    ip = ip.trim();
+    const ipv4WithPortMatch = ip.match(/^(\d{1,3}(?:\.\d{1,3}){3}):\d+$/);
+    if (ipv4WithPortMatch) {
+      ip = ipv4WithPortMatch[1];
+    }
 
     // For localhost/development, try to get real device IP
     if (
@@ -96,11 +84,12 @@ export async function GET(request: NextRequest) {
     const cacheKey = `geo_${ip}`;
     const cached = cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_DURATION) {
-      console.log("Using cached geolocation data for IP:", ip);
-      return NextResponse.json({
+      const res = NextResponse.json({
         ...cached.data,
         cached: true,
       });
+      res.headers.set("Cache-Control", "public, max-age=300");
+      return res;
     }
 
     try {
@@ -157,7 +146,7 @@ export async function GET(request: NextRequest) {
       // If both services fail, use fallback
       if (!geoData) {
         console.log("All geolocation services failed, using fallback");
-        return NextResponse.json({
+        const res = NextResponse.json({
           success: true,
           ip: ip,
           country: "Ethiopia",
@@ -168,23 +157,14 @@ export async function GET(request: NextRequest) {
           fallback: true,
           error: "All geolocation services failed, using fallback",
         });
+        res.headers.set("Cache-Control", "public, max-age=300");
+        return res;
       }
 
       const country = geoData.country_name;
       const countryCode = geoData.country_code;
       const isEthiopia =
         countryCode === "ET" || country.toLowerCase().includes("ethiopia");
-
-      console.log(
-        "Country detected:",
-        country,
-        "Code:",
-        countryCode,
-        "Is Ethiopia:",
-        isEthiopia,
-        "Service:",
-        serviceUsed
-      );
 
       const result = {
         success: true,
@@ -206,12 +186,14 @@ export async function GET(request: NextRequest) {
         timestamp: Date.now(),
       });
 
-      return NextResponse.json(result);
+      const res = NextResponse.json(result);
+      res.headers.set("Cache-Control", "public, max-age=300");
+      return res;
     } catch (geoError) {
       console.error("Geolocation error:", geoError);
 
       // Fallback: assume Ethiopia for development
-      return NextResponse.json({
+      const res = NextResponse.json({
         success: true,
         ip: ip,
         country: "Ethiopia",
@@ -222,6 +204,8 @@ export async function GET(request: NextRequest) {
         fallback: true,
         error: "Geolocation failed, using fallback",
       });
+      res.headers.set("Cache-Control", "public, max-age=300");
+      return res;
     }
   } catch (error) {
     console.error("Get country error:", error);

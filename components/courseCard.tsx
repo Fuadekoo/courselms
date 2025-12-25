@@ -18,7 +18,7 @@ export default function CourseCardAffiliate({
   thumbnail,
   level,
   duration,
-  _count: { activity },
+  _count,
   price,
   birrPrice,
   dolarPrice,
@@ -39,13 +39,14 @@ export default function CourseCardAffiliate({
   birrPrice?: number;
   dolarPrice?: number;
   instructor: Pick<User, "firstName" | "fatherName">;
-  _count: { activity: number };
+  _count?: { activity?: number };
   btn: React.ReactNode;
   titleLink?: string;
 }) {
   const searchParams = useSearchParams();
   const params = useParams<{ lang: string }>();
   const lang = params?.lang || "en";
+  const activity = _count?.activity ?? 0;
 
   return (
     <div className="h-full relative bg-background dark:bg-background/95 rounded-xl flex flex-col border border-divider dark:border-white/10 shadow-lg dark:shadow-2xl dark:shadow-black/20 hover:shadow-xl dark:hover:shadow-black/30 transition-all duration-500 ease-out hover:scale-[1.02] hover:-translate-y-1 overflow-hidden">

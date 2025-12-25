@@ -2,7 +2,7 @@
 
 import useData from "@/hooks/useData";
 import { getCoursesByTags } from "@/actions/public/courses";
-import React from "react";
+import React, { useMemo } from "react";
 import { useGlobalLoading } from "@/stores/uiStore";
 import CourseCard from "@/components/courseCard";
 import { useParams, useSearchParams } from "next/navigation";
@@ -13,13 +13,16 @@ export default function Page() {
   const params = useParams<{ lang: string }>();
   const lang = params?.lang ?? "en";
   const searchParams = useSearchParams();
-  const { data: taggedCourses = [], loading } = useData({
+  const search = searchParams?.get("search") || "";
+  // keep args stable so fetch doesn't re-run unnecessarily
+  const courseArgs = useMemo(() => [{ search }], [search]);
+  const { data: response, loading } = useData({
     func: getCoursesByTags,
-    args: [],
+    args: courseArgs,
   });
 
   // Ensure taggedCourses is always an array
-  const coursesToDisplay = Array.isArray(taggedCourses) ? taggedCourses : [];
+  const coursesToDisplay = Array.isArray(response?.data) ? response.data : [];
   const globalLoading = useGlobalLoading();
 
   // Keep previous page visible while loading (TopLoadingBar will show progress)

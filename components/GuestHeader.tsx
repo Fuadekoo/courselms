@@ -8,6 +8,7 @@ import {
   usePathname,
   useSelectedLayoutSegment,
   useRouter,
+  useSearchParams,
 } from "next/navigation";
 import { useTheme } from "next-themes";
 import { Button, Input } from "@heroui/react";
@@ -15,12 +16,18 @@ import Logo from "./Logo";
 
 export default function GuestHeader() {
   const { lang = "en" } = useParams<{ lang: string }>() ?? {};
+  const searchParams = useSearchParams();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParams?.get("search") || "");
   const selectedSegment = useSelectedLayoutSegment();
   const { theme, setTheme } = useTheme();
   const pathname = usePathname();
   const router = useRouter();
+
+  // Sync search query with URL
+  useEffect(() => {
+    setSearchQuery(searchParams?.get("search") || "");
+  }, [searchParams]);
 
   // Close menu on route change
   useEffect(() => {
@@ -41,11 +48,11 @@ export default function GuestHeader() {
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
       router.push(
-        `/${lang}/course?search=${encodeURIComponent(searchQuery.trim())}`
+      `/${lang}/course${
+        searchQuery.trim() ? `?search=${encodeURIComponent(searchQuery.trim())}` : ""
+      }`
       );
-    }
   };
 
   const links = useMemo(

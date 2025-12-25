@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { usePathname, useParams, useRouter } from "next/navigation";
+import { usePathname, useParams, useRouter, useSearchParams } from "next/navigation";
 import { ShoppingCart, Search, Sun, Moon, Menu, X } from "lucide-react";
 import User from "./user";
 import { Button, Input } from "@heroui/react";
@@ -18,17 +18,23 @@ export default function Header({
   const pathname = usePathname();
   const params = useParams<{ lang: string }>();
   const lang = params?.lang || "en";
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [userName, setUserName] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState(searchParams?.get("search") || "");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
     getUserName().then(setUserName);
   }, []);
+
+  // Sync search query with URL
+  useEffect(() => {
+    setSearchQuery(searchParams?.get("search") || "");
+  }, [searchParams]);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -49,11 +55,11 @@ export default function Header({
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
       router.push(
-        `/${lang}/course?search=${encodeURIComponent(searchQuery.trim())}`
+      `/${lang}/course${
+        searchQuery.trim() ? `?search=${encodeURIComponent(searchQuery.trim())}` : ""
+      }`
       );
-    }
   };
 
   return (
