@@ -1,7 +1,7 @@
 "use client";
 
 import useData from "@/hooks/useData";
-import { getCoursesByTags } from "@/actions/public/courses";
+import { getCoursesForLoginCustomer } from "@/lib/data/course";
 import React, { useMemo } from "react";
 import { useGlobalLoading } from "@/stores/uiStore";
 import CourseCard from "@/components/courseCard";
@@ -12,13 +12,9 @@ import Link from "next/link";
 export default function Page() {
   const params = useParams<{ lang: string }>();
   const lang = params?.lang ?? "en";
-  const searchParams = useSearchParams();
-  const search = searchParams?.get("search") || "";
-  // keep args stable so fetch doesn't re-run unnecessarily
-  const courseArgs = useMemo(() => [{ search }], [search]);
   const { data: response, loading } = useData({
-    func: getCoursesByTags,
-    args: courseArgs,
+    func: getCoursesForLoginCustomer,
+    args: [],
   });
 
   // Ensure taggedCourses is always an array

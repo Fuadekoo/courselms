@@ -1044,3 +1044,20 @@ export async function getInstructors() {
     return [];
   }
 }
+
+// Check if user is already enrolled in a course
+export async function checkUserEnrollment(userId: string, courseId: string): Promise<boolean> {
+  try {
+    const order = await prisma.order.findFirst({
+      where: {
+        userId,
+        courseId,
+        status: "paid",
+      },
+    });
+    return !!order;
+  } catch (error) {
+    console.error("Error checking user enrollment:", error);
+    return false;
+  }
+}
