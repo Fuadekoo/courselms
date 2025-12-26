@@ -31,10 +31,10 @@ import { getCurrentUserInfo } from "@/lib/action";
 export default function Page() {
   const params = useParams<{ lang: string; id: string }>();
   const lang = params?.lang || "en";
-  const id = params?.id ?? "",
-    searchParams = useSearchParams(),
-    { data, loading } = useData({ func: getCourseForCustomer, args: [id] }),
-    { isOpen, onOpenChange } = useDisclosure();
+  const id = params?.id ?? "";
+  const searchParams = useSearchParams();
+  const { data, loading } = useData({ func: getCourseForCustomer, args: [id] });
+  const { isOpen, onOpenChange } = useDisclosure();
   const router = useRouter();
 
   // Video player state for free subactivities

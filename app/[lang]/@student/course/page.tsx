@@ -11,6 +11,7 @@ import Link from "next/link";
 
 export default function Page() {
   const params = useParams<{ lang: string }>();
+  const searchParams = useSearchParams();
   const lang = params?.lang ?? "en";
   const { data: response, loading } = useData({
     func: getCoursesForLoginCustomer,
@@ -39,7 +40,7 @@ export default function Page() {
               {tag.name}
             </h2>
             <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 auto-rows-fr">
-              {tag.courses.map((course, i) => (
+              {tag.courses.map((course: any, i: number) => (
                 <CourseCard
                   key={i + ""}
                   {...course}

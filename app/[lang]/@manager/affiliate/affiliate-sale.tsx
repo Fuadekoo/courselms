@@ -17,12 +17,12 @@ import {
 } from "recharts";
 
 export default function SalesChart() {
-  const searchParams = useSearchParams(),
-    [date, setDate] = useState({ start: new Date(), end: new Date() }),
-    { data, loading } = useData({
-      func: getfeckdata,
-      args: [date],
-    });
+  const searchParams = useSearchParams();
+  const [date, setDate] = useState({ start: new Date(), end: new Date() });
+  const { data, loading } = useData({
+    func: getfeckdata,
+    args: [date],
+  });
 
   useEffect(() => {
     setDate({
