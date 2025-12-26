@@ -87,25 +87,29 @@ export default function User({ userName, navItems = [] }: UserProps) {
         </PopoverTrigger>
         <PopoverContent className="w-56 p-2">
           <div className="flex flex-col gap-1">
-            {/* Navigation Items */}
-            {navItems.map((item, index) => (
-              <Link
-                key={index}
-                href={`/${lang}/${item.url}`}
-                onClick={() => onPopoverOpenChange(false)}
-                className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm text-gray-700 dark:text-gray-300"
-              >
-                <span className="text-gray-600 dark:text-gray-400">{item.icon}</span>
-                <span className="capitalize">{item.label}</span>
-              </Link>
-            ))}
-            
+            {/* Navigation Items - Only this section scrolls */}
+            {navItems.length > 0 && (
+              <div className="max-h-60 overflow-y-auto">
+                {navItems.map((item, index) => (
+                  <Link
+                    key={index}
+                    href={`/${lang}/${item.url}`}
+                    onClick={() => onPopoverOpenChange(false)}
+                    className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm text-gray-700 dark:text-gray-300"
+                  >
+                    <span className="text-gray-600 dark:text-gray-400">{item.icon}</span>
+                    <span className="capitalize">{item.label}</span>
+                  </Link>
+                ))}
+              </div>
+            )}
+
             {/* Divider */}
             {navItems.length > 0 && (
               <div className="border-t border-gray-200 dark:border-gray-700 my-1"></div>
             )}
 
-            {/* Account Settings */}
+            {/* Account Settings - Always visible */}
             <Button
               variant="light"
               onPress={onOpen}
@@ -113,8 +117,8 @@ export default function User({ userName, navItems = [] }: UserProps) {
             >
               {lang == "en" ? "Change Password" : "የይለፍ ቃል ቀይር"}
             </Button>
-            
-            {/* Logout */}
+
+            {/* Logout - Always visible */}
             <Button
               variant="light"
               color="danger"
