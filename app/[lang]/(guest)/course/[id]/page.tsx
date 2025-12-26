@@ -27,7 +27,6 @@ import { useCourseDiscount } from "@/hooks/useCourseDiscount";
 import PriceDisplay from "@/components/PriceDisplay";
 import { DollarSign } from "lucide-react";
 import { auth } from "@/lib/auth";
-import { useEffect, useState } from "react";
 
 export default function Page() {
   const params = useParams<{ lang: string; id: string }>();
