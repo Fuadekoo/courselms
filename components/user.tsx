@@ -6,6 +6,7 @@ import { changePassword } from "@/lib/action/user";
 import useAction from "@/hooks/useAction";
 import { useEffect } from "react";
 import { unauthentic } from "@/lib/action/user";
+import { useUserStore } from "@/stores/useUserStore";
 import {
   Button,
   Form,
@@ -58,6 +59,12 @@ export default function User({ userName, navItems = [] }: UserProps) {
       loading: lang == "en" ? "Logging out" : "በመውጣት ላይ",
       success: lang == "en" ? "Successfully logged out" : "በተሳካ ሁኔታ ወጥቷል።",
       error: lang == "en" ? "Logged out failed" : "መውጣት አልተሳካም።",
+      onSuccess: () => {
+        // Clear Zustand user store on successful logout
+        useUserStore.getState().clear();
+        // Force full page reload to clear all states and redirect
+        window.location.href = `/${lang}`;
+      }
     }),
     { isOpen, onOpen, onOpenChange } = useDisclosure();
 

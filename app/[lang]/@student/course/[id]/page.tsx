@@ -10,6 +10,7 @@ import {
   Logs,
   MonitorSmartphone,
   ReceiptText,
+  Play,
 } from "lucide-react";
 import Payment from "@/components/Payment";
 import useData from "@/hooks/useData";
@@ -186,10 +187,12 @@ export default function Page() {
                 isEnrolled ? (
                   <Button
                     onPress={() => router.push(`/${lang}/mycourse/${id}`)}
-                    variant="solid"
+                    variant="bordered"
                     color="success"
+                    className="w-full"
+                    startContent={<Play className="size-4 fill-current" />}
                   >
-                    {lang == "en" ? "Continue" : "ቀጥል"}
+                    {lang == "en" ? "Continue Learning" : "መማርዎን ይቀጥሉ"}
                   </Button>
                 ) : (
                   <Button

@@ -308,6 +308,8 @@ export async function resetPassword(
 export async function unauthentic(prevState: StateType): Promise<StateType> {
   try {
     await signOut({ redirect: false });
+    revalidatePath("/", "layout");
+    return { status: true, message: "Sign out successful" };
   } catch (error) {
     console.log("ERROR :: ", error);
     return {
@@ -316,10 +318,6 @@ export async function unauthentic(prevState: StateType): Promise<StateType> {
       message: "Sign out failed",
     };
   }
-  // return { status: true };
-  revalidatePath("");
-  redirect("/en");
-  console.log(prevState);
 }
 
 export async function changePassword(

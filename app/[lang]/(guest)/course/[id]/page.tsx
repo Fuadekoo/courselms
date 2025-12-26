@@ -25,7 +25,7 @@ import { Button, useDisclosure } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useCourseDiscount } from "@/hooks/useCourseDiscount";
 import PriceDisplay from "@/components/PriceDisplay";
-import { DollarSign } from "lucide-react";
+import { DollarSign, Play } from "lucide-react";
 import { getCurrentUserInfo } from "@/lib/action";
 
 export default function Page() {
@@ -168,11 +168,12 @@ export default function Page() {
                 isEnrolled ? (
                   <Button
                     onPress={() => router.push(`/${lang}/mycourse/${id}`)}
-                    variant="solid"
+                    variant="bordered"
                     color="success"
                     className="w-full"
+                    startContent={<Play className="size-4 fill-current" />}
                   >
-                    {lang == "en" ? "Continue" : "ቀጥል"}
+                    {lang == "en" ? "Continue Learning" : "መማርዎን ይቀጥሉ"}
                   </Button>
                 ) : (
                   <Button
