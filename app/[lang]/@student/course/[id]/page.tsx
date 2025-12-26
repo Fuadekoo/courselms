@@ -27,7 +27,7 @@ import { useCourseDiscount } from "@/hooks/useCourseDiscount";
 import { enrollInFreeCourse } from "@/lib/action/freeCourse";
 import useAction from "@/hooks/useAction";
 import { useRouter } from "next/navigation";
-import { auth } from "@/lib/auth";
+import { getCurrentUserInfo } from "@/lib/action";
 
 export default function Page() {
   const params = useParams<{ lang: string; id: string }>();
@@ -52,9 +52,9 @@ export default function Page() {
       if (!data?.id) return;
 
       try {
-        const session = await auth();
-        if (session?.user?.id) {
-          const enrolled = await checkUserEnrollment(session.user.id, data.id);
+        const result = await getCurrentUserInfo();
+        if (result.status && result.userId) {
+          const enrolled = await checkUserEnrollment(result.userId, data.id);
           setIsEnrolled(enrolled);
         }
       } catch (error) {
@@ -189,7 +189,7 @@ export default function Page() {
                     variant="solid"
                     color="success"
                   >
-                    {lang == "en" ? "Continue Learning" : "መማርዎን ይቀጥሉ"}
+                    {lang == "en" ? "Continue" : "ቀጥል"}
                   </Button>
                 ) : (
                   <Button

@@ -26,7 +26,7 @@ import { useRouter } from "next/navigation";
 import { useCourseDiscount } from "@/hooks/useCourseDiscount";
 import PriceDisplay from "@/components/PriceDisplay";
 import { DollarSign } from "lucide-react";
-import { auth } from "@/lib/auth";
+import { getCurrentUserInfo } from "@/lib/action";
 
 export default function Page() {
   const params = useParams<{ lang: string; id: string }>();
@@ -51,9 +51,9 @@ export default function Page() {
       if (!data?.id) return;
 
       try {
-        const session = await auth();
-        if (session?.user?.id) {
-          const enrolled = await checkUserEnrollment(session.user.id, data.id);
+        const result = await getCurrentUserInfo();
+        if (result.status && result.userId) {
+          const enrolled = await checkUserEnrollment(result.userId, data.id);
           setIsEnrolled(enrolled);
         }
       } catch (error) {
@@ -167,12 +167,12 @@ export default function Page() {
               btn={
                 isEnrolled ? (
                   <Button
-                    onPress={() => router.push(`/${lang}/mycourse`)}
+                    onPress={() => router.push(`/${lang}/mycourse/${id}`)}
                     variant="solid"
                     color="success"
                     className="w-full"
                   >
-                    {lang == "en" ? "Continue Learning" : "መማርዎን ይቀጥሉ"}
+                    {lang == "en" ? "Continue" : "ቀጥል"}
                   </Button>
                 ) : (
                   <Button
