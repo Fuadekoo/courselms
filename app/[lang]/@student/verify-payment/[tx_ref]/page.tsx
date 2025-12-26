@@ -55,12 +55,18 @@ export default function Page() {
             <p className="text-success-600">
               {lang == "en" ? "Payment is Successful" : "ክፍያው የተሳካ ነው"}
             </p>
-            <Link href={`/${lang}/mycourse`}>
-              <Button
-                variant="flat"
-                color="primary"
-              >{lang == "en" ? "Continue Learning" : "መማርዎን ይቀጥሉ"}</Button>
-            </Link>
+            <Button
+              variant="flat"
+              color="primary"
+              onPress={() => {
+                // Small delay to ensure toast is visible before navigation
+                setTimeout(() => {
+                  router.push(`/${lang}/mycourse`);
+                }, 100);
+              }}
+            >
+              {lang == "en" ? "Continue Learning" : "መማርዎን ይቀጥሉ"}
+            </Button>
           </>
         ) : (
           <>
