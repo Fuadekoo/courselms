@@ -180,7 +180,7 @@ export async function redirectToBot(prevState: StateType) {
   console.log(prevState);
 }
 
-export async function getCurrentUserPhoneNumber() {
+export async function getCurrentUserInfo() {
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -189,18 +189,43 @@ export async function getCurrentUserPhoneNumber() {
 
     const user = await prisma.user.findUnique({
       where: { id: session.user.id },
-      select: { phoneNumber: true, id: true },
+      select: { phoneNumber: true, email: true, id: true },
     });
 
     if (!user) {
       return { status: false, message: "User not found" };
     }
 
-    return { status: true, phoneNumber: user.phoneNumber, userId: user.id };
+    // Determine if the user is logged in via Google/Email or Phone
+    // Google OAuth users have a generated phoneNumber starting with 'oauth_google_'
+    const isGoogleUser = user.phoneNumber.startsWith("oauth_google_");
+    const loginIdentifier = isGoogleUser && user.email ? user.email : user.phoneNumber;
+    const identifierType = isGoogleUser && user.email ? "email" : "phone";
+
+    return {
+      status: true,
+      identifier: loginIdentifier,
+      type: identifierType,
+      phoneNumber: user.phoneNumber,
+      email: user.email,
+      userId: user.id,
+    };
   } catch (error) {
-    console.error("Error getting current user phone number:", error);
-    return { status: false, message: "Failed to get user phone number" };
+    console.error("Error getting current user info:", error);
+    return { status: false, message: "Failed to get user info" };
   }
+}
+
+export async function getCurrentUserPhoneNumber() {
+  const result = await getCurrentUserInfo();
+  if (result.status) {
+    return {
+      status: true,
+      phoneNumber: result.identifier, // Return the identifier as phoneNumber for backward compatibility
+      userId: result.userId,
+    };
+  }
+  return result;
 }
 
 export async function sendEmailOTP(

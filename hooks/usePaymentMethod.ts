@@ -13,6 +13,14 @@ interface PaymentMethodData {
   service: string;
 }
 
+const PAYMENT_CACHE_MS = 10 * 60 * 1000; // 10 minutes
+let cachedPayment:
+  | Omit<PaymentMethodData, "loading">
+  | null = null;
+let cachedPaymentAt = 0;
+let pendingPaymentPromise: Promise<Omit<PaymentMethodData, "loading">> | null =
+  null;
+
 export function usePaymentMethod(): PaymentMethodData {
   const [data, setData] = useState<PaymentMethodData>({
     paymentMethod: "chapa", // Default to Chapa
@@ -31,33 +39,57 @@ export function usePaymentMethod(): PaymentMethodData {
   useEffect(() => {
     const detectPaymentMethod = async () => {
       try {
-        setData((prev) => ({ ...prev, loading: true, error: null }));
-
         // Wait for IP detection to complete
         if (ipLoading) {
           return;
         }
 
-        console.log("Detecting payment method for IP:", clientIP);
+        // Use cached result if fresh (and for same IP when available)
+        if (
+          cachedPayment &&
+          Date.now() - cachedPaymentAt < PAYMENT_CACHE_MS &&
+          (!cachedPayment.ip || cachedPayment.ip === clientIP)
+        ) {
+          setData({ ...cachedPayment, loading: false });
+          return;
+        }
 
-        const response = await fetch("/api/get-country");
-        const result = await response.json();
+        // If another component already triggered detection, await it
+        if (pendingPaymentPromise) {
+          const shared = await pendingPaymentPromise;
+          cachedPayment = shared;
+          cachedPaymentAt = Date.now();
+          setData({ ...shared, loading: false });
+          return;
+        }
 
-        if (result.success) {
-          setData({
+        setData((prev) => ({ ...prev, loading: true, error: null }));
+
+        pendingPaymentPromise = (async () => {
+          const response = await fetch("/api/get-country", {
+            cache: "force-cache",
+          });
+          const result = await response.json();
+
+          if (result.success) {
+            return {
             paymentMethod: result.paymentMethod,
             currency: result.currency,
             country: result.country,
             countryCode: result.countryCode,
             isEthiopia: result.isEthiopia,
-            loading: false,
             error: null,
             ip: result.ip,
             service: result.service || "unknown",
-          });
-        } else {
+            } as Omit<PaymentMethodData, "loading">;
+          }
           throw new Error(result.error || "Failed to detect country");
-        }
+        })();
+
+        const resolved = await pendingPaymentPromise;
+        cachedPayment = resolved;
+        cachedPaymentAt = Date.now();
+        setData({ ...resolved, loading: false });
       } catch (error) {
         console.error("Payment method detection error:", error);
         setData((prev) => ({
@@ -65,6 +97,8 @@ export function usePaymentMethod(): PaymentMethodData {
           loading: false,
           error: error instanceof Error ? error.message : "Unknown error",
         }));
+      } finally {
+        pendingPaymentPromise = null;
       }
     };
 

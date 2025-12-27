@@ -1,12 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { usePathname, useParams, useRouter } from "next/navigation";
+import { usePathname, useParams, useRouter, useSearchParams } from "next/navigation";
 import { ShoppingCart, Search, Sun, Moon, Menu, X } from "lucide-react";
 import User from "./user";
 import { Button, Input } from "@heroui/react";
 import { cn } from "@/lib/utils";
-import { getUserName } from "@/actions/user/header";
+import { useUserData } from "@/hooks/useUserData";
 import Logo from "./Logo";
 import { useTheme } from "next-themes";
 
@@ -18,17 +18,22 @@ export default function Header({
   const pathname = usePathname();
   const params = useParams<{ lang: string }>();
   const lang = params?.lang || "en";
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
-  const [userName, setUserName] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("");
+  const { userName, isLoading: isLoadingUser } = useUserData();
+  const [searchQuery, setSearchQuery] = useState(searchParams?.get("search") || "");
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    getUserName().then(setUserName);
   }, []);
+
+  // Sync search query with URL
+  useEffect(() => {
+    setSearchQuery(searchParams?.get("search") || "");
+  }, [searchParams]);
 
   // Close mobile menu on route change
   useEffect(() => {
@@ -49,11 +54,11 @@ export default function Header({
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
       router.push(
-        `/${lang}/course?search=${encodeURIComponent(searchQuery.trim())}`
+      `/${lang}/course${
+        searchQuery.trim() ? `?search=${encodeURIComponent(searchQuery.trim())}` : ""
+      }`
       );
-    }
   };
 
   return (
@@ -123,7 +128,12 @@ export default function Header({
             </Button>
 
             {/* User Profile */}
-            <User userName={userName} navItems={navItems} />
+            {!isLoadingUser && (
+              <User userName={userName} navItems={navItems} />
+            )}
+            {isLoadingUser && (
+              <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
+            )}
 
             {/* Theme Toggle */}
             {mounted && (
@@ -184,7 +194,7 @@ export default function Header({
               </Button>
 
               {/* Login Button - Mobile (if not logged in) */}
-              {!userName && (
+              {!isLoadingUser && !userName && (
                 <Button
                   variant="flat"
                   size="sm"
@@ -197,7 +207,12 @@ export default function Header({
               )}
 
               {/* User Icon - Mobile (if logged in) */}
-              {userName && <User userName={userName} navItems={navItems} />}
+              {!isLoadingUser && userName && <User userName={userName} navItems={navItems} />}
+              
+              {/* Loading Placeholder - Mobile */}
+              {isLoadingUser && (
+                <div className="w-8 h-8 rounded-full bg-gray-200 animate-pulse" />
+              )}
             </div>
           )}
         </div>
@@ -282,7 +297,12 @@ export default function Header({
           <div className="border-t border-gray-200 dark:border-gray-700 my-2" />
 
           {/* User Section - Mobile */}
-          {userName ? (
+          {isLoadingUser ? (
+            <div className="flex flex-col gap-2 px-2">
+              <div className="h-4 w-24 bg-gray-200 animate-pulse rounded" />
+              <div className="h-10 w-full bg-gray-200 animate-pulse rounded" />
+            </div>
+          ) : userName ? (
             <div className="flex flex-col gap-2">
               <div className="text-sm font-medium text-gray-700 dark:text-gray-300 px-2">
                 {userName}

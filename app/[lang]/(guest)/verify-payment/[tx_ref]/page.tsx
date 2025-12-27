@@ -59,7 +59,12 @@ export default function Page() {
             <Button
               variant="flat"
               color="primary"
-              onPress={() => router.push(`/${lang}/mycourse`)}
+              onPress={() => {
+                // Small delay to ensure toast is visible before navigation
+                setTimeout(() => {
+                  router.push(`/${lang}/mycourse`);
+                }, 100);
+              }}
             >
               {lang == "en" ? "Continue Learning" : "መማርዎን ይቀጥሉ"}
             </Button>

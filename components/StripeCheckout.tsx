@@ -253,7 +253,7 @@ export default function StripeCheckout({
   };
 
   const checkUserExists = async () => {
-    if (!phoneNumber || phoneNumber.length !== 10) {
+    if (!phoneNumber || (phoneNumber.length < 9 && !phoneNumber.includes("@"))) {
       return;
     }
 
@@ -311,7 +311,13 @@ export default function StripeCheckout({
 
                     <div className="p-3 bg-gray-50 rounded-lg">
                       <p className="text-sm text-gray-600 mb-1">
-                        {lang === "en" ? "Phone Number" : "የስልክ ቁጥር"}
+                        {phoneNumber.includes("@")
+                          ? lang === "en"
+                            ? "Email"
+                            : "ኢሜይል"
+                          : lang === "en"
+                          ? "Phone Number"
+                          : "የስልክ ቁጥር"}
                       </p>
                       <p className="text-lg font-semibold">{phoneNumber}</p>
                     </div>
@@ -337,7 +343,7 @@ export default function StripeCheckout({
                     color="primary"
                     onPress={() => checkUserExists()}
                     isLoading={checkingUser || isLoadingClientSecret}
-                    isDisabled={!phoneNumber || phoneNumber.length !== 10}
+                    isDisabled={!phoneNumber || (phoneNumber.length < 9 && !phoneNumber.includes("@"))}
                   >
                     {lang === "en" ? "Continue to Payment" : "ወደ ክፍያ ይቀጥሉ"}
                   </Button>

@@ -54,11 +54,11 @@ export async function payWithStripe(
         ? originalDolarPrice * (1 - discountPercent / 100)
         : originalDolarPrice;
 
-    const user = await prisma.user.findFirst({
-      where: { role: "student", phoneNumber, id: session.user.id },
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
     });
 
-    if (!user) {
+    if (!user || user.role !== "student") {
       return {
         status: false,
         cause: "user_not_found",

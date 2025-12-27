@@ -2,7 +2,7 @@
 
 import { pay } from "@/lib/action/chapa";
 import { payWithStripe } from "@/lib/action/stripe";
-import { getCurrentUserPhoneNumber } from "@/lib/action";
+import { getCurrentUserInfo } from "@/lib/action";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useParams, useRouter } from "next/navigation";
 import React, { useEffect, useState } from "react";
@@ -53,7 +53,8 @@ export default function Payment({
   const [selectedMethod, setSelectedMethod] = useState<
     "chapa" | "stripe" | null
   >(null);
-  const [userPhoneNumber, setUserPhoneNumber] = useState<string>("");
+  const [userIdentifier, setUserIdentifier] = useState<string>("");
+  const [identifierType, setIdentifierType] = useState<"phone" | "email">("phone");
   const [, setIsLoadingUser] = useState(false);
   const [authError, setAuthError] = useState<string>("");
 
@@ -61,9 +62,8 @@ export default function Payment({
     id: z.string({ message: "" }).nonempty("ID is required"),
     phoneNumber: z
       .string({ message: "" })
-      .min(9, "Must be at least 9 digits")
-      .max(20, "Must be at most 20 digits")
-      .regex(/^\+?\d+$/, "Must contain only digits with optional + prefix"),
+      .min(3, "Must be at least 3 characters")
+      .max(50, "Must be at most 50 characters"),
     affiliateCode: z.string({ message: "" }).optional(),
   });
 
@@ -130,10 +130,11 @@ export default function Payment({
     setIsLoadingUser(true);
     setAuthError("");
     try {
-      const result = await getCurrentUserPhoneNumber();
-      if (result.status && result.phoneNumber) {
-        setUserPhoneNumber(result.phoneNumber);
-        setValue("phoneNumber", result.phoneNumber);
+      const result = await getCurrentUserInfo();
+      if (result.status && result.identifier) {
+        setUserIdentifier(result.identifier);
+        setIdentifierType(result.type as "phone" | "email");
+        setValue("phoneNumber", result.identifier);
 
         // Check if course is free (all prices are 0)
         const isFree = birrPrice === 0 && dolarPrice === 0;
@@ -149,7 +150,7 @@ export default function Payment({
         );
       }
     } catch (error) {
-      console.error("Error fetching user phone number:", error);
+      console.error("Error fetching user information:", error);
       setAuthError(
         lang === "en"
           ? "Failed to get user information"
@@ -168,7 +169,7 @@ export default function Payment({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           courseId: id,
-          phoneNumber: userPhoneNumber,
+          phoneNumber: userIdentifier,
           affiliateCode: affiliateCode || undefined,
           amount: 0,
           currency: "FREE",
@@ -194,7 +195,7 @@ export default function Payment({
   };
 
   const handleChapaSelect = () => {
-    if (!userPhoneNumber) {
+    if (!userIdentifier) {
       setAuthError(
         lang === "en"
           ? "Please login to purchase courses"
@@ -208,7 +209,7 @@ export default function Payment({
   };
 
   const handleStripeSelect = () => {
-    if (!userPhoneNumber) {
+    if (!userIdentifier) {
       setAuthError(
         lang === "en"
           ? "Please login to purchase courses"
@@ -260,7 +261,7 @@ export default function Payment({
               <Button
                 color="success"
                 onPress={() => {
-                  if (userPhoneNumber) {
+                  if (userIdentifier) {
                     handleFreeEnrollment();
                   } else {
                     router.push(`/${lang}/login`);
@@ -379,15 +380,29 @@ export default function Payment({
                 <ModalBody>
                   <div className="p-3 bg-gray-50 rounded-lg">
                     <p className="text-sm text-gray-600 mb-1">
-                      {lang === "en" ? "Phone Number" : "የስልክ ቁጥር"}
+                      {identifierType === "email"
+                        ? lang === "en"
+                          ? "Email"
+                          : "ኢሜይል"
+                        : lang === "en"
+                        ? "Phone Number"
+                        : "የስልክ ቁጥር"}
                     </p>
-                    <p className="text-lg font-semibold">{userPhoneNumber}</p>
+                    <p className="text-lg font-semibold">{userIdentifier}</p>
                   </div>
                   <Input
                     {...register("phoneNumber")}
                     color="primary"
-                    placeholder={lang == "en" ? "Phone Number" : "የስልክ ቁጥር"}
-                    value={userPhoneNumber}
+                    placeholder={
+                      identifierType === "email"
+                        ? lang == "en"
+                          ? "Email"
+                          : "ኢሜይል"
+                        : lang == "en"
+                        ? "Phone Number"
+                        : "የስልክ ቁጥር"
+                    }
+                    value={userIdentifier}
                     isReadOnly
                     isDisabled
                   />
@@ -432,7 +447,7 @@ export default function Payment({
         birrPrice={birrPrice}
         dolarPrice={dolarPrice}
         lang={lang}
-        userPhoneNumber={userPhoneNumber}
+        userPhoneNumber={userIdentifier}
       />
     </>
   );

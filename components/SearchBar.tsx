@@ -6,11 +6,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { addQuery } from "@/lib/utils";
 
 export default function SearchBar() {
-  const searchParams = useSearchParams(),
-    //   createQuery = useCallback(addQuery, [searchParams]),
-    [search, setSearch] = useState(""),
-    router = useRouter(),
-    pathname = usePathname();
+  const searchParams = useSearchParams();
+  const [search, setSearch] = useState("");
+  const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     router.push(

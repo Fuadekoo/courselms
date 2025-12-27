@@ -52,6 +52,27 @@ export {
   useVideoConversionIsFresh,
 } from "./videoConversionStore";
 export type { VideoFile } from "./videoConversionStore";
+export {
+  useTagsStore,
+  useTags,
+  useAvailableCourses,
+  useSelectedTagId,
+  useTagsLoading,
+  useTagsSaving,
+  useTagsSetTags,
+  useTagsSetAvailableCourses,
+  useTagsSetSelectedTag,
+  useTagsSetLoading,
+  useTagsSetSaving,
+  useTagsAddTag,
+  useTagsUpdateTag,
+  useTagsRemoveTag,
+  useTagsReorderTags,
+  useTagsAddCourseToTag,
+  useTagsRemoveCourseFromTag,
+  useTagsReorderCoursesInTag,
+} from "./tagsStore";
+export type { Tag, Course, CourseAssignment } from "./tagsStore";
 
 // Export all hooks
 export {

@@ -10,10 +10,11 @@ import {
   Logs,
   MonitorSmartphone,
   ReceiptText,
+  Play,
 } from "lucide-react";
 import Payment from "@/components/Payment";
 import useData from "@/hooks/useData";
-import { getCourseForCustomer } from "@/lib/data/course";
+import { getCourseForCustomer, checkUserEnrollment } from "@/lib/data/course";
 import { useGlobalLoading } from "@/stores/uiStore";
 import NoData from "@/components/noData";
 import CourseAbout from "@/components/courseAbout";
@@ -27,14 +28,15 @@ import { useCourseDiscount } from "@/hooks/useCourseDiscount";
 import { enrollInFreeCourse } from "@/lib/action/freeCourse";
 import useAction from "@/hooks/useAction";
 import { useRouter } from "next/navigation";
+import { getCurrentUserInfo } from "@/lib/action";
 
 export default function Page() {
   const params = useParams<{ lang: string; id: string }>();
   const lang = params?.lang || "en";
-  const id = params?.id ?? "",
-    searchParams = useSearchParams(),
-    { data, loading } = useData({ func: getCourseForCustomer, args: [id] }),
-    { isOpen, onOpen, onOpenChange } = useDisclosure();
+  const id = params?.id ?? "";
+  const searchParams = useSearchParams();
+  const { data, loading } = useData({ func: getCourseForCustomer, args: [id] });
+  const { isOpen, onOpen, onOpenChange } = useDisclosure();
   const globalLoading = useGlobalLoading();
   
   // Video player state for free subactivities
@@ -42,7 +44,30 @@ export default function Page() {
   const [currentThumbnail, setCurrentThumbnail] = useState<string>("");
   const [shouldAutoplay, setShouldAutoplay] = useState<boolean>(false);
   const videoPlayerRef = useRef<HTMLDivElement>(null);
-  
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [checkingEnrollment, setCheckingEnrollment] = useState(true);
+
+  // Check enrollment status when course data loads
+  useEffect(() => {
+    const checkEnrollment = async () => {
+      if (!data?.id) return;
+
+      try {
+        const result = await getCurrentUserInfo();
+        if (result.status && result.userId) {
+          const enrolled = await checkUserEnrollment(result.userId, data.id);
+          setIsEnrolled(enrolled);
+        }
+      } catch (error) {
+        console.error("Error checking enrollment:", error);
+      } finally {
+        setCheckingEnrollment(false);
+      }
+    };
+
+    checkEnrollment();
+  }, [data?.id]);
+
   // Set initial video (always use main course video as introduction)
   useEffect(() => {
     if (data) {
@@ -145,29 +170,43 @@ export default function Page() {
       ) : (
         <div className="px-2 md:pl-4 lg:pl-6 xl:pl-8 pt-4 md:pt-6 pb-6 md:pr-[28rem] lg:pr-[32rem] h-full flex flex-col gap-6 md:gap-8 overflow-y-auto overflow-x-hidden smooth-">
           <div ref={videoPlayerRef}>
-            <CourseTopOverview
-              {...{
-                title: lang == "en" ? data.titleEn : data.titleAm,
-                by: `${data.instructor.firstName} ${data.instructor.fatherName}`,
+          <CourseTopOverview
+            {...{
+              title: lang == "en" ? data.titleEn : data.titleAm,
+              by: `${data.instructor.firstName} ${data.instructor.fatherName}`,
                 thumbnail: currentThumbnail || data.thumbnail,
                 video: currentVideo || data.video,
                 autoplay: shouldAutoplay,
-              }}
-            />
+            }}
+          />
           </div>
           <div className="p-4 rounded-xl border border-primary-500/30 space-y-8">
             <CourseAbout data={lang == "en" ? data.aboutEn : data.aboutAm} />
             <CourseMainDescription
               btn={
-                <Button 
-                  onPress={handleEnroll} 
-                  variant="solid" 
-                  color="primary"
-                  isLoading={isEnrolling}
-                  isDisabled={isEnrolling}
-                >
-                  {lang == "en" ? "Enroll" : "ይመዝገቡ"}
-                </Button>
+                isEnrolled ? (
+                  <Button
+                    onPress={() => router.push(`/${lang}/mycourse/${id}`)}
+                    variant="bordered"
+                    color="success"
+                    className="w-full"
+                    startContent={<Play className="size-4 fill-current" />}
+                  >
+                    {lang == "en" ? "Continue Learning" : "መማርዎን ይቀጥሉ"}
+                  </Button>
+                ) : (
+                  <Button
+                    onPress={handleEnroll}
+                    variant="solid"
+                    color="primary"
+                    isLoading={isEnrolling}
+                    isDisabled={isEnrolling || checkingEnrollment}
+                  >
+                    {checkingEnrollment
+                      ? (lang == "en" ? "Loading..." : "በመጫን ላይ...")
+                      : lang == "en" ? "Enroll" : "ይመዝገቡ"}
+                  </Button>
+                )
               }
               data={[
                 {
@@ -232,8 +271,8 @@ export default function Page() {
               price={data.price}
               birrPrice={discountedBirrPrice}
               dolarPrice={discountedDolarPrice}
-              originalBirrPrice={data.birrPrice}
-              originalDolarPrice={data.dolarPrice}
+              originalBirrPrice={data.birrPrice ?? undefined}
+              originalDolarPrice={data.dolarPrice ?? undefined}
             />
           )}
         </div>

@@ -66,6 +66,7 @@ export function Permission({
                 "publicAnnouncment",
                 "periodicDiscount",
                 "videoConversion",
+                "assigningCourseToTags",
               ].map((v, i) => {
                 return (
                   <Switch

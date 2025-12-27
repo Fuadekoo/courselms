@@ -36,28 +36,33 @@ export async function GET(request: NextRequest) {
       clientIp?.trim() ||
       "127.0.0.1";
 
-    // Clean up the IP (remove port if present)
-    ip = ip.split(":")[0].trim();
+    // Clean up the IP (remove port if present) WITHOUT breaking IPv6 (e.g. ::1)
+    ip = ip.trim();
+    const ipv4WithPortMatch = ip.match(/^(\d{1,3}(?:\.\d{1,3}){3}):\d+$/);
+    if (ipv4WithPortMatch) {
+      ip = ipv4WithPortMatch[1];
+    }
 
     // For localhost/development, use test IP for consistent testing
-    if (
+    const isLocal =
       ip === "127.0.0.1" ||
       ip === "::1" ||
       ip === "localhost" ||
       ip === "undefined" ||
       ip.startsWith("192.168.") ||
       ip.startsWith("10.") ||
-      ip.startsWith("172.")
-    ) {
-      console.log("Localhost detected, using test IP for development...");
-      
+      ip.startsWith("172.");
+
+    if (isLocal) {
       // Use the same test IP as get-country route for consistency
       ip = "51.158.254.158";
-      console.log("Using test IP for development:", ip);
     }
 
-    console.log("IP Detection Debug:", {
-      detectedIp: ip,
+    const res = NextResponse.json({
+      success: true,
+      ip: ip,
+      // Preserve localhost flag even when we swap to test IP
+      isLocalhost: isLocal,
       headers: {
         forwarded,
         realIp,
@@ -74,25 +79,9 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    return NextResponse.json({
-      success: true,
-      ip: ip,
-      isLocalhost: ip === "127.0.0.1" || ip === "::1" || ip === "localhost",
-      headers: {
-        forwarded,
-        realIp,
-        cfConnectingIp,
-        xForwardedFor,
-        xRealIp,
-        xClientIp,
-        xClusterClientIp,
-        xForwarded,
-        xForwardedForOriginal,
-        xOriginalForwardedFor,
-        remoteAddr,
-        clientIp,
-      },
-    });
+    // Allow short caching on the client to reduce repeated calls
+    res.headers.set("Cache-Control", "public, max-age=60");
+    return res;
   } catch (error) {
     console.error("IP detection error:", error);
     return NextResponse.json(

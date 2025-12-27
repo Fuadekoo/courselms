@@ -90,11 +90,11 @@ export async function pay(
       affiliateRate: Number(course.affiliateRate),
     };
 
-    const user = await prisma.user.findFirst({
-      where: { role: "student", phoneNumber, id: session.user.id },
+    const user = await prisma.user.findUnique({
+      where: { id: session.user.id },
     });
 
-    if (!user) {
+    if (!user || user.role !== "student") {
       return {
         status: false,
         cause: "user_not_found",
@@ -206,7 +206,9 @@ export async function pay(
         },
         body: JSON.stringify({
           amount: courseData.birrPrice || courseData.price, // Use birrPrice for Chapa
-          phone_number: user.phoneNumber,
+          ...(user.phoneNumber.startsWith("oauth_google_") && user.email 
+            ? { email: user.email } 
+            : { phone_number: user.phoneNumber }),
           tx_ref: order.tx_ref,
           callback_url: normalizeUrl(
             process.env.MAIN_API || "",

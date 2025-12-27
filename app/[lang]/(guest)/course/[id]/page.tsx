@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import Payment from "@/components/Payment";
 import useData from "@/hooks/useData";
-import { getCourseForCustomer } from "@/lib/data/course";
+import { getCourseForCustomer, checkUserEnrollment } from "@/lib/data/course";
 import NoData from "@/components/noData";
 import CourseAbout from "@/components/courseAbout";
 import CourseMainDescription from "@/components/courseMainDescription";
@@ -25,23 +25,47 @@ import { Button, useDisclosure } from "@heroui/react";
 import { useRouter } from "next/navigation";
 import { useCourseDiscount } from "@/hooks/useCourseDiscount";
 import PriceDisplay from "@/components/PriceDisplay";
-import { DollarSign } from "lucide-react";
+import { DollarSign, Play } from "lucide-react";
+import { getCurrentUserInfo } from "@/lib/action";
 
 export default function Page() {
   const params = useParams<{ lang: string; id: string }>();
   const lang = params?.lang || "en";
-  const id = params?.id ?? "",
-    searchParams = useSearchParams(),
-    { data, loading } = useData({ func: getCourseForCustomer, args: [id] }),
-    { isOpen, onOpenChange } = useDisclosure();
+  const id = params?.id ?? "";
+  const searchParams = useSearchParams();
+  const { data, loading } = useData({ func: getCourseForCustomer, args: [id] });
+  const { isOpen, onOpenChange } = useDisclosure();
   const router = useRouter();
-  
+
   // Video player state for free subactivities
   const [currentVideo, setCurrentVideo] = useState<string>("");
   const [currentThumbnail, setCurrentThumbnail] = useState<string>("");
   const [shouldAutoplay, setShouldAutoplay] = useState<boolean>(false);
   const videoPlayerRef = useRef<HTMLDivElement>(null);
-  
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [checkingEnrollment, setCheckingEnrollment] = useState(true);
+
+  // Check enrollment status when course data loads
+  useEffect(() => {
+    const checkEnrollment = async () => {
+      if (!data?.id) return;
+
+      try {
+        const result = await getCurrentUserInfo();
+        if (result.status && result.userId) {
+          const enrolled = await checkUserEnrollment(result.userId, data.id);
+          setIsEnrolled(enrolled);
+        }
+      } catch (error) {
+        console.error("Error checking enrollment:", error);
+      } finally {
+        setCheckingEnrollment(false);
+      }
+    };
+
+    checkEnrollment();
+  }, [data?.id]);
+
   // Set initial video (always use main course video as introduction)
   useEffect(() => {
     if (data) {
@@ -54,7 +78,7 @@ export default function Page() {
       setShouldAutoplay(false);
     }
   }, [data]);
-  
+
   // Handle video selection from free subactivities
   const handleSelectVideo = useCallback(
     (
@@ -66,7 +90,7 @@ export default function Page() {
       setCurrentVideo(video);
       setCurrentThumbnail(thumbnail || "");
       setShouldAutoplay(true); // Enable autoplay when subactivity is selected
-      
+
       // Scroll to video player after a short delay to ensure DOM is updated
       setTimeout(() => {
         if (videoPlayerRef.current) {
@@ -79,7 +103,7 @@ export default function Page() {
     },
     []
   );
-  
+
   // Reset autoplay after video starts playing
   useEffect(() => {
     if (shouldAutoplay && currentVideo) {
@@ -141,20 +165,35 @@ export default function Page() {
             <CourseAbout data={lang == "en" ? data.aboutEn : data.aboutAm} />
             <CourseMainDescription
               btn={
-                <Button
-                  onPress={isFree ? onOpenChange : loginRedirect}
-                  variant="solid"
-                  color={isFree ? "success" : "primary"}
-                  className="w-full"
-                >
-                  {isFree
-                    ? lang == "en"
-                      ? "Start Free Course"
-                      : "ነፃ ኮርስ ይጀምሩ"
-                    : lang == "en"
-                    ? "Enroll Now"
-                    : "አሁን ይመዝግቡ"}
-                </Button>
+                isEnrolled ? (
+                  <Button
+                    onPress={() => router.push(`/${lang}/mycourse/${id}`)}
+                    variant="bordered"
+                    color="success"
+                    className="w-full"
+                    startContent={<Play className="size-4 fill-current" />}
+                  >
+                    {lang == "en" ? "Continue Learning" : "መማርዎን ይቀጥሉ"}
+                  </Button>
+                ) : (
+                  <Button
+                    onPress={isFree ? onOpenChange : loginRedirect}
+                    variant="solid"
+                    color={isFree ? "success" : "primary"}
+                    className="w-full"
+                    isDisabled={checkingEnrollment}
+                  >
+                    {checkingEnrollment
+                      ? (lang == "en" ? "Loading..." : "በመጫን ላይ...")
+                      : isFree
+                      ? lang == "en"
+                        ? "Start Free Course"
+                        : "ነፃ ኮርስ ይጀምሩ"
+                      : lang == "en"
+                      ? "Enroll Now"
+                      : "አሁን ይመዝግቡ"}
+                  </Button>
+                )
               }
               data={[
                 {
@@ -230,8 +269,8 @@ export default function Page() {
             price={data.price}
             birrPrice={discountedBirrPrice}
             dolarPrice={discountedDolarPrice}
-            originalBirrPrice={data.birrPrice}
-            originalDolarPrice={data.dolarPrice}
+            originalBirrPrice={data.birrPrice ?? undefined}
+            originalDolarPrice={data.dolarPrice ?? undefined}
           />
         </div>
       )}
