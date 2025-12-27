@@ -185,11 +185,47 @@ const authConfig = {
             })
             .parse(credentials);
         
-        // Try to find user by phone number or email
+        // Normalize phone number for matching (handle different formats)
+        const normalizePhoneNumber = (phone: string): string[] => {
+          const cleaned = phone.trim();
+          const variations: string[] = [cleaned]; // Original format
+          
+          // If it starts with +251, also try without +
+          if (cleaned.startsWith("+251")) {
+            variations.push(cleaned.substring(1)); // Remove +
+            variations.push(`0${cleaned.substring(4)}`); // +251912345678 -> 0912345678
+            variations.push(cleaned.substring(4)); // +251912345678 -> 912345678
+          }
+          
+          // If it starts with 0, try with +251
+          if (cleaned.startsWith("0") && cleaned.length >= 10) {
+            variations.push(`+251${cleaned.substring(1)}`); // 0912345678 -> +251912345678
+            variations.push(cleaned.substring(1)); // 0912345678 -> 912345678
+          }
+          
+          // If it's a 9-digit number starting with 9 or 7, try with +251 and 0
+          if (/^[97]\d{8}$/.test(cleaned)) {
+            variations.push(`+251${cleaned}`); // 912345678 -> +251912345678
+            variations.push(`0${cleaned}`); // 912345678 -> 0912345678
+          }
+          
+          // Remove duplicates
+          return [...new Set(variations)];
+        };
+        
+        // Generate all possible phone number variations
+        const phoneVariations = normalizePhoneNumber(userName);
+        
+        // Build OR conditions for all phone number variations
+        const phoneConditions = phoneVariations.map((variation) => ({
+          phoneNumber: variation,
+        }));
+        
+        // Try to find user by phone number (all variations) or email
         const user = await prisma.user.findFirst({
           where: {
             OR: [
-              { phoneNumber: userName },
+              ...phoneConditions,
               { email: userName },
             ],
           },

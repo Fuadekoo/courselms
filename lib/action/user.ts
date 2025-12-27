@@ -19,12 +19,30 @@ export async function authenticate(
       ...data,
       redirect: false,
     });
-  } catch (error) {
+  } catch (error: any) {
     console.log("ERROR :: ", error);
+    
+    // Handle NextAuth credential errors
+    if (error?.type === "CredentialsSignin") {
+      if (error?.code === "username") {
+        return {
+          status: false,
+          cause: "Phone Number Not Found",
+          message: "The phone number you entered is not registered. Please check your phone number or create a new account.",
+        };
+      } else if (error?.code === "password") {
+        return {
+          status: false,
+          cause: "Invalid Password",
+          message: "The password you entered is incorrect. Please try again.",
+        };
+      }
+    }
+    
     return {
       status: false,
       cause: "Authentication failed",
-      message: "Authentication failed",
+      message: "Authentication failed. Please check your credentials and try again.",
     };
   }
 
