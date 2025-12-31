@@ -1,21 +1,23 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { CInput } from "@/components/heroui";
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { signIn, useSession } from "next-auth/react";
-import { useRouter, useParams } from "next/navigation";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
-import { Button } from "@heroui/react";
-import { useAction } from "@/lib/client-utils";
-import { registerUser, sendOTP } from "@/lib/action";
-import { useGlobalLoading } from "@/stores";
-import { toast } from "sonner";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useSession, signIn } from "next-auth/react";
 import Logo from "@/components/Logo";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+import { zodResolver } from "@hookform/resolvers/zod";
+import useAction from "@/hooks/useAction";
+import { signupWithOTP } from "@/lib/action/user";
+import { sendOTP } from "@/lib/action";
 import OTPInput from "@/components/OTPInput";
-import { Form, Input, Progress } from "@heroui/react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
+
+// Ensure signup returns StateType:
+// type StateType = { status: true; message: string } | { status: false; cause: string; message: string };
+import { CButton } from "@/components/heroui";
+import { Form, Input, Button, Progress } from "@heroui/react";
 
 const formSchema = z.object({
   phoneNumber: z.string({ message: "" }).nonempty("Phone number is required"),
@@ -66,23 +68,26 @@ export default function Page() {
       undefined,
       {
         success: lang == "en" ? "OTP sent successfully!" : "OTP በተሳካ ሁኔታ ተልኳል!",
-        error: lang == "en" ? "Failed to send OTP" : "OTP መላክ አልተሳካም",
         onSuccess: () => {
           // Set UI state and move to next step on successful OTP
           setIsOtpSent(true);
           setOtpTimer(60); // 60 seconds timer
           nextStep();
         },
-        onError: (error) => {
-          if (error.cause === "phone_already_registered") {
+        onError: ({ cause, message }) => {
+          if (cause === "phone_already_registered") {
             toast.error(
-              lang === "en" 
-                ? "This phone number is already registered. Please sign in instead." 
+              lang === "en"
+                ? "This phone number is already registered. Please sign in instead."
                 : "ይህ ስልክ ቁጥር አስቀድሞ ተመዝግቧል። እባክዎ ይግቡ።"
             );
-            return false; // Prevent default error handling
+            return;
           }
-          return true; // Allow default error handling for other errors
+
+          toast.error(
+            message ||
+              (lang === "en" ? "Failed to send OTP" : "OTP መላክ አልተሳካም")
+          );
         },
       }
     );
