@@ -423,22 +423,6 @@ export default function Page() {
                   {lang == "en" ? "Next" : "ቀጥል"}
                 </CButton>
               </div>
-
-              {otpTimer > 0 && (
-                <div className="text-center">
-                  <Button
-                    size="sm"
-                    color="primary"
-                    variant="flat"
-                    onPress={handleGetOtp}
-                    isDisabled={otpTimer > 0}
-                    isLoading={otpPending}
-                    className="text-xs"
-                  >
-                    {lang == "en" ? "Resend OTP" : "OTP እንደገና ላክ"} ({otpTimer}s)
-                  </Button>
-                </div>
-              )}
             </div>
           )}
 
