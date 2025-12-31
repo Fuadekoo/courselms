@@ -238,6 +238,20 @@ export async function sendEmailOTP(
       return { status: false, cause: "no_data", message: "No data provided" };
     }
 
+    // Check if email is already registered
+    const existingUser = await prisma.user.findUnique({
+      where: { email: data.email },
+    });
+
+    if (existingUser) {
+      console.log("❌ Email already registered:", data.email);
+      return {
+        status: false,
+        cause: "email_already_registered",
+        message: "This email is already registered. Please sign in instead.",
+      };
+    }
+
     // Generate OTP
     const otpCode = Math.floor(100000 + Math.random() * 900000);
     console.log("📧 Generating email OTP for:", data.email);
@@ -311,6 +325,20 @@ export async function sendOTP(
     if (!data) {
       console.error("❌ No data provided to sendOTP");
       return { status: false, cause: "no_data", message: "No data provided" };
+    }
+
+    // Check if phone number is already registered
+    const existingUser = await prisma.user.findUnique({
+      where: { phoneNumber: data.phoneNumber },
+    });
+
+    if (existingUser) {
+      console.log("❌ Phone number already registered:", data.phoneNumber);
+      return {
+        status: false,
+        cause: "phone_already_registered",
+        message: "This phone number is already registered. Please sign in instead.",
+      };
     }
 
     // Generate OTP

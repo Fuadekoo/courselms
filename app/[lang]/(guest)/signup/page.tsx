@@ -68,6 +68,23 @@ export default function Page() {
       {
         success: lang == "en" ? "OTP sent successfully!" : "OTP በተሳካ ሁኔታ ተልኳል!",
         error: lang == "en" ? "Failed to send OTP" : "OTP መላክ አልተሳካም",
+        onSuccess: () => {
+          // Set UI state and move to next step on successful OTP
+          setIsOtpSent(true);
+          setOtpTimer(60); // 60 seconds timer
+          nextStep();
+        },
+        onError: (error) => {
+          if (error.cause === "phone_already_registered") {
+            alert(
+              lang === "en" 
+                ? "This phone number is already registered. Please sign in instead." 
+                : "ይህ ስልክ ቁጥር አስቀድሞ ተመዝግቧል። እባክዎ ይግቡ።"
+            );
+            return false; // Prevent default error handling
+          }
+          return true; // Allow default error handling for other errors
+        },
       }
     );
 
@@ -162,13 +179,6 @@ export default function Page() {
 
     // Send phone OTP
     otpAction({ phoneNumber: fullPhoneNumber });
-
-    // Set UI state
-    setIsOtpSent(true);
-    setOtpTimer(60); // 60 seconds timer
-
-    // Move to next step
-    nextStep();
   };
 
   // Handle step validation
