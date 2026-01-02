@@ -89,6 +89,7 @@ export default function AssigningCourseToTagsPage() {
 
   // Local state
   const [tagName, setTagName] = useState("");
+  const [tagNameAm, setTagNameAm] = useState("");
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [draggedTagId, setDraggedTagId] = useState<string | null>(null);
   const [draggedCourseId, setDraggedCourseId] = useState<string | null>(null);
@@ -154,23 +155,27 @@ export default function AssigningCourseToTagsPage() {
   // Tag operations
   const handleCreateTag = async () => {
     if (!tagName.trim()) {
-      toast.error("Tag name is required");
+      toast.error(lang === "en" ? "Tag name is required" : "የመለያ ስም ግዴታ ነው");
       return;
     }
 
     try {
       setSaving(true);
-      const result = await createTag(undefined, { name: tagName.trim() });
+      const result = await createTag(undefined, { 
+        name: tagName.trim(),
+        nameAm: tagNameAm.trim() || undefined
+      });
       if (result?.status) {
-        toast.success("Tag created successfully");
+        toast.success(lang === "en" ? "Tag created successfully" : "መለያ በተሳካ ሁኔታ ተፈጠረ");
         setTagName("");
+        setTagNameAm("");
         onTagModalClose();
         fetchData();
       } else {
-        toast.error(result?.message || "Failed to create tag");
+        toast.error(result?.message || (lang === "en" ? "Failed to create tag" : "መለያ መፍጠር አልተቻለም"));
       }
     } catch (error) {
-      toast.error("Failed to create tag");
+      toast.error(lang === "en" ? "Failed to create tag" : "መለያ መፍጠር አልተቻለም");
     } finally {
       setSaving(false);
     }
@@ -178,7 +183,7 @@ export default function AssigningCourseToTagsPage() {
 
   const handleUpdateTag = async () => {
     if (!editingTag || !tagName.trim()) {
-      toast.error("Tag name is required");
+      toast.error(lang === "en" ? "Tag name is required" : "የመለያ ስም ግዴታ ነው");
       return;
     }
 
@@ -187,18 +192,20 @@ export default function AssigningCourseToTagsPage() {
       const result = await updateTag(undefined, {
         id: editingTag.id,
         name: tagName.trim(),
+        nameAm: tagNameAm.trim() || undefined,
       });
       if (result?.status) {
-        toast.success("Tag updated successfully");
+        toast.success(lang === "en" ? "Tag updated successfully" : "መለያ በተሳካ ሁኔታ ተዘምነ");
         setTagName("");
+        setTagNameAm("");
         setEditingTag(null);
         onTagModalClose();
         fetchData();
       } else {
-        toast.error(result?.message || "Failed to update tag");
+        toast.error(result?.message || (lang === "en" ? "Failed to update tag" : "መለያ መዘምን አልተቻለም"));
       }
     } catch (error) {
-      toast.error("Failed to update tag");
+      toast.error(lang === "en" ? "Failed to update tag" : "መለያ መዘምን አልተቻለም");
     } finally {
       setSaving(false);
     }
@@ -213,12 +220,14 @@ export default function AssigningCourseToTagsPage() {
   const handleEditTag = (tag: Tag) => {
     setEditingTag(tag);
     setTagName(tag.name);
+    setTagNameAm(tag.nameAm || "");
     onTagModalOpen();
   };
 
   const handleOpenTagModal = () => {
     setEditingTag(null);
     setTagName("");
+    setTagNameAm("");
     onTagModalOpen();
   };
 
@@ -502,7 +511,9 @@ export default function AssigningCourseToTagsPage() {
                     <div className="flex items-center gap-3">
                       <GripVertical className="size-5 text-default-400 cursor-move" />
                       <div>
-                        <h3 className="text-lg font-semibold">{tag.name}</h3>
+                        <h3 className="text-lg font-semibold">
+                          {lang === "en" ? tag.name : (tag.nameAm || tag.name)}
+                        </h3>
                         <p className="text-sm text-default-500">
                           {tag.courses.length}{" "}
                           {lang === "en" ? "courses" : "ኮርሶች"}
@@ -641,8 +652,8 @@ export default function AssigningCourseToTagsPage() {
           </ModalHeader>
           <ModalBody>
             <Input
-              label={lang === "en" ? "Tag Name" : "የመለያ ስም"}
-              placeholder={lang === "en" ? "Enter tag name" : "የመለያ ስም ያስገቡ"}
+              label={lang === "en" ? "Tag Name (English)" : "የመለያ ስም (እንግሊዝኛ)"}
+              placeholder={lang === "en" ? "Enter tag name in English" : "የመለያ ስም በእንግሊዝኛ ያስገቡ"}
               value={tagName}
               onChange={(e) => setTagName(e.target.value)}
               onKeyDown={(e) => {
@@ -650,6 +661,20 @@ export default function AssigningCourseToTagsPage() {
                   editingTag ? handleUpdateTag() : handleCreateTag();
                 }
               }}
+              isRequired
+            />
+            <Input
+              label={lang === "en" ? "Tag Name (Amharic)" : "የመለያ ስም (አማርኛ)"}
+              placeholder={lang === "en" ? "Enter tag name in Amharic" : "የመለያ ስም በአማርኛ ያስገቡ"}
+              value={tagNameAm}
+              onChange={(e) => setTagNameAm(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  editingTag ? handleUpdateTag() : handleCreateTag();
+                }
+              }}
+              className="mt-4"
+              isRequired
             />
           </ModalBody>
           <ModalFooter>
@@ -685,8 +710,8 @@ export default function AssigningCourseToTagsPage() {
                 <div className="flex justify-between items-center">
                   <p className="text-sm text-default-600">
                     {lang === "en"
-                      ? `Assign courses to "${selectedTag.name}"`
-                      : `ኮርሶችን ለ"${selectedTag.name}" ይመድቡ`}
+                      ? `Assign courses to "${lang === "en" ? selectedTag.name : (selectedTag.nameAm || selectedTag.name)}"`
+                      : `ኮርሶችን ለ"${lang === "en" ? selectedTag.name : (selectedTag.nameAm || selectedTag.name)}" ይመድቡ`}
                   </p>
                   <div className="flex gap-2">
                     <Button

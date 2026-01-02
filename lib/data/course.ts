@@ -219,6 +219,7 @@ export async function getCoursesForLoginCustomer() {
         return {
           id: tag.id,
           name: tag.name,
+          nameAm: tag.nameAm,
           order: tag.order,
           courses,
         };

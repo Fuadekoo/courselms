@@ -9,106 +9,121 @@ import {
 } from "lucide-react";
 import { useParams } from "next/navigation";
 
-const getFeatures = (lang: string) => [
-  {
-    icon: BookOpen,
-    title: lang === "en" ? "Comprehensive Curriculum" : "ሰፊ የትምህርት ሥነ ጽሑፍ",
-    description:
-      lang === "en"
-        ? "A wide range of courses covering Quran recitation, Tajweed, Islamic studies, and more"
-        : "ቁርአን ንባብ፣ ታጅዊድ፣ የእስላም ጥናት እና ሌሎችንም የሚሸፍኑ ሰፊ ኮርሶች",
+const CONTENT = {
+  en: {
+    badge: "Excellence in Islamic Education",
+    title: "Why Choose Darulkubra",
+    description: "Merging authentic Islamic scholarship with modern pedagogical technology to provide a world-class learning experience.",
+    features: [
+      {
+        icon: BookOpen,
+        title: "Comprehensive Curriculum",
+        desc: "A meticulously designed syllabus covering Quranic sciences, Tajweed, and foundational Islamic studies.",
+      },
+      {
+        icon: GraduationCap,
+        title: "Qualified Faculty",
+        desc: "Learn from certified scholars and educators with proven expertise in classical and contemporary instruction.",
+      },
+      {
+        icon: Clock,
+        title: "Adaptive Learning",
+        desc: "Flexible scheduling designed to integrate seamlessly into your professional and personal life.",
+      },
+      {
+        icon: Award,
+        title: "Accredited Certification",
+        desc: "Earn formal recognition and certificates upon the successful completion of each academic level.",
+      },
+      {
+        icon: Video,
+        title: "Interactive Support",
+        desc: "Direct access to instructors through live sessions for personalized guidance and academic clarity.",
+      },
+    ],
   },
-  {
-    icon: GraduationCap,
-    title: lang === "en" ? "Expert Instructors" : "ባለሙያ አስተማሪዎች",
-    description:
-      lang === "en"
-        ? "Learn from certified teachers with years of experience in Quranic education"
-        : "ከበዓመታት በቁርአን ትምህርት ልምድ ካላቸው የተመዘገቡ አስተማሪዎች ይማሩ",
+  am: {
+    badge: "ጥራት ያለው የእስልምና ትምህርት",
+    title: "ዳሩልኩብራን ለምን ይመርጣሉ?",
+    description: "ትክክለኛውን የእስልምና እውቀት ከዘመናዊ የመማሪያ ቴክኖሎጂ ጋር በማቀናጀት ዓለም አቀፍ ደረጃውን የጠበቀ ትምህርት እናቀርባለን።",
+    features: [
+      {
+        icon: BookOpen,
+        title: "ሁሉን አቀፍ ስርዓተ-ትምህርት",
+        desc: "የቁርአን ሳይንስን፣ ተጅዊድንና መሰረታዊ የእስልምና ትምህርቶችን ያካተተ ጥንቁቅ ዝግጅት።",
+      },
+      {
+        icon: GraduationCap,
+        title: "ብቁ መምህራን",
+        desc: "በዘርፉ የላቀ እውቀትና የማስተማር ልምድ ካላቸው እውቅና ካገኙ መምህራን ይማሩ።",
+      },
+      {
+        icon: Clock,
+        title: "ተለዋዋጭ የመማሪያ ጊዜ",
+        desc: "ከእለት ተእለት ስራዎ ጋር በሚጣጣም መልኩ በራስዎ ፍጥነት እንዲማሩ ታስቦ የተዘጋጀ።",
+      },
+      {
+        icon: Award,
+        title: "ህጋዊ የምስክር ወረቀት",
+        desc: "እያንዳንዱን የትምህርት ደረጃ ሲያጠናቅቁ የተቋሙን ይፋዊ እውቅና እና የምስክር ወረቀት ያግኙ።",
+      },
+      {
+        icon: Video,
+        title: "የቀጥታ ድጋፍ",
+        desc: "ለጥያቄዎችዎ እና ለተጨማሪ ማብራሪያ ከመምህራን ጋር በቀጥታ የሚገናኙበት የቪዲዮ ድጋፍ።",
+      },
+    ],
   },
-  {
-    icon: Clock,
-    title: lang === "en" ? "Flexible Learning" : "መለዋወጫ ትምህርት",
-    description:
-      lang === "en"
-        ? "Learn at your own comfortable pace and on your own schedule"
-        : "በራስዎ ምቹ ፍጥነት እና በራስዎ የጊዜ ሰሌዳ ይማሩ",
-  },
-  {
-    icon: Award,
-    title: lang === "en" ? "Certification" : "ማረጋገጫ",
-    description:
-      lang === "en"
-        ? "Receive official certificates upon completion of each course level"
-        : "እያንዳንዱን የኮርስ ደረጃ ከጨረሱ በኋላ ኦፊሴላዊ ማረጋገጫዎችን ይቀበሉ",
-  },
-  {
-    icon: Video,
-    title: lang === "en" ? "Live Support" : "የቀጥታ ድጋፍ",
-    description:
-      lang === "en"
-        ? "Get live support from our instructors to help you with your questions and doubts"
-        : "ከአስተማሪዎቻችን የቀጥታ ድጋፍ ያግኙ ለጥያቄዎችዎ እና ለጥርጣሬዎችዎ እንዲረዱዎት",
-  },
-];
+};
 
 export function FeaturesSection() {
   const params = useParams();
-  const lang = (params?.lang as string) || "en";
-  const features = getFeatures(lang);
+  const lang = (params?.lang as "en" | "am") || "en";
+  const t = CONTENT[lang] || CONTENT.en;
 
   return (
     <section
       id="features"
-      className="py-20 relative overflow-hidden bg-gradient-to-b from-transparent via-primary-50/30 to-transparent dark:via-primary-950/20"
+      className="py-24 relative overflow-hidden bg-gradient-to-b from-background via-primary-50/20 to-background dark:via-primary-950/10"
     >
-
       <div className="container mx-auto px-4 relative z-10">
-        <div className="text-center mb-16">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 dark:bg-primary/20 mb-6">
-            <div className="w-8 h-8 rounded-full bg-primary/20 dark:bg-primary/30 flex items-center justify-center">
-              <div className="w-4 h-4 rounded-full bg-primary"></div>
-            </div>
-          </div>
-          <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold mb-4 text-balance text-foreground bg-gradient-to-r from-foreground to-foreground/80 bg-clip-text">
-            {lang === "en" ? "Why Choose Darulkubra" : "ዳሩልኩብራን ለምን ይመርጡ"}
-          </h2>
-          <p className="text-lg font-semibold text-primary mb-3">
-            {lang === "en" ? "Excellence in Islamic Education" : "በእስላም ትምህርት ውስጥ ልዩነት"}
+        <div className="text-center mb-20">
+          <p className="text-sm font-bold tracking-widest uppercase text-primary mb-4">
+            {t.badge}
           </p>
-          <p className="text-default-600 max-w-2xl mx-auto text-lg">
-            {lang === "en"
-              ? "Professional Islamic scholarship combined with cutting-edge learning technology"
-              : "የሙያ የእስላም ምሁራዊነት ከዘመናዊ የመማሪያ ቴክኖሎጂ ጋር ተዋህዷል"}
+          <h2 className="text-4xl md:text-5xl font-extrabold mb-6 tracking-tight text-foreground">
+            {t.title}
+          </h2>
+          <p className="text-default-500 max-w-3xl mx-auto text-lg leading-relaxed">
+            {t.description}
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {features.map((feature, index) => {
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 lg:gap-8">
+          {t.features.map((feature, index) => {
             const Icon = feature.icon;
             return (
               <Card
                 key={index}
-                className="group border-none shadow-sm hover:shadow-xl transition-all duration-300 bg-background/80 dark:bg-background/90 border border-divider/50 hover:border-primary/30 backdrop-blur-sm hover:-translate-y-1"
+                className="group p-4 border-none shadow-sm hover:shadow-2xl transition-all duration-500 bg-background/60 dark:bg-default-50/50 backdrop-blur-md border border-divider/50 hover:-translate-y-2"
               >
-                <CardHeader className="flex-col items-start pb-4">
-                  <div className="mb-6 inline-flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 dark:from-primary/20 dark:to-primary/10 group-hover:from-primary/20 group-hover:to-primary/10 dark:group-hover:from-primary/30 dark:group-hover:to-primary/20 transition-all duration-300 shadow-lg">
-                    <Icon className="h-7 w-7 text-primary group-hover:scale-110 transition-transform duration-300" />
+                <CardHeader className="flex-col items-start gap-4">
+                  <div className="h-16 w-16 flex items-center justify-center rounded-2xl bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors duration-500 shadow-inner">
+                    <Icon size={32} strokeWidth={1.5} />
                   </div>
-                  <h3 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors duration-300">
+                  <h3 className="text-2xl font-bold tracking-tight">
                     {feature.title}
                   </h3>
                 </CardHeader>
-                <CardBody className="pt-0">
-                  <p className="text-default-600 leading-relaxed">
-                    {feature.description}
+                <CardBody className="py-2">
+                  <p className="text-default-600 text-base leading-relaxed">
+                    {feature.desc}
                   </p>
                 </CardBody>
               </Card>
             );
           })}
         </div>
-        {/* Additional Why Choose Section */}
       </div>
     </section>
   );

@@ -164,6 +164,7 @@ model Course {
 model Tags {
   id                    String                  @id @default(uuid())
   name                  String                  @db.Text
+  nameAm                String?                 @db.Text
   order                 Int                     @default(1)
   assigningCourseToTags AssigningCourseToTags[]
 }

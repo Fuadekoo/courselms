@@ -173,3 +173,21 @@ export const courseSchema = z.object({
     )
     .optional(),
 });
+
+export const tagSchema = z.object({
+  id: z.string({ message: "" }).optional(),
+  name: z.string({ message: "" }).nonempty("Tag name (English) is required"),
+  nameAm: z.string({ message: "" }).nonempty("Tag name (Amharic) is required"),
+  order: z.number().optional(),
+});
+
+export const createTagSchema = tagSchema.pick({
+  name: true,
+  nameAm: true,
+});
+
+export const updateTagSchema = tagSchema.pick({
+  id: true,
+  name: true,
+  nameAm: true,
+});

@@ -107,12 +107,14 @@ export async function getCoursesByTags(options: GetCoursesByTagsOptions = {}) {
         return {
           id: tag.id,
           name: tag.name,
+          nameAm: tag.nameAm,
           order: tag.order,
           slug: tag.name.toLowerCase().replace(/\s+/g, "-"),
           icon: getTagIcon(tag.name),
           isFeatured: featuredOnly,
           courseCount: includeCourseCount ? courses.length : undefined,
           description: getTagDescription(tag.name),
+          descriptionAm: getTagDescriptionAm(tag.name),
           averageRating,
           reviewCount,
           courses,
@@ -193,5 +195,26 @@ function getTagDescription(tagName: string): string {
   return (
     Object.entries(descriptions).find(([key]) => lowerTag.includes(key))?.[1] ||
     `Explore our ${tagName} courses`
+  );
+}
+
+// Helper function to get tag descriptions in Amharic
+function getTagDescriptionAm(tagName: string): string {
+  const descriptions: Record<string, string> = {
+    quran: "ቅዱስ ቁርአንን በእውቀት ማንበብ፣ መረዳት እና መማሪያ",
+    arabic: "ቁርአንን እና የእስልምና ጽሑፎችን ለመረዳት የአረብኛ ቋንቋ ይማሩ",
+    hadith: "የነብይ ሙሀመድ (ሰ.ወ.ሰ) ትምህርቶችን እና ንግግርን ያጥኑ",
+    fiqh: "የእስልምና ፍቺ እና የተለመዱ የዕለት መንፈሳዊ እይታዎች",
+    memorization: "ቁርአንን በትክክለኛው ታጅዊድ በስርተኝነት መማሪያ",
+    tajweed: "ቁርአንን በትክክለኛው አነጋገጃ የንግግር ማሟያዎች",
+    tawheed: "የእስልምና አንድነትን በዝምብለት መረዳት",
+    seerah: "የነብይ ሙሀመድ (ሰ.ወ.ሰ) ሕይወትን እና ትምህርቶችን ያጥኑ",
+    "islamic history": "የእስልምናን እና የሙስሊም ሥልጣኔዎችን ታሪክ",
+  };
+
+  const lowerTag = tagName.toLowerCase();
+  return (
+    Object.entries(descriptions).find(([key]) => lowerTag.includes(key))?.[1] ||
+    `የ${tagName} ኮርሶቻችንን ይመልከቱ`
   );
 }
