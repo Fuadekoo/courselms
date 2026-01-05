@@ -53,14 +53,14 @@ export function HeroSection() {
   };
 
   return (
-    <section className="relative overflow-hidden pt-16 pb-24 md:pt-28 md:pb-36 bg-gradient-to-b from-primary-50/50 via-background to-background dark:from-primary-950/10">
-      {/* Background Decorative Element */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-6xl pointer-events-none opacity-20 dark:opacity-10">
-        <div className="absolute top-0 left-0 w-72 h-72 bg-primary rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-72 h-72 bg-secondary rounded-full blur-[120px]" />
-      </div>
+    <section className="relative overflow-hidden pt-16 pb-24 md:pt-28 md:pb-36 bg-transparent">
+  {/* Background Decorative Element - Reduced opacity to not clash with logo */}
+  <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-6xl pointer-events-none opacity-10 dark:opacity-5">
+    <div className="absolute top-0 left-0 w-72 h-72 bg-primary rounded-full blur-[120px]" />
+    <div className="absolute bottom-0 right-0 w-72 h-72 bg-secondary rounded-full blur-[120px]" />
+  </div>
 
-      <div className="container mx-auto px-4 relative z-10">
+  <div className="container mx-auto px-4 relative z-10">
         <div className="mx-auto max-w-5xl text-center">
           <Chip 
             variant="dot" 

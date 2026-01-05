@@ -8,11 +8,11 @@ export default function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div
       className={cn(
-        "min-h- relative",
+        "min-h-screen relative w-full overflow-x-hidden",
         "bg-gradient-to-br from-gray-50 via-gray-50/50 to-white dark:from-gray-950 dark:via-gray-900/50 dark:to-gray-900"
       )}
     >
-      {/* Background layers - applied to all pages */}
+      {/* Multi-layer blurred background effect */}
       <>
         {/* Layer 1 - First blur layer (12px) */}
         <div
@@ -54,8 +54,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="absolute inset-0 bg-white/20 dark:bg-gray-900/25 pointer-events-none" />
       </>
 
-      <GuestHeader />
-      <main className="w-full relative z-10 pt-0">{children}</main>
+      {/* Navigation Layer */}
+      <div className="relative z-50">
+        <GuestHeader />
+      </div>
+
+      {/* Content Layer */}
+      <main className="relative z-10 w-full">
+        {children}
+      </main>
     </div>
   );
 }
