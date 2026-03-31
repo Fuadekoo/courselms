@@ -113,17 +113,17 @@ function EnglishCertification({
       <div className="px-10 py-8 text-center">
         <div className="text-sm text-slate-500">This certifies that</div>
         <div className="mt-2 text-4xl font-bold text-[#547e4e]">
-          {data.studentName}
+          {data.studentName || "Student Name"}
         </div>
         {/* Bilingual body: English (left) + Arabic (right) with vertical divider */}
         <div className="mt-5 max-w-4xl mx-auto flex flex-row items-stretch gap-0 text-slate-700 leading-relaxed text-left">
           <div className="flex-1 p-4">
             <p>
-              This certificate is hereby awarded to {data.studentName} for
+              This certificate is hereby awarded to {data.studentName || "Student Name"} for
               successfully completing this course and passing the final
               assessment with a score of <b>{Math.round(data.percent)}%</b>.
               This achievement reflects dedication, strong performance, and a
-              commitment to continuous learning. Final result:{" "}
+              commitment to continuous learning. Final result: {" "}
               <b>{resultLabel}</b>. Issued on <b>{issuedStr}</b>.
             </p>
           </div>
@@ -132,7 +132,7 @@ function EnglishCertification({
           <div className="flex-1 p-4 text-right" lang="ar" dir="rtl">
             <p>
               يشهد مركز دار الكبرى لتعليم القرآن والعلوم الدينية بأن المتعلم{" "}
-              {data.studentName} قد أكمل هذا المساق بنجاح واجتاز التقييم النهائي
+              {data.studentName || "Student Name"} قد أكمل هذا المساق بنجاح واجتاز التقييم النهائي
               بنسبة <b>{Math.round(data.percent)}%</b>. ويعكس ذلك تفوقه والتزامه
               بالجد والاجتهاد والتعلم المستمر. النتيجة النهائية:
               <b> {resultLabelAr}</b>. تاريخ الإصدار: <b>{issuedStr}</b>.
@@ -284,13 +284,13 @@ function AmharicCertification({
       <div className="px-10 py-8 text-center">
         <div className="text-sm text-slate-500">This certifies that</div>
         <div className="mt-2 text-4xl font-bold text-[#547e4e]">
-          {data.studentName}
+          {data.studentName || "Student Name"}
         </div>
         {/* Bilingual body: Amharic (left) + Arabic (right) with vertical divider */}
         <div className="mt-5 max-w-4xl mx-auto flex flex-row items-stretch gap-0 text-slate-700 leading-relaxed text-left">
           <div className="flex-1 p-4">
             <p>
-              እ.ኤ.አ {data.studentName} ይህን ኮርስ በተሳካ ሁኔታ ተጠናቅቋል እና የመጨረሻውን ግምገማ በ{" "}
+              እ.ኤ.አ {data.studentName || "Student Name"} ይህን ኮርስ በተሳካ ሁኔታ ተጠናቅቋል እና የመጨረሻውን ግምገማ በ{" "}
               <b>{Math.round(data.percent)}%</b> ውጤት አልፏል። ይህ ስኬት ትጉህነት፣ ጥረት እና
               በቀጣይ መማር ላይ ያለ ቁርጠኝነትን ያሳያል። መጨረሻ ውጤት:
               <b> {resultLabelAm}</b>። የተሰጠበት ቀን: <b>{issuedStr}</b>።
@@ -301,7 +301,7 @@ function AmharicCertification({
           <div className="flex-1 p-4 text-right" lang="ar" dir="rtl">
             <p>
               يشهد مركز دار الكبرى لتعليم القرآن والعلوم الدينية بأن المتعلم{" "}
-              {data.studentName} قد أكمل هذا المساق بنجاح واجتاز التقييم النهائي
+              {data.studentName || "Student Name"} قد أكمل هذا المساق بنجاح واجتاز التقييم النهائي
               بنسبة <b>{Math.round(data.percent)}%</b>. ويعكس ذلك تفوقه والتزامه
               بالجد والاجتهاد والتعلم المستمر. النتيجة النهائية:
               <b> {resultLabelAr}</b>. تاريخ الإصدار: <b>{issuedStr}</b>.
@@ -596,6 +596,36 @@ export default function Page() {
           >
             Go Back
           </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to profile if student name is missing
+  if (!data?.studentName || data.studentName.trim() === "") {
+    return (
+      <div className="h-full bg-background text-foreground flex items-center justify-center p-6 overflow-auto">
+        <div className="max-w-md w-full border border-slate-200 dark:border-slate-700 rounded-2xl p-6 text-center">
+          <h2 className="text-xl font-semibold mb-1">
+            Profile Incomplete
+          </h2>
+          <p className="text-slate-600 dark:text-slate-300 mb-4">
+            Please complete your profile information before accessing your certificate.
+          </p>
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => router.back()}
+              className="px-4 py-2 rounded-lg border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-800"
+            >
+              Go Back
+            </button>
+            <button
+              onClick={() => router.push(`/${lang}/profile?redirect=${encodeURIComponent(`/${lang}/mycourse/${courseId}/certificate`)}`)}
+              className="px-4 py-2 rounded-lg bg-primary text-white hover:bg-primary/90"
+            >
+              Complete Profile
+            </button>
+          </div>
         </div>
       </div>
     );

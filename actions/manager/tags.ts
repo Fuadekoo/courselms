@@ -36,6 +36,7 @@ export async function getTags() {
       data: tags.map((tag) => ({
         id: tag.id,
         name: tag.name,
+        nameAm: tag.nameAm,
         order: tag.order,
         courses: tag.assigningCourseToTags.map((assignment) => ({
           id: assignment.id,
@@ -90,7 +91,7 @@ export async function getCoursesForAssignment() {
 // Create a new tag
 export async function createTag(
   prevState: StateType,
-  data: { name: string } | undefined
+  data: { name: string; nameAm?: string } | undefined
 ): Promise<StateType> {
   try {
     const session = await auth();
@@ -98,8 +99,12 @@ export async function createTag(
       return { status: false, cause: "unauthorized", message: "Unauthorized" };
     }
 
-    if (!data?.name) {
-      return { status: false, cause: "name", message: "Tag name is required" };
+    if (!data?.name || !data?.nameAm) {
+      return { 
+        status: false, 
+        cause: "name", 
+        message: data?.name ? "Amharic tag name is required" : "English tag name is required"
+      };
     }
 
     // Get the max order value
@@ -113,6 +118,7 @@ export async function createTag(
     await prisma.tags.create({
       data: {
         name: data.name,
+        nameAm: data.nameAm,
         order: maxOrder + 1,
       },
     });
@@ -131,7 +137,7 @@ export async function createTag(
 // Update tag name
 export async function updateTag(
   prevState: StateType,
-  data: { id: string; name: string } | undefined
+  data: { id: string; name: string; nameAm?: string } | undefined
 ): Promise<StateType> {
   try {
     const session = await auth();
@@ -139,17 +145,20 @@ export async function updateTag(
       return { status: false, cause: "unauthorized", message: "Unauthorized" };
     }
 
-    if (!data?.id || !data?.name) {
+    if (!data?.id || !data?.name || !data?.nameAm) {
       return {
         status: false,
         cause: "data",
-        message: "Tag ID and name are required",
+        message: "Tag ID and both names are required",
       };
     }
 
     await prisma.tags.update({
       where: { id: data.id },
-      data: { name: data.name },
+      data: { 
+        name: data.name,
+        nameAm: data.nameAm,
+      },
     });
 
     return { status: true };

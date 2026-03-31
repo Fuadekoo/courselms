@@ -18,6 +18,7 @@ export interface CourseAssignment {
 export interface Tag {
   id: string;
   name: string;
+  nameAm?: string;
   order: number;
   courses: CourseAssignment[];
 }

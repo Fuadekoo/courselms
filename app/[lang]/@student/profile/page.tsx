@@ -2,7 +2,7 @@
 
 import { CInput } from "@/components/heroui";
 import { Edit2, Save, X } from "lucide-react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -24,8 +24,12 @@ type ProfileFormData = z.infer<typeof profileSchema>;
 
 export default function StudentProfilePage() {
   const params = useParams<{ lang: string }>();
+  const searchParams = useSearchParams();
   const lang = params?.lang ?? "en";
   const [isEditing, setIsEditing] = useState(false);
+  
+  // Get redirect URL from search params
+  const redirectUrl = searchParams?.get("redirect");
 
   // Use Zustand store for profile data with automatic caching
   const {
@@ -83,6 +87,11 @@ export default function StudentProfilePage() {
           { id: loadingToast }
         );
         setIsEditing(false);
+        
+        // Redirect back to certificate if redirect URL is provided
+        if (redirectUrl) {
+          window.location.href = decodeURIComponent(redirectUrl);
+        }
       } else {
         toast.error(
           result?.message ||

@@ -12,6 +12,7 @@ import { signupWithOTP } from "@/lib/action/user";
 import { sendOTP } from "@/lib/action";
 import OTPInput from "@/components/OTPInput";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { toast } from "sonner";
 
 // Ensure signup returns StateType:
 // type StateType = { status: true; message: string } | { status: false; cause: string; message: string };
@@ -67,7 +68,27 @@ export default function Page() {
       undefined,
       {
         success: lang == "en" ? "OTP sent successfully!" : "OTP በተሳካ ሁኔታ ተልኳል!",
-        error: lang == "en" ? "Failed to send OTP" : "OTP መላክ አልተሳካም",
+        onSuccess: () => {
+          // Set UI state and move to next step on successful OTP
+          setIsOtpSent(true);
+          setOtpTimer(60); // 60 seconds timer
+          nextStep();
+        },
+        onError: ({ cause, message }) => {
+          if (cause === "phone_already_registered") {
+            toast.error(
+              lang === "en"
+                ? "This phone number is already registered. Please sign in instead."
+                : "ይህ ስልክ ቁጥር አስቀድሞ ተመዝግቧል። እባክዎ ይግቡ።"
+            );
+            return;
+          }
+
+          toast.error(
+            message ||
+              (lang === "en" ? "Failed to send OTP" : "OTP መላክ አልተሳካም")
+          );
+        },
       }
     );
 
@@ -162,13 +183,6 @@ export default function Page() {
 
     // Send phone OTP
     otpAction({ phoneNumber: fullPhoneNumber });
-
-    // Set UI state
-    setIsOtpSent(true);
-    setOtpTimer(60); // 60 seconds timer
-
-    // Move to next step
-    nextStep();
   };
 
   // Handle step validation
@@ -423,22 +437,6 @@ export default function Page() {
                   {lang == "en" ? "Next" : "ቀጥል"}
                 </CButton>
               </div>
-
-              {otpTimer > 0 && (
-                <div className="text-center">
-                  <Button
-                    size="sm"
-                    color="primary"
-                    variant="flat"
-                    onPress={handleGetOtp}
-                    isDisabled={otpTimer > 0}
-                    isLoading={otpPending}
-                    className="text-xs"
-                  >
-                    {lang == "en" ? "Resend OTP" : "OTP እንደገና ላክ"} ({otpTimer}s)
-                  </Button>
-                </div>
-              )}
             </div>
           )}
 
