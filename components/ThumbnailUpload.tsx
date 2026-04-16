@@ -27,7 +27,7 @@ function ThumbnailUpload({
       onImageSelect(file);
     } else {
       alert(
-        lang === "en" ? "Please select an image file" : "እባክዎ የምስል ፋይል ይምረጡ"
+        lang === "en" ? "Please select an image file" : "እባክዎ የምስል ፋይል ይምረጡ",
       );
     }
   };
