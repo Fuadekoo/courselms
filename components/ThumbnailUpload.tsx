@@ -47,7 +47,11 @@ function ThumbnailUpload({
         accept="image/*"
         onChange={(e: ChangeEvent<HTMLInputElement>) => {
           const file = e.target.files?.[0];
-          if (file) handleFileSelect(file);
+          if (file) {
+            handleFileSelect(file);
+            // Allow selecting the same file again after clear/remove.
+            e.target.value = "";
+          }
         }}
         className="hidden"
         disabled={disabled}
@@ -69,7 +73,12 @@ function ThumbnailUpload({
           setIsDragOver(true);
         }}
         onDragLeave={() => setIsDragOver(false)}
-        onClick={() => !disabled && fileInputRef.current?.click()}
+        onClick={() => {
+          if (!disabled && fileInputRef.current) {
+            fileInputRef.current.value = "";
+            fileInputRef.current.click();
+          }
+        }}
       >
         {currentThumbnail ? (
           <>
@@ -85,7 +94,10 @@ function ThumbnailUpload({
                 startContent={<Upload className="w-4 h-4" />}
                 onClick={(e: MouseEvent<Element>) => {
                   e.stopPropagation();
-                  fileInputRef.current?.click();
+                  if (fileInputRef.current) {
+                    fileInputRef.current.value = "";
+                    fileInputRef.current.click();
+                  }
                 }}
                 disabled={disabled}
               >
@@ -101,6 +113,9 @@ function ThumbnailUpload({
               onClick={(e: MouseEvent<Element>) => {
                 e.stopPropagation();
                 onImageRemove();
+                if (fileInputRef.current) {
+                  fileInputRef.current.value = "";
+                }
               }}
               disabled={disabled}
             >
