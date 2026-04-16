@@ -28,10 +28,20 @@ function SubActivityThumbnailUpload({
 }: SubActivityThumbnailUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const inputId = `thumbnail-upload-${Math.random().toString(36).substr(2, 9)}`;
-  
+
   const { setUploading, clearUploadState } = useSubActivityThumbnailStore();
-  const uploadState = useSubActivityThumbnailUploadState(activityIndex, subActivityIndex);
+  const uploadState = useSubActivityThumbnailUploadState(
+    activityIndex,
+    subActivityIndex,
+  );
   const isUploading = uploadState?.isUploading ?? false;
+
+  const openFilePicker = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
+  };
 
   // Cleanup on unmount
   useEffect(() => {
@@ -42,7 +52,9 @@ function SubActivityThumbnailUpload({
 
   const handleFileSelect = async (file: File) => {
     if (!file.type.startsWith("image/")) {
-      alert(lang === "en" ? "Please select an image file" : "እባክዎ የምስል ፋይል ይምረጡ");
+      alert(
+        lang === "en" ? "Please select an image file" : "እባክዎ የምስል ፋይል ይምረጡ",
+      );
       return;
     }
 
@@ -51,16 +63,16 @@ function SubActivityThumbnailUpload({
     try {
       const formData = new FormData();
       formData.append("thumbnail", file);
-      
+
       const response = await fetch("/api/upload-thumbnail", {
         method: "POST",
         body: formData,
       });
-      
+
       const data = await response.json();
       if (data.success && data.filename) {
         onThumbnailSelect(
-          data.thumbnailUrl || `/api/files/thumbnails/${data.filename}`
+          data.thumbnailUrl || `/api/files/thumbnails/${data.filename}`,
         );
       } else {
         alert(lang === "en" ? "Upload failed" : "መስቀል አልተሳካም");
@@ -75,6 +87,22 @@ function SubActivityThumbnailUpload({
 
   return (
     <div className="space-y-2">
+      <input
+        type="file"
+        accept="image/*"
+        onChange={(e) => {
+          const file = e.target.files?.[0];
+          if (file) {
+            handleFileSelect(file);
+            e.target.value = "";
+          }
+        }}
+        className="hidden"
+        id={inputId}
+        ref={fileInputRef}
+        disabled={isUploading}
+      />
+
       {hasThumbnail ? (
         <div className="flex items-center justify-between bg-success/10 p-2 rounded">
           <div className="flex items-center gap-2">
@@ -96,7 +124,7 @@ function SubActivityThumbnailUpload({
               variant="light"
               color="primary"
               onPress={() => {
-                fileInputRef.current?.click();
+                openFilePicker();
               }}
               isDisabled={isUploading}
             >
@@ -127,30 +155,17 @@ function SubActivityThumbnailUpload({
           <div className="flex flex-col items-center gap-2">
             <Image className="size-8 text-primary-500" />
             <p className="text-sm text-gray-600">
-              {lang === "en" ? "Upload sub-activity thumbnail" : "የንዑስ እንቅስቃሴ ምስል ይስቀሉ"}
+              {lang === "en"
+                ? "Upload sub-activity thumbnail"
+                : "የንዑስ እንቅስቃሴ ምስል ይስቀሉ"}
             </p>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0];
-                if (file) {
-                  handleFileSelect(file);
-                  e.target.value = '';
-                }
-              }}
-              className="hidden"
-              id={inputId}
-              ref={fileInputRef}
-              disabled={isUploading}
-            />
             <Button
               type="button"
               size="sm"
               color="primary"
               variant="bordered"
               onPress={() => {
-                fileInputRef.current?.click();
+                openFilePicker();
               }}
               isDisabled={isUploading}
             >
@@ -160,7 +175,7 @@ function SubActivityThumbnailUpload({
           </div>
         </div>
       )}
-      
+
       {isUploading && (
         <div className="flex items-center gap-2 p-2 bg-blue-50 border border-blue-200 rounded-lg">
           <span className="text-sm text-primary font-medium">
@@ -174,4 +189,3 @@ function SubActivityThumbnailUpload({
 
 // Memoize to prevent unnecessary re-renders when parent form updates
 export default memo(SubActivityThumbnailUpload);
-
